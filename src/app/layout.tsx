@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -20,8 +18,8 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Cervus Patrimoine — Cabinet de gestion de patrimoine",
   description:
-    "Cervus Patrimoine, cabinet indépendant de gestion de patrimoine haut de gamme. PER, assurance-vie, PEA, stratégie patrimoniale sur mesure.",
-  keywords: ["gestion de patrimoine", "PER", "assurance-vie", "PEA", "conseil financier", "Cervus Patrimoine"],
+    "Cervus Patrimoine, cabinet indépendant de gestion de patrimoine haut de gamme. PER, assurance-vie, succession, stratégie patrimoniale sur mesure.",
+  keywords: ["gestion de patrimoine", "PER", "assurance-vie", "conseil financier", "Cervus Patrimoine"],
 };
 
 export default function RootLayout({
@@ -31,11 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${cormorant.variable} ${inter.variable}`}>
-      <body className="antialiased">
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

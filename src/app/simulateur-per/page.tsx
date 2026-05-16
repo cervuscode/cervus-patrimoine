@@ -1,47 +1,46 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import SimulateurForm from "./components/SimulateurForm";
 
 export const metadata: Metadata = {
   title: "Simulateur PER — Cervus Patrimoine",
-  description: "Simulez votre Plan d'Épargne Retraite et estimez votre économie d'impôt avec Cervus Patrimoine.",
+  description:
+    "Calculez votre économie d'impôt PER et projetez votre capital retraite. Simulation gratuite et personnalisée — Cervus Patrimoine.",
 };
-
-const disclaimer =
-  "Les résultats de cette simulation sont fournis à titre indicatif et ne constituent pas un conseil en investissement. Pour une analyse personnalisée de votre situation, contactez un conseiller agréé.";
 
 export default function SimulateurPERPage() {
   return (
-    <div className="pt-20 min-h-screen bg-cervus-cream">
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-24">
-        <p className="font-inter text-xs text-cervus-gold uppercase tracking-[0.3em] mb-4">
-          Outil interactif
-        </p>
-        <h1 className="font-cormorant text-5xl font-light text-cervus-dark mb-4">
+    <div className="min-h-screen bg-cervus-cream flex flex-col">
+      {/* Minimal header */}
+      <header className="w-full px-6 py-5 flex items-center justify-between border-b border-cervus-cream bg-white">
+        <Link href="/" className="font-cormorant text-xl font-semibold text-cervus-dark tracking-wide">
+          Cervus Patrimoine
+        </Link>
+        <span className="font-inter text-xs text-cervus-dark/40 uppercase tracking-widest hidden sm:block">
           Simulateur PER
-        </h1>
-        <p className="font-inter text-cervus-dark/60 text-base leading-relaxed mb-10">
-          Estimez l&apos;économie d&apos;impôt générée par un versement sur votre
-          Plan d&apos;Épargne Retraite selon votre tranche marginale d&apos;imposition.
-        </p>
+        </span>
+      </header>
 
-        {/* PLACEHOLDER — Formulaire simulateur à développer */}
-        <div className="bg-white border border-cervus-cream rounded-sm p-10 flex flex-col gap-6">
-          <p className="font-inter text-sm text-cervus-dark/40 text-center py-8">
-            Le simulateur interactif sera intégré ici.
-          </p>
-
-          {/* Disclaimer — affiché à chaque étape du formulaire */}
-          <div className="border-t border-cervus-cream pt-6">
-            <p className="font-inter text-xs text-cervus-dark/40 leading-relaxed">
-              {disclaimer}
-            </p>
-          </div>
+      {/* Form wrapper */}
+      <main className="flex-1 flex items-start justify-center py-10 px-4">
+        <div className="w-full max-w-xl bg-white rounded-sm shadow-sm border border-cervus-cream p-6 sm:p-10">
+          <SimulateurForm />
         </div>
+      </main>
 
-        {/* Disclaimer répété sous le formulaire */}
-        <p className="font-inter text-xs text-cervus-dark/40 leading-relaxed mt-6">
-          {disclaimer}
+      {/* Minimal footer */}
+      <footer className="w-full px-6 py-4 border-t border-cervus-cream bg-white text-center">
+        <p className="font-inter text-[10px] text-cervus-dark/30">
+          © 2026 Cervus Patrimoine · ORIAS n° 25006770 ·{" "}
+          <Link href="/mentions-legales" className="underline hover:text-cervus-gold transition-colors">
+            Mentions légales
+          </Link>
+          {" · "}
+          <Link href="/politique-de-confidentialite" className="underline hover:text-cervus-gold transition-colors">
+            Confidentialité
+          </Link>
         </p>
-      </div>
+      </footer>
     </div>
   );
 }

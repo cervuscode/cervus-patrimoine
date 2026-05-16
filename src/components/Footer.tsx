@@ -46,7 +46,7 @@ export default function Footer() {
             © 2026 Cervus Patrimoine. Tous droits réservés.
           </p>
           <p className="font-inter text-xs text-white/20">
-            Conseil en Gestion de Patrimoine — Réglementé AMF / ACPR
+            ORIAS n° 25006770 — Mandataire d&apos;Intermédiaire d&apos;Assurance
           </p>
         </div>
       </div>

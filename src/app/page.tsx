@@ -4,37 +4,31 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Cervus Patrimoine — Cabinet de gestion de patrimoine haut de gamme",
   description:
-    "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, PEA. Prenez rendez-vous.",
+    "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, succession. Prenez rendez-vous.",
 };
 
 // ─── Hero Section ──────────────────────────────────────────────────────────────
 function HeroSection() {
   return (
     <section className="relative min-h-screen bg-cervus-dark flex items-center overflow-hidden">
-      {/* Subtle radial glow */}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_#795D48_0%,_transparent_60%)]" />
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-24">
         <div className="max-w-3xl">
-          {/* Eyebrow */}
           <p className="font-inter text-xs text-cervus-gold-light uppercase tracking-[0.3em] mb-8">
             Cabinet de Gestion de Patrimoine
           </p>
 
-          {/* Headline — PLACEHOLDER accroche */}
           <h1 className="font-cormorant text-6xl lg:text-7xl xl:text-8xl font-light text-white leading-[1.05] mb-8">
-            Votre patrimoine,{" "}
-            <span className="text-cervus-gold-light italic">notre expertise</span>
+            Une gestion transparente{" "}
+            <span className="text-cervus-gold-light italic">de votre patrimoine</span>
           </h1>
 
-          {/* Subline — PLACEHOLDER */}
           <p className="font-inter text-lg text-white/50 leading-relaxed max-w-xl mb-12">
-            {/* PLACEHOLDER — Sous-titre à affiner avec le client */}
             Cervus Patrimoine vous accompagne avec une approche indépendante et
             personnalisée pour construire, protéger et transmettre votre capital.
           </p>
 
-          {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               href="/simulateur-per"
@@ -51,7 +45,6 @@ function HeroSection() {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <div className="absolute bottom-16 right-8 lg:right-16 hidden lg:flex flex-col items-center gap-3 opacity-30">
           <div className="w-px h-16 bg-cervus-gold" />
           <span className="font-inter text-[10px] text-white tracking-[0.25em] rotate-90 origin-center translate-x-8">
@@ -68,7 +61,7 @@ const services = [
   {
     title: "PER & Retraite",
     description:
-      "Optimisez votre préparation à la retraite grâce au Plan d'Épargne Retraite. Déduction fiscale immédiate, capital ou rente à terme.",
+      "Optimisez votre fiscalité aujourd'hui tout en préparant votre retraite de demain.",
     tag: "Défiscalisation",
     href: "/services#per",
     icon: (
@@ -81,8 +74,8 @@ const services = [
   {
     title: "Assurance-vie",
     description:
-      "L'enveloppe fiscale préférée des Français. Diversification, transmission optimisée et liquidité à tout moment.",
-    tag: "Transmission",
+      "Faites fructifier votre capital dans une enveloppe souple, fiscalement avantageuse.",
+    tag: "Capitalisation",
     href: "/services#assurance-vie",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -97,27 +90,16 @@ const services = [
     ),
   },
   {
-    title: "PEA & Investissement",
+    title: "Succession",
     description:
-      "Investissez en actions européennes avec une fiscalité avantageuse. Construisez un portefeuille long terme aligné sur vos objectifs.",
-    tag: "Performance",
-    href: "/services#pea",
+      "Anticipez la transmission de votre patrimoine pour protéger vos proches.",
+    tag: "Transmission",
+    href: "/simulateur-succession",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polyline
-          points="3,21 10,13 15,17 23,7"
-          stroke="#795D48"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <polyline
-          points="19,7 23,7 23,11"
-          stroke="#795D48"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <circle cx="10" cy="10" r="4.5" stroke="#795D48" strokeWidth="1.5" />
+        <circle cx="20" cy="19" r="4.5" stroke="#795D48" strokeWidth="1.5" />
+        <path d="M14 10h3a3 3 0 0 1 3 3v2" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -205,7 +187,6 @@ function SimulateurPreviewSection() {
     <section className="py-28 bg-cervus-dark" id="simulateur">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left */}
           <div>
             <p className="font-inter text-xs text-cervus-gold-light uppercase tracking-[0.3em] mb-6">
               Outil interactif
@@ -215,7 +196,6 @@ function SimulateurPreviewSection() {
               <span className="italic text-cervus-gold-light">avec un PER ?</span>
             </h2>
             <p className="font-inter text-base text-white/50 leading-relaxed mb-10">
-              {/* PLACEHOLDER — Description simulateur */}
               Notre simulateur calcule en temps réel l&apos;économie d&apos;impôt
               générée par votre versement PER, selon votre tranche marginale
               d&apos;imposition.
@@ -237,7 +217,6 @@ function SimulateurPreviewSection() {
             </Link>
           </div>
 
-          {/* Right — mockup */}
           <div className="relative">
             <div className="border border-white/10 rounded-sm p-8 bg-white/5">
               <p className="font-inter text-xs text-white/30 uppercase tracking-widest mb-6">
@@ -264,7 +243,6 @@ function SimulateurPreviewSection() {
                   </p>
                   <p className="font-cormorant text-4xl text-white font-light">— — —</p>
                   <p className="font-inter text-xs text-white/30 mt-2">
-                    {/* PLACEHOLDER — valeur calculée dynamiquement */}
                     Renseignez vos données pour obtenir votre estimation
                   </p>
                 </div>
@@ -297,7 +275,6 @@ function TeamSection() {
           <div className="bg-white border border-cervus-cream rounded-sm p-10 flex flex-col sm:flex-row gap-8 items-start">
             {/* Photo placeholder */}
             <div className="w-24 h-24 shrink-0 rounded-sm bg-cervus-cream border border-cervus-gold/20 flex items-center justify-center">
-              {/* PLACEHOLDER — Photo d'Auguste Dechery */}
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                 <circle cx="16" cy="12" r="6" stroke="#795D48" strokeWidth="1.5" />
                 <path
@@ -319,12 +296,11 @@ function TeamSection() {
                 </p>
               </div>
 
-              {/* PLACEHOLDER biographie */}
               <p className="font-inter text-sm text-cervus-dark/60 leading-relaxed">
-                [Placeholder biographie] Auguste Dechery accompagne ses clients dans
-                la construction et l&apos;optimisation de leur patrimoine depuis
-                [X] ans. Diplômé de [Formation], il apporte une vision
-                indépendante et rigoureuse à chaque stratégie patrimoniale.
+                Fort d&apos;une expérience acquise en banque privée et en cabinet de
+                gestion de patrimoine indépendant, Auguste Dechery accompagne ses clients
+                avec rigueur et transparence dans la construction et l&apos;optimisation
+                de leur stratégie patrimoniale.
               </p>
 
               <Link
@@ -364,7 +340,6 @@ function ContactSection() {
             <span className="italic text-cervus-gold">votre projet</span>
           </h2>
           <p className="font-inter text-base text-cervus-dark/60 leading-relaxed mb-10">
-            {/* PLACEHOLDER — texte contact */}
             Chaque situation patrimoniale est unique. Prenez rendez-vous pour un
             premier entretien confidentiel et sans engagement.
           </p>

@@ -132,6 +132,18 @@ describe("calculerParts", () => {
   it("Parent isolé 2 enfants → 1/2.5", () => {
     expect(calculerParts("parent_isole", 2)).toEqual({ partsBase: 1, partsTotal: 2.5 });
   });
+
+  it("Célibataire 3 enfants → 1/3 (+1 pt à partir du 3ème)", () => {
+    expect(calculerParts("celibataire", 3)).toEqual({ partsBase: 1, partsTotal: 3.0 });
+  });
+
+  it("Marié 3 enfants → 2/4 (+1 pt à partir du 3ème)", () => {
+    expect(calculerParts("marie", 3)).toEqual({ partsBase: 2, partsTotal: 4.0 });
+  });
+
+  it("Parent isolé 3 enfants → 1/3.5 (+1 pt à partir du 3ème)", () => {
+    expect(calculerParts("parent_isole", 3)).toEqual({ partsBase: 1, partsTotal: 3.5 });
+  });
 });
 
 // ── calculerRevenuImposable ───────────────────────────────────────────────────

@@ -72,31 +72,40 @@ export function calculerTMI(R: number, partsBase: number, partsTotal: number): n
 // ── CALCUL DES PARTS FISCALES ─────────────────────────────────────────────────
 // statut : 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole'
 // nbEnfants : 0 à 6 (6 = "6 et plus", traité comme 6)
+//
+// Règle enfants (barème 2025) :
+//   Standard (célibataire/divorcé/marié/pacsé) : +0.5 pt (1er), +0.5 pt (2ème), +1 pt/enfant à partir du 3ème
+//   Parent isolé (case T) : +1 pt (1er), +0.5 pt (2ème), +1 pt/enfant à partir du 3ème
+
+function partsEnfantsStandard(n: number): number {
+  if (n === 0) return 0;
+  if (n === 1) return 0.5;
+  if (n === 2) return 1.0;
+  return 1.0 + (n - 2) * 1.0;
+}
+
+function partsEnfantsParentIsole(n: number): number {
+  if (n === 0) return 0;
+  if (n === 1) return 1.0;
+  if (n === 2) return 1.5;
+  return 1.5 + (n - 2) * 1.0;
+}
+
 export function calculerParts(
   statut: 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole',
   nbEnfants: number
 ): { partsBase: number; partsTotal: number } {
-  let partsBase: number;
-  let partsTotal: number;
-
   if (statut === 'marie' || statut === 'pacse') {
-    partsBase = 2;
-    partsTotal = 2 + nbEnfants * 0.5;
+    const partsBase = 2;
+    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) };
   } else if (statut === 'parent_isole') {
-    // Case T : 1 part entière pour le 1er enfant, 0.5 pour les suivants
-    partsBase = 1;
-    if (nbEnfants === 0) {
-      partsTotal = 1;
-    } else {
-      partsTotal = 1 + 1 + (nbEnfants - 1) * 0.5; // 1 base + 1 premier enfant + 0.5/enfant suivant
-    }
+    const partsBase = 1;
+    return { partsBase, partsTotal: partsBase + partsEnfantsParentIsole(nbEnfants) };
   } else {
     // celibataire ou divorce
-    partsBase = 1;
-    partsTotal = 1 + nbEnfants * 0.5;
+    const partsBase = 1;
+    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) };
   }
-
-  return { partsBase, partsTotal };
 }
 
 // ── CALCUL REVENU NET IMPOSABLE ───────────────────────────────────────────────

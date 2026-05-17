@@ -18,6 +18,14 @@ const config: Config = {
         cormorant: ["var(--font-cormorant)", "Georgia", "serif"],
         inter: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
+      keyframes: {
+        slideInUp:   { "0%": { opacity: "0", transform: "translateY(28px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+        slideInDown: { "0%": { opacity: "0", transform: "translateY(-28px)" }, "100%": { opacity: "1", transform: "translateY(0)" } },
+      },
+      animation: {
+        "slide-in-up":   "slideInUp 0.35s ease-out",
+        "slide-in-down": "slideInDown 0.35s ease-out",
+      },
     },
   },
   plugins: [],

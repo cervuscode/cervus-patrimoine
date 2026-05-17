@@ -12,12 +12,38 @@ function formatPhone(phone: string): string {
   return "+33" + cleaned;
 }
 
+const BREVO_API = "https://api.brevo.com/v3";
+
 // Numéros whitelistés : tout code à 6 chiffres est accepté, Twilio non appelé
 const PHONE_WHITELIST = new Set(["0781196794", "+33781196794"]);
 
+async function markOtpVerifiedInBrevo(email: string, telephone: string) {
+  if (!email) return;
+  const cleaned = telephone.replace(/\s/g, "");
+  const formatted = cleaned.startsWith("0")
+    ? "+33" + cleaned.slice(1)
+    : cleaned.startsWith("+")
+    ? cleaned
+    : "+33" + cleaned;
+  try {
+    await fetch(`${BREVO_API}/contacts/${encodeURIComponent(email)}`, {
+      method: "PUT",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        attributes: { OTP_VERIFIE: true, SMS: formatted, SIMULATION_EN_ATTENTE: false },
+      }),
+    });
+  } catch {
+    // Non-blocking
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { telephone, code } = await req.json();
+    const { telephone, code, email } = await req.json();
     if (!telephone || !code) {
       return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
     }
@@ -25,6 +51,7 @@ export async function POST(req: NextRequest) {
     // Whitelist — accepter tout code valide (6 chiffres) sans appeler Twilio
     if (PHONE_WHITELIST.has(telephone.replace(/\s/g, ""))) {
       if (/^\d{6}$/.test(code)) {
+        void markOtpVerifiedInBrevo(email ?? "", telephone);
         return NextResponse.json({ valid: true });
       }
       return NextResponse.json({ valid: false, error: "Code incorrect ou expiré" }, { status: 400 });
@@ -40,6 +67,7 @@ export async function POST(req: NextRequest) {
       .verificationChecks.create({ to: formatPhone(telephone), code });
 
     if (check.status === "approved") {
+      void markOtpVerifiedInBrevo(email ?? "", telephone);
       return NextResponse.json({ valid: true });
     } else {
       return NextResponse.json({ valid: false, error: "Code incorrect ou expiré" }, { status: 400 });

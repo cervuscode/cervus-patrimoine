@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   SimulateurData,
   ComputedResults,
@@ -109,7 +110,7 @@ function compute(data: SimulateurData): ComputedResults {
 export default function SimulateurForm() {
   const [qIndex, setQIndex] = useState(0);
   const [animKey, setAnimKey] = useState(0);
-  const [animDir, setAnimDir] = useState<"fwd" | "back">("fwd");
+  const [animDir, setAnimDir] = useState<1 | -1>(1);
   const [data, setData] = useState<SimulateurData>(INITIAL_DATA);
   const [showResult, setShowResult] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -123,7 +124,7 @@ export default function SimulateurForm() {
   }
 
   function goTo(newQ: number) {
-    setAnimDir(newQ > qIndex ? "fwd" : "back");
+    setAnimDir(newQ > qIndex ? 1 : -1);
     setQIndex(newQ);
     setAnimKey((k) => k + 1);
   }
@@ -140,6 +141,19 @@ export default function SimulateurForm() {
     const needsGarde =
       (data.statut === "celibataire" || data.statut === "divorce") && data.nbEnfants > 0;
     goTo(needsGarde ? 2 : 1);
+  }
+
+  // Crée une fiche Brevo anticipée dès validation de l'email (avant OTP)
+  function triggerEarlyContact(currentData: SimulateurData) {
+    const snap = compute(currentData);
+    fetch("/api/early-contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: { ...currentData, consentementRdv: true, consentementRgpd: true },
+        computed: snap,
+      }),
+    }).catch(() => {});
   }
 
   async function handleSubmit() {
@@ -194,12 +208,19 @@ export default function SimulateurForm() {
   }
 
   const currentStep = QUESTION_STEP[qIndex];
-  const animClass = animDir === "fwd" ? "animate-slide-in-up" : "animate-slide-in-down";
 
   return (
     <div className="flex flex-col gap-0">
       <StepIndicator current={currentStep} />
-      <div key={animKey} className={animClass}>
+      <div className="overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={animKey}
+        initial={{ x: `${animDir * 60}px`, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: `${animDir * -60}px`, opacity: 0 }}
+        transition={{ duration: 0.25, ease: "easeInOut" }}
+      >
         {qIndex === 0 && (
           <QStatut data={data} onChange={patch} onNext={() => goTo(1)} />
         )}
@@ -236,7 +257,15 @@ export default function SimulateurForm() {
           <QIdentite data={data} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
         )}
         {qIndex === 10 && (
-          <QEmail data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
+          <QEmail
+            data={data}
+            onChange={patch}
+            onNext={(d) => {
+              triggerEarlyContact(d ?? data);
+              goTo(11);
+            }}
+            onPrev={() => goTo(9)}
+          />
         )}
         {qIndex === 11 && (
           <QTelephone
@@ -247,6 +276,8 @@ export default function SimulateurForm() {
             submitting={submitting}
           />
         )}
+      </motion.div>
+      </AnimatePresence>
       </div>
     </div>
   );

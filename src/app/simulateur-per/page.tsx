@@ -22,8 +22,8 @@ export default function SimulateurPERPage() {
       </header>
 
       {/* Form wrapper */}
-      <main className="flex-1 flex items-start justify-center py-10 px-4">
-        <div className="w-full max-w-xl bg-white rounded-sm shadow-sm border border-cervus-cream p-6 sm:p-10">
+      <main className="flex-1 flex items-start justify-center py-10 px-6">
+        <div className="w-full max-w-xl">
           <SimulateurForm />
         </div>
       </main>

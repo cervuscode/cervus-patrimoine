@@ -6,6 +6,13 @@ import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 
 const BREVO_API = "https://api.brevo.com/v3";
 
+function formatPhoneForBrevo(phone: string): string {
+  const cleaned = phone.replace(/\s/g, "");
+  if (cleaned.startsWith("0")) return "+33" + cleaned.slice(1);
+  if (cleaned.startsWith("+")) return cleaned;
+  return "+33" + cleaned;
+}
+
 // Emails whitelistés : bypass rate limiting sur /api/submit
 const EMAIL_WHITELIST = new Set(["gusrr31@gmail.com"]);
 
@@ -90,7 +97,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
     attributes: {
       FIRSTNAME: data.prenom,
       LASTNAME: data.nom,
-      SMS: data.telephone,
+      ...(data.telephone ? { SMS: formatPhoneForBrevo(data.telephone) } : {}),
       SOURCE: "Simu-PER",
       STATUT_FISCAL: statut,
       TMI: computed.tmi,
@@ -101,6 +108,8 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
       CAPITAL_PROJETE: computed.capitalFinal,
       PROFIL_RISQUE: profil,
       CONSENTEMENT_RDV: data.consentementRdv,
+      OTP_VERIFIE: true,
+      SIMULATION_EN_ATTENTE: false,
     },
     listIds: [4], // ID liste "Leads Simu-PER" — à ajuster selon votre compte Brevo
   };

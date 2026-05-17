@@ -36,7 +36,7 @@ const STATUT_LABELS: Record<string, string> = {
   divorce: "Divorcé(e)",
   marie: "Marié(e)",
   pacse: "Pacsé(e)",
-  parent_isole: "Parent isolé",
+  parent_isole: "Parent isolé (garde principale)",
 };
 
 const PROFIL_LABELS: Record<string, string> = {
@@ -54,20 +54,37 @@ interface Props {
   computed: ComputedResults;
 }
 
+// Détermine le statut affiché (intègre la garde parentale)
+function displayStatut(data: SimulateurData): string {
+  if (
+    (data.statut === "celibataire" || data.statut === "divorce") &&
+    data.nbEnfants > 0 &&
+    data.gardeParentale === true
+  ) {
+    return STATUT_LABELS["parent_isole"];
+  }
+  return STATUT_LABELS[data.statut] ?? data.statut;
+}
+
 export default function PdfDocument({ data, computed }: Props) {
+  const salaireMensuel = parseFloat(data.salaireMensuel) || 0;
+  const versementInitial = parseFloat(data.versementInitial) || 0;
+
   return (
     <Document>
       <Page size="A4" style={s.page}>
         {/* Header */}
         <View style={s.header}>
           <Text style={s.title}>Cervus Patrimoine</Text>
-          <Text style={s.subtitle}>Votre simulation PER personnalisée — {data.prenom}</Text>
+          <Text style={s.subtitle}>
+            Votre simulation PER personnalisée — {data.prenom} {data.nom}
+          </Text>
         </View>
 
         {/* Situation */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Situation familiale</Text>
-          <View style={s.row}><Text style={s.label}>Statut</Text><Text style={s.value}>{STATUT_LABELS[data.statut] ?? data.statut}</Text></View>
+          <View style={s.row}><Text style={s.label}>Statut</Text><Text style={s.value}>{displayStatut(data)}</Text></View>
           <View style={s.row}><Text style={s.label}>Enfants à charge</Text><Text style={s.value}>{data.nbEnfants === 6 ? "6 ou plus" : data.nbEnfants}</Text></View>
           <View style={s.row}><Text style={s.label}>Parts fiscales</Text><Text style={s.value}>{computed.partsTotal.toLocaleString("fr-FR")} parts</Text></View>
           <View style={s.row}><Text style={s.label}>TMI calculée</Text><Text style={s.value}>{computed.tmi} %</Text></View>
@@ -77,7 +94,12 @@ export default function PdfDocument({ data, computed }: Props) {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Revenus</Text>
           <View style={s.row}><Text style={s.label}>Revenu global imposable</Text><Text style={s.value}>{fmt(computed.revenuImposable)}</Text></View>
-          {parseFloat(data.salaires) > 0 && <View style={s.row}><Text style={s.label}>Salaires (net avant impôt)</Text><Text style={s.value}>{fmt(parseFloat(data.salaires))}</Text></View>}
+          {salaireMensuel > 0 && (
+            <View style={s.row}>
+              <Text style={s.label}>Salaire net mensuel</Text>
+              <Text style={s.value}>{fmt(salaireMensuel)} /mois ({fmt(salaireMensuel * 12)} /an)</Text>
+            </View>
+          )}
           {parseFloat(data.bnc) > 0 && <View style={s.row}><Text style={s.label}>BNC (net)</Text><Text style={s.value}>{fmt(parseFloat(data.bnc))}</Text></View>}
           {parseFloat(data.bic) > 0 && <View style={s.row}><Text style={s.label}>BIC (net)</Text><Text style={s.value}>{fmt(parseFloat(data.bic))}</Text></View>}
           {parseFloat(data.foncier) > 0 && <View style={s.row}><Text style={s.label}>Revenus fonciers (net)</Text><Text style={s.value}>{fmt(parseFloat(data.foncier))}</Text></View>}
@@ -93,7 +115,7 @@ export default function PdfDocument({ data, computed }: Props) {
               <Text style={{ fontSize: 8, color: grey }}>Versement {fmt(computed.versementAnnuel)}/an · TMI {computed.tmi}%</Text>
             </View>
             <View style={[s.bigBlock, s.col]}>
-              <Text style={s.bigLabel}>Capital estimé à 64 ans</Text>
+              <Text style={s.bigLabel}>Capital estimé à {computed.ageRetraiteNum} ans</Text>
               <Text style={s.bigNumber}>{fmt(computed.capitalFinal)}</Text>
               <Text style={{ fontSize: 8, color: grey }}>{computed.nAnnees} ans · {PROFIL_LABELS[data.profil]}</Text>
             </View>
@@ -103,6 +125,9 @@ export default function PdfDocument({ data, computed }: Props) {
         {/* Projection */}
         <View style={s.section}>
           <Text style={s.sectionTitle}>Projection PER</Text>
+          {versementInitial > 0 && (
+            <View style={s.row}><Text style={s.label}>Versement initial</Text><Text style={s.value}>{fmt(versementInitial)}</Text></View>
+          )}
           <View style={s.row}><Text style={s.label}>Versement mensuel</Text><Text style={s.value}>{fmt(parseFloat(data.versementMensuel) || 0)}</Text></View>
           <View style={s.row}><Text style={s.label}>Profil investisseur</Text><Text style={s.value}>{PROFIL_LABELS[data.profil]}</Text></View>
           <View style={s.row}><Text style={s.label}>Durée</Text><Text style={s.value}>{computed.nAnnees} an{computed.nAnnees > 1 ? "s" : ""}</Text></View>

@@ -142,22 +142,33 @@ export function calculerRevenuImposable(revenus: RevenusInput): number {
 }
 
 // ── PROJECTION PER — INTÉRÊTS COMPOSÉS MENSUELS ───────────────────────────────
-// versementMensuel : montant versé chaque mois
-// tauxAnnuel       : 0.03 (prudent) / 0.04 (équilibré) / 0.05 (dynamique)
-// nAnnees          : 64 - age actuel de l'utilisateur
+// versementMensuel  : montant versé chaque mois
+// tauxAnnuel        : 0.03 (prudent) / 0.04 (équilibré) / 0.05 (dynamique)
+// nAnnees           : ageRetraite - age actuel de l'utilisateur
+// versementInitial  : apport unique versé au départ (optionnel, défaut 0)
+//
+// Formule :
+//   tauxMensuel = (1 + tauxAnnuel)^(1/12) - 1
+//   capitalInitial_k = versementInitial × (1 + tauxAnnuel)^k
+//   capitalMensuel_k = versementMensuel × ((1 + tauxMensuel)^(k×12) - 1) / tauxMensuel
+//   capital_k = capitalInitial_k + capitalMensuel_k
 export function projectionPER(
   versementMensuel: number,
   tauxAnnuel: number,
-  nAnnees: number
+  nAnnees: number,
+  versementInitial: number = 0
 ): { capitalFinal: number; courbe: Array<{ annee: number; capital: number }> } {
   const anneeActuelle = new Date().getFullYear();
   const tauxMensuel = Math.pow(1 + tauxAnnuel, 1 / 12) - 1;
   const courbe: Array<{ annee: number; capital: number }> = [];
 
   for (let annee = 1; annee <= nAnnees; annee++) {
-    const k = annee * 12;
-    const capital = versementMensuel * ((Math.pow(1 + tauxMensuel, k) - 1) / tauxMensuel);
-    courbe.push({ annee: anneeActuelle + annee, capital: Math.round(capital) });
+    const nMois = annee * 12;
+    const capitalInitial = versementInitial * Math.pow(1 + tauxAnnuel, annee);
+    const capitalMensuel = tauxMensuel > 0
+      ? versementMensuel * ((Math.pow(1 + tauxMensuel, nMois) - 1) / tauxMensuel)
+      : versementMensuel * nMois;
+    courbe.push({ annee: anneeActuelle + annee, capital: Math.round(capitalInitial + capitalMensuel) });
   }
 
   const capitalFinal = courbe[courbe.length - 1]?.capital ?? 0;

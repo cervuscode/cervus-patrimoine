@@ -40,7 +40,7 @@ export default function QProfil({ data, onChange, onNext, onPrev }: Props) {
         </p>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {PROFILS.map(({ value, label, taux, desc }) => (
           <button
             key={value}
@@ -49,10 +49,10 @@ export default function QProfil({ data, onChange, onNext, onPrev }: Props) {
               onChange({ profil: value });
               onNext();
             }}
-            className={`flex items-start gap-4 p-4 rounded-sm border text-left transition-colors duration-150 ${
+            className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-colors duration-150 ${
               data.profil === value
-                ? "border-cervus-gold bg-cervus-gold/5"
-                : "border-cervus-cream hover:border-cervus-gold/40"
+                ? "border-cervus-gold bg-[#F5EFE8]"
+                : "border-cervus-cream bg-white hover:border-cervus-gold/40"
             }`}
           >
             <div

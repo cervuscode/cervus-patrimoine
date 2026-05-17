@@ -18,25 +18,51 @@ import StepIndicator from "./StepIndicator";
 import ResultPage from "./ResultPage";
 import QStatut from "./QStatut";
 import QEnfants from "./QEnfants";
-import QRevenus from "./QRevenus";
+import QGarde from "./QGarde";
+import QSalaires from "./QSalaires";
+import QAutresRevenus from "./QAutresRevenus";
 import QAnneeNaissance from "./QAnneeNaissance";
-import QVersement from "./QVersement";
+import QAgeRetraite from "./QAgeRetraite";
+import QVersements from "./QVersements";
 import QProfil from "./QProfil";
-import QCoordonnees from "./QCoordonnees";
+import QIdentite from "./QIdentite";
+import QEmail from "./QEmail";
 import QTelephone from "./QTelephone";
 
+// Q0  Statut              → step 1
+// Q1  Enfants             → step 1
+// Q2  Garde (conditional) → step 1
+// Q3  Salaires            → step 2
+// Q4  Autres revenus      → step 2
+// Q5  Année naissance     → step 3
+// Q6  Âge retraite        → step 3
+// Q7  Versements          → step 3
+// Q8  Profil              → step 3
+// Q9  Identité            → step 4
+// Q10 Email               → step 4
+// Q11 Téléphone + OTP     → step 4
+const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4] as const;
 const CURRENT_YEAR = new Date().getFullYear();
-// Maps each question index (0–7) to its progress step (1–4)
-const QUESTION_STEP = [1, 1, 2, 3, 3, 3, 4, 4] as const;
+
+// Détermine le statut fiscal effectif (intègre la garde parentale)
+function effectiveStatut(data: SimulateurData) {
+  if (
+    (data.statut === "celibataire" || data.statut === "divorce") &&
+    data.nbEnfants > 0 &&
+    data.gardeParentale === true
+  ) {
+    return "parent_isole" as const;
+  }
+  return data.statut as Exclude<typeof data.statut, "">;
+}
 
 function compute(data: SimulateurData): ComputedResults {
+  const statut = effectiveStatut(data);
   const { partsBase, partsTotal } =
-    data.statut !== ""
-      ? calculerParts(data.statut, data.nbEnfants)
-      : { partsBase: 1, partsTotal: 1 };
+    statut ? calculerParts(statut, data.nbEnfants) : { partsBase: 1, partsTotal: 1 };
 
   const revenuImposable = calculerRevenuImposable({
-    salaires: parseFloat(data.salaires) || 0,
+    salaires: (parseFloat(data.salaireMensuel) || 0) * 12,
     abattementSalaires: data.abattementSalaires,
     fraisReels: parseFloat(data.fraisReels) || 0,
     bnc: parseFloat(data.bnc) || 0,
@@ -45,15 +71,22 @@ function compute(data: SimulateurData): ComputedResults {
   });
 
   const tmi = revenuImposable > 0 ? calculerTMI(revenuImposable, partsBase, partsTotal) : 0;
+
   const annee = parseInt(data.anneeNaissance);
-  const nAnnees = annee >= 1950 && annee <= 2000 ? Math.max(0, 64 - (CURRENT_YEAR - annee)) : 0;
+  const ageRetraiteNum = parseInt(data.ageRetraite) || 64;
+  const nAnnees =
+    annee >= 1940 && annee <= CURRENT_YEAR - 18
+      ? Math.max(0, ageRetraiteNum - (CURRENT_YEAR - annee))
+      : 0;
+
   const tauxAnnuel = PROFIL_TAUX[data.profil];
   const versementMensuel = parseFloat(data.versementMensuel) || 0;
+  const versementInitial = parseFloat(data.versementInitial) || 0;
   const versementAnnuel = versementMensuel * 12;
 
   const { capitalFinal, courbe } =
     nAnnees > 0 && versementMensuel > 0
-      ? projectionPER(versementMensuel, tauxAnnuel, nAnnees)
+      ? projectionPER(versementMensuel, tauxAnnuel, nAnnees, versementInitial)
       : { capitalFinal: 0, courbe: [] };
 
   const economieFiscale = economieFiscaleAnnuelle(versementMensuel, tmi);
@@ -64,6 +97,7 @@ function compute(data: SimulateurData): ComputedResults {
     revenuImposable,
     tmi,
     nAnnees,
+    ageRetraiteNum,
     tauxAnnuel,
     capitalFinal,
     courbe,
@@ -94,6 +128,20 @@ export default function SimulateurForm() {
     setAnimKey((k) => k + 1);
   }
 
+  // Avance depuis Q1 (enfants) : sauter Q2 (garde) si marié/pacsé ou nbEnfants === 0
+  function afterEnfants(nbEnfants: number) {
+    const needsGarde =
+      (data.statut === "celibataire" || data.statut === "divorce") && nbEnfants > 0;
+    goTo(needsGarde ? 2 : 3);
+  }
+
+  // Retour depuis Q3 (salaires) : revenir à Q2 ou Q1 selon le cas
+  function prevFromSalaires() {
+    const needsGarde =
+      (data.statut === "celibataire" || data.statut === "divorce") && data.nbEnfants > 0;
+    goTo(needsGarde ? 2 : 1);
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     try {
@@ -113,14 +161,15 @@ export default function SimulateurForm() {
     }
   }
 
-  async function handleSendEmail() {
+  async function handleSendEmail(altEmail?: string) {
     setEmailLoading(true);
+    const targetData = altEmail ? { ...data, email: altEmail } : data;
     try {
       await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          data: { ...data, consentementRdv: true, consentementRgpd: true },
+          data: { ...targetData, consentementRdv: true, consentementRgpd: true },
           computed,
         }),
       });
@@ -155,28 +204,45 @@ export default function SimulateurForm() {
           <QStatut data={data} onChange={patch} onNext={() => goTo(1)} />
         )}
         {qIndex === 1 && (
-          <QEnfants data={data} onChange={patch} onNext={() => goTo(2)} onPrev={() => goTo(0)} />
+          <QEnfants
+            data={data}
+            onChange={patch}
+            onNext={(n) => afterEnfants(n ?? data.nbEnfants)}
+            onPrev={() => goTo(0)}
+          />
         )}
         {qIndex === 2 && (
-          <QRevenus data={data} computed={computed} onChange={patch} onNext={() => goTo(3)} onPrev={() => goTo(1)} />
+          <QGarde data={data} onChange={patch} onNext={() => goTo(3)} onPrev={() => goTo(1)} />
         )}
         {qIndex === 3 && (
-          <QAnneeNaissance data={data} onChange={patch} onNext={() => goTo(4)} onPrev={() => goTo(2)} />
+          <QSalaires data={data} onChange={patch} onNext={() => goTo(4)} onPrev={prevFromSalaires} />
         )}
         {qIndex === 4 && (
-          <QVersement data={data} computed={computed} onChange={patch} onNext={() => goTo(5)} onPrev={() => goTo(3)} />
+          <QAutresRevenus data={data} onChange={patch} onNext={() => goTo(5)} onPrev={() => goTo(3)} />
         )}
         {qIndex === 5 && (
-          <QProfil data={data} onChange={patch} onNext={() => goTo(6)} onPrev={() => goTo(4)} />
+          <QAnneeNaissance data={data} onChange={patch} onNext={() => goTo(6)} onPrev={() => goTo(4)} />
         )}
         {qIndex === 6 && (
-          <QCoordonnees data={data} onChange={patch} onNext={() => goTo(7)} onPrev={() => goTo(5)} />
+          <QAgeRetraite data={data} onChange={patch} onNext={() => goTo(7)} onPrev={() => goTo(5)} />
         )}
         {qIndex === 7 && (
+          <QVersements data={data} computed={computed} onChange={patch} onNext={() => goTo(8)} onPrev={() => goTo(6)} />
+        )}
+        {qIndex === 8 && (
+          <QProfil data={data} onChange={patch} onNext={() => goTo(9)} onPrev={() => goTo(7)} />
+        )}
+        {qIndex === 9 && (
+          <QIdentite data={data} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
+        )}
+        {qIndex === 10 && (
+          <QEmail data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
+        )}
+        {qIndex === 11 && (
           <QTelephone
             data={data}
             onChange={patch}
-            onPrev={() => goTo(6)}
+            onPrev={() => goTo(10)}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

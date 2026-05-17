@@ -17,6 +17,9 @@ function isValidFrenchMobile(phone: string): boolean {
   return /^0[67]\d{8}$/.test(digits);
 }
 
+// Numéros whitelistés : bypass rate limiting + Twilio (pas de coût)
+const PHONE_WHITELIST = new Set(["0781196794", "+33781196794"]);
+
 // Rate limiting en mémoire : max 3 tentatives par IP sur 10 minutes
 const rateLimitMap = new Map<string, { count: number; firstAt: number }>();
 const WINDOW_MS = 10 * 60 * 1000; // 10 min
@@ -54,7 +57,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Rate limiting par IP avant tout appel Twilio
+    // 2. Whitelist — bypass rate limiting et appel Twilio
+    if (PHONE_WHITELIST.has(telephone.replace(/\s/g, ""))) {
+      return NextResponse.json({ sent: true });
+    }
+
+    // 3. Rate limiting par IP avant tout appel Twilio
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "unknown";
     if (isRateLimited(ip)) {
       return NextResponse.json(

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { SimulateurData } from "../types";
 import Disclaimer from "./Disclaimer";
 
+const PHONE_WHITELIST = new Set(["0781196794"]);
+
 interface Props {
   data: SimulateurData;
   onChange: (p: Partial<SimulateurData>) => void;
@@ -13,10 +15,14 @@ interface Props {
 }
 
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("33")) return "+" + digits;
-  if (digits.startsWith("0")) return "+33" + digits.slice(1);
-  return "+" + digits;
+  const cleaned = raw.replace(/\s/g, "");
+  if (cleaned.startsWith("0")) return "+33" + cleaned.slice(1);
+  if (cleaned.startsWith("+")) return cleaned;
+  return "+33" + cleaned;
+}
+
+function isValidFrenchMobile(phone: string): boolean {
+  return /^0[67]\d{8}$/.test(phone.replace(/\s/g, ""));
 }
 
 export default function QTelephone({ data, onChange, onPrev, onSubmit, submitting }: Props) {
@@ -25,7 +31,9 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
 
-  const phoneValid = data.telephone.replace(/\D/g, "").length >= 10;
+  const phoneRaw = data.telephone.replace(/\s/g, "");
+  const phoneValid = isValidFrenchMobile(data.telephone);
+  const isWhitelisted = PHONE_WHITELIST.has(phoneRaw);
   const canSubmit = phoneValid && data.otpVerified;
 
   async function sendOtp() {
@@ -36,7 +44,7 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
       const res = await fetch("/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telephone: normalizePhone(data.telephone) }),
+        body: JSON.stringify({ telephone: data.telephone }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erreur envoi SMS");
@@ -57,7 +65,7 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telephone: normalizePhone(data.telephone),
+          telephone: isWhitelisted ? data.telephone : normalizePhone(data.telephone),
           code: data.otpCode,
         }),
       });
@@ -78,14 +86,13 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
           Votre numéro de téléphone
         </h2>
         <p className="font-inter text-sm text-cervus-dark/50">
-          Nous vous envoyons un code pour vérifier votre identité.
+          Un code de vérification vous sera envoyé par SMS.
         </p>
       </div>
 
-      {/* Téléphone + bouton envoi OTP */}
       <div className="flex flex-col gap-3">
         <label className="font-inter text-xs text-cervus-dark/50 uppercase tracking-widest">
-          Téléphone mobile
+          Téléphone mobile (06 ou 07)
         </label>
         <div className="flex gap-2">
           <input
@@ -98,14 +105,14 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
             placeholder="06 XX XX XX XX"
             disabled={data.otpVerified}
             autoFocus
-            className="flex-1 h-11 border border-cervus-cream rounded-sm bg-white px-4 font-inter text-sm text-cervus-dark focus:outline-none focus:border-cervus-gold/60 transition-colors disabled:opacity-50"
+            className="flex-1 h-11 border border-cervus-cream rounded-xl bg-white px-4 font-inter text-sm text-cervus-dark focus:outline-none focus:border-cervus-gold/60 transition-colors disabled:opacity-50"
           />
           {!data.otpVerified && (
             <button
               type="button"
               onClick={sendOtp}
               disabled={!phoneValid || otpLoading}
-              className="px-4 py-2 bg-cervus-gold text-white font-inter text-xs font-medium rounded hover:bg-cervus-gold-light transition-colors disabled:opacity-30 whitespace-nowrap"
+              className="px-4 py-2 bg-cervus-gold text-white font-inter text-xs font-medium rounded-xl hover:bg-cervus-gold-light transition-colors disabled:opacity-30 whitespace-nowrap"
             >
               {otpLoading ? "Envoi…" : data.otpSent ? "Renvoyer" : "Envoyer le code"}
             </button>
@@ -120,9 +127,13 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
             </div>
           )}
         </div>
+        {data.telephone && !phoneValid && (
+          <p className="font-inter text-xs text-red-500">
+            Numéro invalide — utilisez un numéro mobile français (06 ou 07).
+          </p>
+        )}
         {otpError && <p className="font-inter text-xs text-red-500">{otpError}</p>}
 
-        {/* Saisie du code OTP */}
         {data.otpSent && !data.otpVerified && (
           <div className="flex flex-col gap-2 mt-1">
             <label className="font-inter text-xs text-cervus-dark/50 uppercase tracking-widest">
@@ -137,13 +148,13 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
                 onChange={(e) => onChange({ otpCode: e.target.value.replace(/\D/g, "") })}
                 onKeyDown={(e) => e.key === "Enter" && data.otpCode.length === 6 && verifyOtp()}
                 placeholder="_ _ _ _ _ _"
-                className="flex-1 h-11 border border-cervus-cream rounded-sm bg-white px-4 font-inter text-sm text-cervus-dark tracking-[0.4em] focus:outline-none focus:border-cervus-gold/60 transition-colors"
+                className="flex-1 h-11 border border-cervus-cream rounded-xl bg-white px-4 font-inter text-sm text-cervus-dark tracking-[0.4em] focus:outline-none focus:border-cervus-gold/60 transition-colors"
               />
               <button
                 type="button"
                 onClick={verifyOtp}
                 disabled={data.otpCode.length !== 6 || verifyLoading}
-                className="px-4 py-2 bg-cervus-gold text-white font-inter text-xs font-medium rounded hover:bg-cervus-gold-light transition-colors disabled:opacity-30"
+                className="px-4 py-2 bg-cervus-gold text-white font-inter text-xs font-medium rounded-xl hover:bg-cervus-gold-light transition-colors disabled:opacity-30"
               >
                 {verifyLoading ? "Vérification…" : "Valider"}
               </button>
@@ -155,7 +166,6 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
 
       <Disclaimer />
 
-      {/* Consentement passif */}
       <p className="font-inter text-xs text-cervus-dark/40 leading-relaxed">
         En cliquant sur Voir mes résultats, vous acceptez d&apos;être recontacté par Cervus Patrimoine
         et nos politiques de confidentialité.
@@ -171,7 +181,7 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
         <button
           onClick={onSubmit}
           disabled={!canSubmit || submitting}
-          className="px-8 py-3 bg-cervus-gold text-white font-inter text-sm font-medium rounded hover:bg-cervus-gold-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-8 py-3 bg-cervus-gold text-white font-inter text-sm font-medium rounded-xl hover:bg-cervus-gold-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {submitting ? "Calcul en cours…" : "Voir mes résultats"}
           {!submitting && (

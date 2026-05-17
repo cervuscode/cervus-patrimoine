@@ -1,7 +1,7 @@
 import { SimulateurData } from "../types";
 
 const btn = (selected: boolean) =>
-  `w-14 h-14 rounded-xl border font-inter text-sm font-medium transition-colors duration-150 ${
+  `flex-1 py-4 rounded-xl border font-inter text-sm font-medium transition-colors duration-150 ${
     selected
       ? "border-cervus-gold bg-[#F5EFE8] text-cervus-gold"
       : "border-cervus-cream bg-white text-cervus-dark/70 hover:border-cervus-gold/40"
@@ -10,36 +10,37 @@ const btn = (selected: boolean) =>
 interface Props {
   data: SimulateurData;
   onChange: (p: Partial<SimulateurData>) => void;
-  onNext: (n?: number) => void;
+  onNext: () => void;
   onPrev: () => void;
 }
 
-export default function QEnfants({ data, onChange, onNext, onPrev }: Props) {
+export default function QGarde({ data, onChange, onNext, onPrev }: Props) {
   return (
     <div className="flex flex-col gap-8 pt-8">
       <div>
         <h2 className="font-cormorant text-3xl font-light text-cervus-dark mb-1">
-          Combien d&apos;enfants avez-vous à charge ?
+          Êtes-vous le parent qui a la garde principale ?
         </h2>
         <p className="font-inter text-sm text-cervus-dark/50">
-          Le quotient familial réduit votre imposition.
+          La garde principale ouvre droit à la case T et une part entière supplémentaire.
         </p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {[0, 1, 2, 3, 4, 5, 6].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => {
-              onChange({ nbEnfants: n });
-              onNext(n);
-            }}
-            className={btn(data.nbEnfants === n)}
-          >
-            {n === 6 ? "6+" : n}
-          </button>
-        ))}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => { onChange({ gardeParentale: true }); onNext(); }}
+          className={btn(data.gardeParentale === true)}
+        >
+          Oui
+        </button>
+        <button
+          type="button"
+          onClick={() => { onChange({ gardeParentale: false }); onNext(); }}
+          className={btn(data.gardeParentale === false)}
+        >
+          Non
+        </button>
       </div>
 
       <button

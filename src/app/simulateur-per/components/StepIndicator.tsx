@@ -1,7 +1,7 @@
 const STEPS = [
   { n: 1, label: "Situation" },
   { n: 2, label: "Revenus" },
-  { n: 3, label: "Projection" },
+  { n: 3, label: "Projet" },
   { n: 4, label: "Coordonnées" },
 ];
 

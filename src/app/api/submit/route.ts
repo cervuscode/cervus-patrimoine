@@ -6,6 +6,26 @@ import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 
 const BREVO_API = "https://api.brevo.com/v3";
 
+// Emails whitelistés : bypass rate limiting sur /api/submit
+const EMAIL_WHITELIST = new Set(["gusrr31@gmail.com"]);
+
+// Rate limiting en mémoire : max 5 soumissions par IP par heure
+const submitRateMap = new Map<string, { count: number; firstAt: number }>();
+const SUBMIT_WINDOW_MS = 60 * 60 * 1000; // 1 heure
+const SUBMIT_MAX = 5;
+
+function isSubmitRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = submitRateMap.get(ip);
+  if (!entry || now - entry.firstAt > SUBMIT_WINDOW_MS) {
+    submitRateMap.set(ip, { count: 1, firstAt: now });
+    return false;
+  }
+  if (entry.count >= SUBMIT_MAX) return true;
+  entry.count += 1;
+  return false;
+}
+
 async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
   const body = {
     sender: { name: "Cervus Patrimoine", email: "simulation@cervuspatrimoine.fr" },
@@ -33,7 +53,7 @@ async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBas
     `,
     attachment: [
       {
-        name: `Simulation_PER_Cervus_${data.prenom}.pdf`,
+        name: `Simulation_PER_Cervus_${data.prenom}_${data.nom}.pdf`,
         content: pdfBase64,
       },
     ],
@@ -69,11 +89,13 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
     updateEnabled: true,
     attributes: {
       FIRSTNAME: data.prenom,
+      LASTNAME: data.nom,
       SMS: data.telephone,
       SOURCE: "Simu-PER",
       STATUT_FISCAL: statut,
       TMI: computed.tmi,
       REVENUS_ANNUELS: computed.revenuImposable,
+      AGE_RETRAITE: computed.ageRetraiteNum,
       VERSEMENT_PER: computed.versementAnnuel,
       ECONOMIE_IMPOT: computed.economieFiscale,
       CAPITAL_PROJETE: computed.capitalFinal,
@@ -107,6 +129,17 @@ export async function POST(req: NextRequest) {
 
     if (!data.email || !data.prenom) {
       return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
+    }
+
+    // Rate limiting par IP (bypass pour emails whitelistés)
+    if (!EMAIL_WHITELIST.has(data.email.toLowerCase())) {
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "unknown";
+      if (isSubmitRateLimited(ip)) {
+        return NextResponse.json(
+          { error: "Trop de soumissions, réessayez dans une heure" },
+          { status: 429 }
+        );
+      }
     }
 
     // Generate PDF

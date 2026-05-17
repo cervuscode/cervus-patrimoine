@@ -4,22 +4,30 @@ export type Profil = 'prudent' | 'equilibre' | 'dynamique';
 export type SimStep = 1 | 2 | 3 | 4 | 'result';
 
 export interface SimulateurData {
-  // Step 1
+  // Étape 1 — Situation
   statut: Statut | '';
   nbEnfants: number;
-  // Step 2
-  salaires: string;
+  gardeParentale: boolean | null; // true = parent isolé (case T), null = non applicable
+
+  // Étape 2 — Revenus
+  salaireMensuel: string;          // mensuel saisi, × 12 dans compute()
   abattementSalaires: AbattementSalaires;
   fraisReels: string;
+  autresRevenus: boolean | null;   // null = pas encore répondu
   bnc: string;
   bic: string;
   foncier: string;
-  // Step 3
+
+  // Étape 3 — Projet
   anneeNaissance: string;
+  ageRetraite: string;             // défaut '64'
+  versementInitial: string;        // apport unique, 0 par défaut
   versementMensuel: string;
   profil: Profil;
-  // Step 4
+
+  // Étape 4 — Coordonnées
   prenom: string;
+  nom: string;
   email: string;
   telephone: string;
   otpCode: string;
@@ -35,6 +43,7 @@ export interface ComputedResults {
   revenuImposable: number;
   tmi: number;
   nAnnees: number;
+  ageRetraiteNum: number;
   tauxAnnuel: number;
   capitalFinal: number;
   courbe: Array<{ annee: number; capital: number }>;
@@ -45,16 +54,21 @@ export interface ComputedResults {
 export const INITIAL_DATA: SimulateurData = {
   statut: '',
   nbEnfants: 0,
-  salaires: '',
+  gardeParentale: null,
+  salaireMensuel: '',
   abattementSalaires: 'forfait10',
   fraisReels: '',
+  autresRevenus: null,
   bnc: '',
   bic: '',
   foncier: '',
   anneeNaissance: '',
+  ageRetraite: '64',
+  versementInitial: '',
   versementMensuel: '',
   profil: 'equilibre',
   prenom: '',
+  nom: '',
   email: '',
   telephone: '',
   otpCode: '',

@@ -1,12 +1,19 @@
 import { SimulateurData, Statut } from "../types";
 
+// Célibataire et Divorcé déclenchent la question de garde si enfants > 0
 const STATUTS: { value: Statut; label: string }[] = [
   { value: "celibataire", label: "Célibataire" },
   { value: "divorce", label: "Divorcé(e)" },
   { value: "marie", label: "Marié(e)" },
   { value: "pacse", label: "Pacsé(e)" },
-  { value: "parent_isole", label: "Parent isolé" },
 ];
+
+const btn = (selected: boolean) =>
+  `px-4 py-3 rounded-xl border font-inter text-sm text-left transition-colors duration-150 ${
+    selected
+      ? "border-cervus-gold bg-[#F5EFE8] text-cervus-gold"
+      : "border-cervus-cream bg-white text-cervus-dark/70 hover:border-cervus-gold/40"
+  }`;
 
 interface Props {
   data: SimulateurData;
@@ -26,7 +33,7 @@ export default function QStatut({ data, onChange, onNext }: Props) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {STATUTS.map(({ value, label }) => (
           <button
             key={value}
@@ -35,11 +42,7 @@ export default function QStatut({ data, onChange, onNext }: Props) {
               onChange({ statut: value });
               onNext();
             }}
-            className={`px-4 py-3 rounded-sm border font-inter text-sm text-left transition-colors duration-150 ${
-              data.statut === value
-                ? "border-cervus-gold bg-cervus-gold/5 text-cervus-gold"
-                : "border-cervus-cream text-cervus-dark/70 hover:border-cervus-gold/40"
-            }`}
+            className={btn(data.statut === value)}
           >
             {label}
           </button>

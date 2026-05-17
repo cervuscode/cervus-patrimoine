@@ -9,33 +9,32 @@ interface Props {
   onPrev: () => void;
 }
 
-export default function QAnneeNaissance({ data, onChange, onNext, onPrev }: Props) {
+export default function QAgeRetraite({ data, onChange, onNext, onPrev }: Props) {
+  const age = parseInt(data.ageRetraite);
   const annee = parseInt(data.anneeNaissance);
-  const ageRetraite = parseInt(data.ageRetraite) || 64;
-  const anneeValid = annee >= 1940 && annee <= CURRENT_YEAR - 18;
-  const nAnnees = anneeValid ? Math.max(0, ageRetraite - (CURRENT_YEAR - annee)) : 0;
-  const canContinue = anneeValid && nAnnees > 0;
+  const ageValid = age >= 55 && age <= 75;
+  const nAnnees = ageValid && annee ? Math.max(0, age - (CURRENT_YEAR - annee)) : 0;
+  const canContinue = ageValid && nAnnees > 0;
 
   return (
     <div className="flex flex-col gap-8 pt-8">
       <div>
         <h2 className="font-cormorant text-3xl font-light text-cervus-dark mb-1">
-          Quelle est votre année de naissance ?
+          À quel âge envisagez-vous de partir à la retraite ?
         </h2>
         <p className="font-inter text-sm text-cervus-dark/50">
-          Elle détermine votre horizon de cotisation.
+          L&apos;âge légal est 64 ans, mais vous pouvez partir plus tôt ou plus tard.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
         <input
           type="number"
-          min={1940}
-          max={CURRENT_YEAR - 18}
-          value={data.anneeNaissance}
-          onChange={(e) => onChange({ anneeNaissance: e.target.value })}
+          min={55}
+          max={75}
+          value={data.ageRetraite}
+          onChange={(e) => onChange({ ageRetraite: e.target.value })}
           onKeyDown={(e) => e.key === "Enter" && canContinue && onNext()}
-          placeholder="Ex : 1985"
           autoFocus
           className="w-full h-12 border border-cervus-cream rounded-xl bg-white px-4 font-inter text-base text-cervus-dark focus:outline-none focus:border-cervus-gold/60 transition-colors"
         />
@@ -44,14 +43,14 @@ export default function QAnneeNaissance({ data, onChange, onNext, onPrev }: Prop
             Soit {nAnnees} an{nAnnees > 1 ? "s" : ""} de versements jusqu&apos;à votre retraite
           </p>
         )}
-        {data.anneeNaissance && anneeValid && nAnnees <= 0 && (
+        {data.ageRetraite && !ageValid && (
           <p className="font-inter text-xs text-red-500">
-            Vous avez déjà atteint l&apos;âge de retraite — la simulation ne s&apos;applique pas.
+            Saisissez un âge entre 55 et 75 ans.
           </p>
         )}
-        {data.anneeNaissance && !anneeValid && data.anneeNaissance.length >= 4 && (
+        {ageValid && nAnnees <= 0 && (
           <p className="font-inter text-xs text-red-500">
-            Veuillez saisir une année valide.
+            L&apos;âge de départ est déjà atteint — la simulation ne s&apos;applique pas.
           </p>
         )}
       </div>

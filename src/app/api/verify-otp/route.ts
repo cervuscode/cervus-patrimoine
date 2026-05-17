@@ -12,11 +12,22 @@ function formatPhone(phone: string): string {
   return "+33" + cleaned;
 }
 
+// Numéros whitelistés : tout code à 6 chiffres est accepté, Twilio non appelé
+const PHONE_WHITELIST = new Set(["0781196794", "+33781196794"]);
+
 export async function POST(req: NextRequest) {
   try {
     const { telephone, code } = await req.json();
     if (!telephone || !code) {
       return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
+    }
+
+    // Whitelist — accepter tout code valide (6 chiffres) sans appeler Twilio
+    if (PHONE_WHITELIST.has(telephone.replace(/\s/g, ""))) {
+      if (/^\d{6}$/.test(code)) {
+        return NextResponse.json({ valid: true });
+      }
+      return NextResponse.json({ valid: false, error: "Code incorrect ou expiré" }, { status: 400 });
     }
 
     const client = twilio(

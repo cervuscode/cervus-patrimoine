@@ -12,11 +12,55 @@ function formatPhone(phone: string): string {
   return "+33" + cleaned;
 }
 
+function isValidFrenchMobile(phone: string): boolean {
+  const digits = phone.replace(/\s/g, "");
+  return /^0[67]\d{8}$/.test(digits);
+}
+
+// Rate limiting en mémoire : max 3 tentatives par IP sur 10 minutes
+const rateLimitMap = new Map<string, { count: number; firstAt: number }>();
+const WINDOW_MS = 10 * 60 * 1000; // 10 min
+const MAX_ATTEMPTS = 3;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now - entry.firstAt > WINDOW_MS) {
+    rateLimitMap.set(ip, { count: 1, firstAt: now });
+    return false;
+  }
+
+  if (entry.count >= MAX_ATTEMPTS) {
+    return true;
+  }
+
+  entry.count += 1;
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { telephone } = await req.json();
     if (!telephone) {
       return NextResponse.json({ error: "Numéro de téléphone manquant" }, { status: 400 });
+    }
+
+    // 1. Validation format avant tout appel Twilio
+    if (!isValidFrenchMobile(telephone)) {
+      return NextResponse.json(
+        { error: "Numéro invalide — utilisez un numéro mobile français (06 ou 07)" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Rate limiting par IP avant tout appel Twilio
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "unknown";
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: "Trop de tentatives, réessayez dans quelques minutes" },
+        { status: 429 }
+      );
     }
 
     const client = twilio(

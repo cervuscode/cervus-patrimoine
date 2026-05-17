@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 
+function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\s/g, "");
+  if (cleaned.startsWith("0")) {
+    return "+33" + cleaned.slice(1);
+  }
+  if (cleaned.startsWith("+")) {
+    return cleaned;
+  }
+  return "+33" + cleaned;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { telephone } = await req.json();
@@ -15,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SID!)
-      .verifications.create({ to: telephone, channel: "sms" });
+      .verifications.create({ to: formatPhone(telephone), channel: "sms" });
 
     return NextResponse.json({ sent: true });
   } catch (err: unknown) {

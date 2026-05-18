@@ -6,6 +6,10 @@ import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 
 const BREVO_API = "https://api.brevo.com/v3";
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
 function formatPhoneForBrevo(phone: string): string {
   const cleaned = phone.replace(/\s/g, "");
   if (cleaned.startsWith("0")) return "+33" + cleaned.slice(1);
@@ -76,8 +80,7 @@ async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBas
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    console.error("[submit] Brevo email error:", err);
+    console.error(`[submit] Brevo email error: ${res.status}`);
   }
 }
 
@@ -124,8 +127,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    console.error("[submit] Brevo contact error:", err);
+    console.error(`[submit] Brevo contact error: ${res.status}`);
   }
 }
 
@@ -136,8 +138,12 @@ export async function POST(req: NextRequest) {
       computed: ComputedResults;
     };
 
-    if (!data.email || !data.prenom) {
+    if (!data?.email || !data.prenom || !computed) {
       return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
+    }
+
+    if (!isValidEmail(data.email)) {
+      return NextResponse.json({ error: "Email invalide" }, { status: 400 });
     }
 
     // Rate limiting par IP (bypass pour emails whitelistés)
@@ -166,8 +172,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
-    console.error("[submit]", err);
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[submit]", err instanceof Error ? err.message : "Erreur inconnue");
+    return NextResponse.json({ error: "Erreur lors du traitement" }, { status: 500 });
   }
 }

@@ -48,6 +48,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Paramètres manquants" }, { status: 400 });
     }
 
+    // Validation du format du code avant tout appel Twilio
+    if (!/^\d{6}$/.test(String(code))) {
+      return NextResponse.json({ valid: false, error: "Code incorrect ou expiré" }, { status: 400 });
+    }
+
     // Whitelist — accepter tout code valide (6 chiffres) sans appeler Twilio
     if (PHONE_WHITELIST.has(telephone.replace(/\s/g, ""))) {
       if (/^\d{6}$/.test(code)) {
@@ -73,8 +78,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false, error: "Code incorrect ou expiré" }, { status: 400 });
     }
   } catch (err: unknown) {
-    console.error("[verify-otp]", err);
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[verify-otp]", err instanceof Error ? err.message : "Erreur inconnue");
+    return NextResponse.json({ error: "Erreur lors de la vérification" }, { status: 500 });
   }
 }

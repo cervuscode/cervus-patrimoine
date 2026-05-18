@@ -82,8 +82,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sent: true });
   } catch (err: unknown) {
-    console.error("[send-otp]", err);
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[send-otp]", err instanceof Error ? err.message : "Erreur inconnue");
+    return NextResponse.json({ error: "Erreur lors de l'envoi du code" }, { status: 500 });
   }
 }

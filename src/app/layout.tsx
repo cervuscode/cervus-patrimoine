@@ -27,9 +27,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // TODO (Axeptio): ajouter <Script id="axeptio" strategy="afterInteractive" src="https://static.axept.io/sdk.js" data-id="VOTRE_CLE_AXEPTIO" />
+  // GA4 / GTM doivent être conditionnés au consentement Axeptio avant activation.
   return (
     <html lang="fr" className={`${cormorant.variable} ${inter.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+      </body>
     </html>
   );
 }

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description:
     "Cervus Patrimoine, cabinet indépendant de gestion de patrimoine haut de gamme. PER, assurance-vie, succession, stratégie patrimoniale sur mesure.",
   keywords: ["gestion de patrimoine", "PER", "assurance-vie", "conseil financier", "Cervus Patrimoine"],
+  robots: "noindex, nofollow",
 };
 
 export default function RootLayout({

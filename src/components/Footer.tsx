@@ -16,22 +16,16 @@ const legalLinks = [
   { label: "Conflits d'intérêts", href: "/conflits-d-interets" },
 ];
 
-function FooterWave() {
-  return (
-    <div style={{ backgroundColor: "#0f0f0f", lineHeight: 0, marginTop: -2 }} aria-hidden="true">
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ display: "block", width: "100%", height: 80 }}>
-        <path d="M0,40 C360,0 1080,80 1440,40 L1440,0 L0,0 Z" fill="#F2EDE8" />
-      </svg>
-    </div>
-  );
-}
-
 export default function Footer() {
   return (
-    <>
-      <FooterWave />
-      <footer className="bg-[#0f0f0f] text-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-8">
+    <footer className="relative bg-[#0f0f0f] text-white">
+      {/* Fondu haut — depuis section contact */}
+      <div
+        className="absolute top-0 left-0 right-0 pointer-events-none z-10"
+        style={{ height: 80, background: "linear-gradient(to bottom, #F2EDE8, transparent)" }}
+        aria-hidden="true"
+      />
+      <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-8 pt-24 pb-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           {/* Col 1 — Brand */}
           <div className="col-span-2 lg:col-span-1 flex flex-col gap-4">
@@ -115,6 +109,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-    </>
   );
 }

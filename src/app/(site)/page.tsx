@@ -8,26 +8,6 @@ export const metadata: Metadata = {
     "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, succession. Prenez rendez-vous.",
 };
 
-// ─── VAGUE SVG ──────────────────────────────────────────────────────────────────
-function Wave({ fill, flip = false }: { fill: string; flip?: boolean }) {
-  return (
-    <div style={{ marginTop: -2, lineHeight: 0 }} aria-hidden="true">
-      <svg
-        viewBox="0 0 1440 80"
-        preserveAspectRatio="none"
-        style={{
-          display: "block",
-          width: "100%",
-          height: 80,
-          transform: flip ? "scaleX(-1)" : undefined,
-        }}
-      >
-        <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill={fill} />
-      </svg>
-    </div>
-  );
-}
-
 // ─── SECTION 1 — HERO ──────────────────────────────────────────────────────────
 function HeroSection() {
   return (
@@ -73,13 +53,19 @@ function HeroSection() {
         </div>
       </div>
 
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50" style={{ zIndex: 20 }}>
         <span className="font-inter text-[9px] text-white tracking-[0.25em] uppercase">Scroll</span>
         <svg width="14" height="24" viewBox="0 0 14 24" fill="none" className="animate-bounce">
           <rect x="1" y="1" width="12" height="22" rx="6" stroke="white" strokeWidth="1.5" />
           <rect x="5.5" y="5" width="3" height="5" rx="1.5" fill="white" />
         </svg>
       </div>
+      {/* Fondu bas → section stats */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{ height: 140, background: "linear-gradient(to bottom, transparent, #F2EDE8)", zIndex: 15 }}
+        aria-hidden="true"
+      />
     </section>
   );
 }
@@ -155,7 +141,7 @@ const services = [
 
 function ServicesSection() {
   return (
-    <section className="py-28" id="services" style={{ backgroundColor: "#EDE8E3" }}>
+    <section className="relative py-28" id="services" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <AnimatedSection className="mb-16">
           <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f]">
@@ -185,6 +171,12 @@ function ServicesSection() {
           ))}
         </div>
       </div>
+      {/* Fondu bas → section aérienne sombre */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{ height: 100, background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.35))" }}
+        aria-hidden="true"
+      />
     </section>
   );
 }
@@ -199,8 +191,20 @@ function AerialSection() {
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      {/* Fondu haut — depuis section services */}
+      <div
+        className="absolute top-0 left-0 right-0 pointer-events-none z-10"
+        style={{ height: 100, background: "linear-gradient(to bottom, #EDE8E3, transparent)" }}
+        aria-hidden="true"
+      />
+      {/* Fondu bas — vers section simulateur */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none z-10"
+        style={{ height: 140, background: "linear-gradient(to bottom, transparent, #F2EDE8)" }}
+        aria-hidden="true"
+      />
 
-      <div className="relative z-10 h-full flex flex-col items-center justify-center px-6 text-center">
+      <div className="relative z-20 h-full flex flex-col items-center justify-center px-6 text-center">
         <AnimatedSection>
           <h2 className="font-cormorant text-4xl sm:text-[3.5rem] font-light text-white mb-8 leading-tight">
             Votre patrimoine mérite une vision d&apos;ensemble
@@ -373,16 +377,11 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <Wave fill="#F2EDE8" />
       <StatsSection />
-      <Wave fill="#EDE8E3" />
       <ServicesSection />
       <AerialSection />
-      <Wave fill="#F2EDE8" />
       <SimulateurPreviewSection />
-      <Wave fill="#EDE8E3" />
       <AboutSection />
-      <Wave fill="#F2EDE8" />
       <ContactSection />
     </>
   );

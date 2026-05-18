@@ -226,7 +226,7 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
                 value={altEmail}
                 onChange={(e) => setAltEmail(e.target.value)}
                 placeholder="autre@email.fr"
-                className="flex-1 h-10 border border-cervus-cream rounded-xl bg-white px-4 font-inter text-sm text-cervus-dark focus:outline-none focus:border-cervus-gold/60 transition-colors"
+                className="flex-1 h-10 border border-cervus-cream rounded-xl bg-[#F2EDE8] px-4 font-inter text-sm text-cervus-dark focus:outline-none focus:border-cervus-gold/60 transition-colors"
               />
               <button
                 onClick={() => onSendEmail(altEmail)}

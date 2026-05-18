@@ -8,11 +8,30 @@ export const metadata: Metadata = {
     "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, succession. Prenez rendez-vous.",
 };
 
+// ─── VAGUE SVG ──────────────────────────────────────────────────────────────────
+function Wave({ fill, flip = false }: { fill: string; flip?: boolean }) {
+  return (
+    <div style={{ marginTop: -2, lineHeight: 0 }} aria-hidden="true">
+      <svg
+        viewBox="0 0 1440 80"
+        preserveAspectRatio="none"
+        style={{
+          display: "block",
+          width: "100%",
+          height: 80,
+          transform: flip ? "scaleX(-1)" : undefined,
+        }}
+      >
+        <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill={fill} />
+      </svg>
+    </div>
+  );
+}
+
 // ─── SECTION 1 — HERO ──────────────────────────────────────────────────────────
 function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Video background */}
       <video
         className="absolute inset-0 w-full h-full object-cover"
         src="/videos/hero-video.mp4"
@@ -22,41 +41,31 @@ function HeroSection() {
         playsInline
         aria-hidden="true"
       />
-      {/* Fallback image if video fails */}
-      <div
-        className="absolute inset-0 bg-[#0f0f0f]"
-        style={{ zIndex: -1 }}
-        aria-hidden="true"
-      />
-      {/* Overlay */}
+      <div className="absolute inset-0 bg-[#0f0f0f]" style={{ zIndex: -1 }} aria-hidden="true" />
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
-      {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-24 w-full">
         <div className="max-w-3xl">
           <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.15em] mb-8">
             Cabinet de Gestion de Patrimoine Indépendant
           </p>
-
           <h1 className="font-cormorant text-5xl sm:text-6xl lg:text-[5rem] font-light text-white leading-[1.05] mb-8">
             Une gestion transparente de votre patrimoine
           </h1>
-
           <p className="font-inter text-[1.1rem] text-white/80 leading-relaxed max-w-xl mb-12">
             Cervus Patrimoine vous accompagne avec une approche indépendante et
             personnalisée pour construire, protéger et transmettre votre capital.
           </p>
-
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               href="/simulateur-per"
-              className="inline-flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-medium tracking-wide rounded-sm hover:bg-[#6a5040] transition-colors duration-200"
+              className="inline-flex items-center justify-center px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
             >
               Simuler mon PER
             </Link>
             <Link
               href="/#contact"
-              className="inline-flex items-center justify-center px-8 py-4 border border-white/40 text-white font-inter text-sm font-medium tracking-wide rounded-sm hover:border-white hover:bg-white/10 transition-colors duration-200"
+              className="inline-flex items-center justify-center px-[28px] py-[12px] border-[1.5px] border-white/40 text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:border-white hover:bg-white/10 transition-colors duration-200"
             >
               Prendre RDV
             </Link>
@@ -64,18 +73,9 @@ function HeroSection() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
-        <span className="font-inter text-[9px] text-white tracking-[0.25em] uppercase">
-          Scroll
-        </span>
-        <svg
-          width="14"
-          height="24"
-          viewBox="0 0 14 24"
-          fill="none"
-          className="animate-bounce"
-        >
+        <span className="font-inter text-[9px] text-white tracking-[0.25em] uppercase">Scroll</span>
+        <svg width="14" height="24" viewBox="0 0 14 24" fill="none" className="animate-bounce">
           <rect x="1" y="1" width="12" height="22" rx="6" stroke="white" strokeWidth="1.5" />
           <rect x="5.5" y="5" width="3" height="5" rx="1.5" fill="white" />
         </svg>
@@ -86,33 +86,24 @@ function HeroSection() {
 
 // ─── SECTION 2 — STATS ─────────────────────────────────────────────────────────
 const stats = [
-  {
-    headline: "Indépendant",
-    sub: "Aucun conflit d'intérêts, aucun produit maison",
-  },
-  {
-    headline: "ORIAS 25006770",
-    sub: "Mandataire d'intermédiaire en assurance certifié",
-  },
-  {
-    headline: "RCP assurée",
-    sub: "Responsabilité civile professionnelle Markel / Assurup",
-  },
+  { headline: "Indépendant", sub: "Aucun conflit d'intérêts, aucun produit maison" },
+  { headline: "ORIAS 25006770", sub: "Mandataire d'intermédiaire en assurance certifié" },
+  { headline: "RCP assurée", sub: "Responsabilité civile professionnelle Markel / Assurup" },
 ];
 
 function StatsSection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20" style={{ backgroundColor: "#F2EDE8" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-[#e8e3dc]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-[#D4C9BE]/60">
           {stats.map((s, i) => (
-            <AnimatedSection key={s.headline} delay={i * 0.1} className="px-8 py-8 md:py-4 first:pl-0 last:pr-0 text-center md:text-left">
-              <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-2">
-                {s.headline}
-              </p>
-              <p className="font-inter text-sm text-[#0f0f0f]/55 leading-relaxed">
-                {s.sub}
-              </p>
+            <AnimatedSection
+              key={s.headline}
+              delay={i * 0.1}
+              className="px-8 py-8 md:py-4 first:pl-0 last:pr-0 text-center md:text-left"
+            >
+              <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-2">{s.headline}</p>
+              <p className="font-inter text-sm text-[#0f0f0f]/55 leading-relaxed">{s.sub}</p>
             </AnimatedSection>
           ))}
         </div>
@@ -125,8 +116,7 @@ function StatsSection() {
 const services = [
   {
     title: "PER & Retraite",
-    description:
-      "Optimisez votre fiscalité aujourd'hui tout en préparant votre retraite de demain.",
+    description: "Optimisez votre fiscalité aujourd'hui tout en préparant votre retraite de demain.",
     cta: "Simuler",
     href: "/simulateur-per",
     icon: (
@@ -138,8 +128,7 @@ const services = [
   },
   {
     title: "Assurance-vie",
-    description:
-      "Faites fructifier votre capital dans une enveloppe souple et fiscalement avantageuse.",
+    description: "Faites fructifier votre capital dans une enveloppe souple et fiscalement avantageuse.",
     cta: "En savoir plus",
     href: "/services",
     icon: (
@@ -151,8 +140,7 @@ const services = [
   },
   {
     title: "Transmission & Succession",
-    description:
-      "Anticipez la transmission de votre patrimoine pour protéger vos proches.",
+    description: "Anticipez la transmission de votre patrimoine pour protéger vos proches.",
     cta: "Simuler",
     href: "/simulateur-succession",
     icon: (
@@ -167,7 +155,7 @@ const services = [
 
 function ServicesSection() {
   return (
-    <section className="py-28 bg-white" id="services">
+    <section className="py-28" id="services" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <AnimatedSection className="mb-16">
           <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f]">
@@ -185,18 +173,12 @@ function ServicesSection() {
                 <div className="w-12 h-12 flex items-center justify-center border border-white/10 rounded-xl">
                   {service.icon}
                 </div>
-
                 <div className="flex-1">
-                  <h3 className="font-cormorant text-2xl font-semibold text-white mb-3">
-                    {service.title}
-                  </h3>
-                  <p className="font-inter text-sm text-white/55 leading-relaxed">
-                    {service.description}
-                  </p>
+                  <h3 className="font-cormorant text-2xl font-semibold text-white mb-3">{service.title}</h3>
+                  <p className="font-inter text-sm text-white/55 leading-relaxed">{service.description}</p>
                 </div>
-
-                <div className="flex items-center gap-2 font-inter text-sm text-[#795D48] font-medium">
-                  <span>{service.cta} →</span>
+                <div className="font-inter text-sm text-[#795D48] font-medium">
+                  {service.cta} →
                 </div>
               </Link>
             </AnimatedSection>
@@ -213,10 +195,7 @@ function AerialSection() {
     <section className="relative h-[70vh] overflow-hidden">
       <div
         className="absolute inset-0 bg-center bg-cover"
-        style={{
-          backgroundImage: "url('/images/aerial-view.png')",
-          backgroundAttachment: "fixed",
-        }}
+        style={{ backgroundImage: "url('/images/aerial-view.png')", backgroundAttachment: "fixed" }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
@@ -228,7 +207,7 @@ function AerialSection() {
           </h2>
           <Link
             href="/qui-sommes-nous"
-            className="inline-flex items-center gap-2 px-8 py-4 border border-white/50 text-white font-inter text-sm font-medium tracking-wide rounded-sm hover:border-white hover:bg-white/10 transition-colors duration-200"
+            className="inline-flex items-center gap-2 px-[28px] py-[12px] border-[1.5px] border-white/50 text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:border-white hover:bg-white/10 transition-colors duration-200"
             aria-label="Découvrir notre approche"
           >
             Découvrir notre approche →
@@ -242,10 +221,9 @@ function AerialSection() {
 // ─── SECTION 5 — SIMULATEUR PREVIEW ────────────────────────────────────────────
 function SimulateurPreviewSection() {
   return (
-    <section className="py-28 bg-[#f8f5f1]" id="simulateur">
+    <section className="py-28" id="simulateur" style={{ backgroundColor: "#F2EDE8" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Text */}
           <AnimatedSection>
             <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
               Outil interactif
@@ -255,51 +233,45 @@ function SimulateurPreviewSection() {
             </h2>
             <p className="font-inter text-base text-[#0f0f0f]/55 leading-relaxed mb-10">
               Notre simulateur calcule en temps réel votre économie d&apos;impôt
-              selon votre situation personnelle et votre tranche marginale
-              d&apos;imposition.
+              selon votre situation personnelle et votre tranche marginale d&apos;imposition.
             </p>
             <Link
               href="/simulateur-per"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-medium rounded-sm hover:bg-[#6a5040] transition-colors duration-200"
+              className="inline-flex items-center gap-3 px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
             >
               Lancer la simulation →
             </Link>
           </AnimatedSection>
 
-          {/* Preview frame */}
           <AnimatedSection delay={0.15}>
             <div className="relative">
-              <div className="bg-white rounded-[20px] shadow-lg border border-[#e8e3dc] p-8">
+              <div
+                className="rounded-[20px] border border-[#D4C9BE] p-8"
+                style={{ backgroundColor: "#EDE8E3" }}
+              >
                 <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.15em] mb-6">
                   Aperçu — résultat simulateur
                 </p>
-
                 <div className="flex flex-col gap-4 mb-6">
                   {[
-                    { label: "Revenu annuel imposable", val: "80 000 €", active: true },
-                    { label: "Versement PER", val: "10 000 €", active: true },
-                    { label: "Tranche marginale", val: "30 %", active: true },
+                    { label: "Revenu annuel imposable", val: "80 000 €" },
+                    { label: "Versement PER", val: "10 000 €" },
+                    { label: "Tranche marginale", val: "30 %" },
                   ].map((f) => (
-                    <div key={f.label} className="flex justify-between items-center py-3 border-b border-[#f0ece6] last:border-0">
+                    <div key={f.label} className="flex justify-between items-center py-3 border-b border-[#D4C9BE]/60 last:border-0">
                       <span className="font-inter text-xs text-[#0f0f0f]/50">{f.label}</span>
                       <span className="font-inter text-sm font-medium text-[#0f0f0f]">{f.val}</span>
                     </div>
                   ))}
                 </div>
-
-                <div className="bg-[#f8f5f1] rounded-xl p-6">
+                <div className="rounded-[16px] p-6" style={{ backgroundColor: "#F2EDE8" }}>
                   <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.12em] mb-1">
                     Économie d&apos;impôt estimée
                   </p>
-                  <p className="font-cormorant text-5xl text-[#795D48] font-semibold">
-                    3 000 €
-                  </p>
-                  <p className="font-inter text-xs text-[#0f0f0f]/40 mt-2">
-                    Dès la première année
-                  </p>
+                  <p className="font-cormorant text-5xl text-[#795D48] font-semibold">3 000 €</p>
+                  <p className="font-inter text-xs text-[#0f0f0f]/40 mt-2">Dès la première année</p>
                 </div>
               </div>
-              {/* Decorative corner */}
               <div className="absolute -bottom-4 -right-4 w-20 h-20 border border-[#795D48]/20 rounded-[20px] -z-10" />
             </div>
           </AnimatedSection>
@@ -312,25 +284,26 @@ function SimulateurPreviewSection() {
 // ─── SECTION 6 — QUI SOMMES-NOUS ───────────────────────────────────────────────
 function AboutSection() {
   return (
-    <section className="py-28 bg-white" id="equipe">
+    <section className="py-28" id="equipe" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Image placeholder */}
           <AnimatedSection>
             <div className="relative">
-              <div className="aspect-[4/5] bg-[#f8f5f1] rounded-[20px] flex items-center justify-center border border-[#e8e3dc] overflow-hidden">
+              <div
+                className="aspect-[4/5] rounded-[20px] flex items-center justify-center border border-[#D4C9BE] overflow-hidden"
+                style={{ backgroundColor: "#F2EDE8" }}
+              >
                 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-label="Photo Auguste Dechery à venir">
                   <circle cx="32" cy="24" r="14" stroke="#795D48" strokeWidth="1.5" />
                   <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </div>
-              {/* Badges */}
               <div className="absolute -bottom-4 -right-4 flex flex-col gap-2">
-                <div className="bg-white border border-[#e8e3dc] rounded-xl px-4 py-2 shadow-sm">
+                <div className="rounded-[16px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#F2EDE8" }}>
                   <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">ORIAS</p>
                   <p className="font-inter text-xs font-semibold text-[#0f0f0f]">n° 25006770</p>
                 </div>
-                <div className="bg-white border border-[#e8e3dc] rounded-xl px-4 py-2 shadow-sm">
+                <div className="rounded-[16px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#F2EDE8" }}>
                   <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">CNCEF</p>
                   <p className="font-inter text-xs font-semibold text-[#0f0f0f]">Assurance</p>
                 </div>
@@ -338,30 +311,21 @@ function AboutSection() {
             </div>
           </AnimatedSection>
 
-          {/* Text */}
           <AnimatedSection delay={0.15}>
-            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
-              Notre équipe
-            </p>
+            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">Notre équipe</p>
             <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-6">
               Une approche indépendante et rigoureuse
             </h2>
-
-            <h3 className="font-cormorant text-xl font-semibold text-[#0f0f0f] mb-1">
-              Auguste Dechery
-            </h3>
+            <h3 className="font-cormorant text-xl font-semibold text-[#0f0f0f] mb-1">Auguste Dechery</h3>
             <p className="font-inter text-sm text-[#795D48] mb-5">
               Fondateur & Conseiller en Gestion de Patrimoine
             </p>
-
             <p className="font-inter text-sm text-[#0f0f0f]/60 leading-relaxed mb-8">
-              Fort d&apos;une expérience acquise en banque privée et en cabinet de
-              gestion de patrimoine indépendant, Auguste Dechery accompagne ses clients
-              avec rigueur et transparence dans la construction et l&apos;optimisation
-              de leur stratégie patrimoniale. Aucun produit maison, aucune rétrocommission
-              cachée — seulement votre intérêt.
+              Fort d&apos;une expérience acquise en banque privée et en cabinet de gestion de patrimoine
+              indépendant, Auguste Dechery accompagne ses clients avec rigueur et transparence dans la
+              construction et l&apos;optimisation de leur stratégie patrimoniale. Aucun produit maison,
+              aucune rétrocommission cachée — seulement votre intérêt.
             </p>
-
             <Link
               href="/qui-sommes-nous"
               className="inline-flex items-center gap-2 font-inter text-sm text-[#795D48] hover:text-[#6a5040] font-medium transition-colors"
@@ -379,12 +343,10 @@ function AboutSection() {
 // ─── SECTION CONTACT ───────────────────────────────────────────────────────────
 function ContactSection() {
   return (
-    <section className="py-28 bg-[#f8f5f1]" id="contact">
+    <section className="py-28" id="contact" style={{ backgroundColor: "#F2EDE8" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <AnimatedSection className="max-w-2xl">
-          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-4">
-            Contact
-          </p>
+          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-4">Contact</p>
           <h2 className="font-cormorant text-5xl font-light text-[#0f0f0f] mb-8">
             Parlons de votre projet
           </h2>
@@ -392,7 +354,10 @@ function ContactSection() {
             Chaque situation patrimoniale est unique. Prenez rendez-vous pour un
             premier entretien confidentiel et sans engagement.
           </p>
-          <div className="border border-dashed border-[#795D48]/30 rounded-[20px] p-10 bg-white text-center">
+          <div
+            className="rounded-[20px] p-10 border border-dashed border-[#795D48]/30 text-center"
+            style={{ backgroundColor: "#EDE8E3" }}
+          >
             <p className="font-inter text-sm text-[#0f0f0f]/40">
               Formulaire de prise de rendez-vous (Calendly)
             </p>
@@ -408,11 +373,16 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <Wave fill="#F2EDE8" />
       <StatsSection />
+      <Wave fill="#EDE8E3" />
       <ServicesSection />
       <AerialSection />
+      <Wave fill="#F2EDE8" />
       <SimulateurPreviewSection />
+      <Wave fill="#EDE8E3" />
       <AboutSection />
+      <Wave fill="#F2EDE8" />
       <ContactSection />
     </>
   );

@@ -13,6 +13,8 @@ const config: Config = {
         "cervus-gold-light": "#a07d62",
         "cervus-dark": "#0f0f0f",
         "cervus-cream": "#f8f5f1",
+        "cervus-bronze": "#F2EDE8",
+        "cervus-bronze-card": "#EDE8E3",
       },
       fontFamily: {
         cormorant: ["var(--font-cormorant)", "Georgia", "serif"],

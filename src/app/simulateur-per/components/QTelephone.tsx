@@ -184,14 +184,14 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
             placeholder="06 XX XX XX XX"
             disabled={data.otpVerified}
             autoFocus
-            className="flex-1 h-11 border border-[#E5E0DA] rounded-xl bg-white px-4 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors disabled:opacity-50"
+            className="flex-1 h-11 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors disabled:opacity-50"
           />
           {!data.otpVerified && (
             <button
               type="button"
               onClick={sendOtp}
               disabled={!phoneValid || otpLoading || resendCooldown > 0}
-              className="px-4 py-2 bg-[#795D48] text-white font-inter text-xs font-medium rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30 whitespace-nowrap"
+              className="px-4 py-2 bg-[#795D48] text-white font-inter text-xs font-medium rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 whitespace-nowrap"
             >
               {otpLoading
                 ? "Envoi…"
@@ -255,13 +255,13 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
                     onChange={(e) => onChange({ otpCode: e.target.value.replace(/\D/g, "") })}
                     onKeyDown={(e) => e.key === "Enter" && data.otpCode.length === 6 && verifyOtp()}
                     placeholder="_ _ _ _ _ _"
-                    className="flex-1 h-11 border border-[#E5E0DA] rounded-xl bg-white px-4 font-inter text-sm text-[#0f0f0f] tracking-[0.4em] focus:outline-none focus:border-[#795D48] transition-colors"
+                    className="flex-1 h-11 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-sm text-[#0f0f0f] tracking-[0.4em] focus:outline-none focus:border-[#795D48] transition-colors"
                   />
                   <button
                     type="button"
                     onClick={verifyOtp}
                     disabled={data.otpCode.length !== 6 || verifyLoading}
-                    className="px-4 py-2 bg-[#795D48] text-white font-inter text-xs font-medium rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30"
+                    className="px-4 py-2 bg-[#795D48] text-white font-inter text-xs font-medium rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30"
                   >
                     {verifyLoading ? "Vérification…" : "Valider"}
                   </button>
@@ -290,7 +290,7 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
         <button
           onClick={onSubmit}
           disabled={!canSubmit || submitting}
-          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {submitting ? "Calcul en cours…" : "Voir mes résultats"}
           {!submitting && (

@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 export default function SimulateurPERPage() {
   return (
-    <div className="min-h-screen bg-cervus-cream flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F2EDE8" }}>
       {/* Minimal header */}
-      <header className="w-full px-6 py-5 flex items-center justify-between border-b border-cervus-cream bg-white">
+      <header className="w-full px-6 py-5 flex items-center justify-between border-b border-[#D4C9BE]/60" style={{ backgroundColor: "#F2EDE8" }}>
         <Link href="/" className="font-cormorant text-xl font-semibold text-cervus-dark tracking-wide">
           Cervus Patrimoine
         </Link>
@@ -29,7 +29,7 @@ export default function SimulateurPERPage() {
       </main>
 
       {/* Minimal footer */}
-      <footer className="w-full px-6 py-4 border-t border-cervus-cream bg-white text-center">
+      <footer className="w-full px-6 py-4 border-t border-[#D4C9BE]/60 text-center" style={{ backgroundColor: "#F2EDE8" }}>
         <p className="font-inter text-[10px] text-cervus-dark/30">
           © 2026 Cervus Patrimoine · ORIAS n° 25006770 ·{" "}
           <Link href="/mentions-legales" className="underline hover:text-cervus-gold transition-colors">

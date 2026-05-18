@@ -55,12 +55,12 @@ export default function QProfil({ data, onChange, onNext, onPrev }: Props) {
             className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-colors duration-150 ${
               data.profil === value
                 ? "border-2 border-[#795D48] bg-[#F5EFE8]"
-                : "border border-[#E5E0DA] bg-white hover:border-[#795D48]/40"
+                : "border border-[#D4C9BE] bg-[#EDE8E3] hover:border-[#795D48]/40"
             }`}
           >
             <div
               className={`w-4 h-4 mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                data.profil === value ? "border-[#795D48]" : "border-[#E5E0DA]"
+                data.profil === value ? "border-[#795D48]" : "border-[#D4C9BE]"
               }`}
             >
               {data.profil === value && <div className="w-2 h-2 rounded-full bg-[#795D48]" />}

@@ -13,16 +13,16 @@ const navLinks = [
 ];
 
 const simulatorOptions = [
-  { emoji: "🧾", label: "Simulateur PER", href: "/simulateur-per" },
-  { emoji: "🏠", label: "Simulateur Succession", href: "/simulateur-succession" },
-  { emoji: "📈", label: "Simulateur Assurance-vie", href: "/simulateur-av" },
+  { label: "Simulateur PER", href: "/simulateur-per" },
+  { label: "Simulateur Succession", href: "/simulateur-succession" },
+  { label: "Simulateur Assurance-vie", href: "/simulateur-av" },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -30,23 +30,25 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    const onClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setSimOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+  const openSim = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setSimOpen(true);
+  };
+
+  const closeSim = () => {
+    closeTimer.current = setTimeout(() => setSimOpen(false), 150);
+  };
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   const transparent = !scrolled && !menuOpen;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white shadow-[0_1px_12px_rgba(0,0,0,0.08)]" : "bg-transparent"
+        scrolled ? "shadow-[0_1px_12px_rgba(0,0,0,0.06)]" : ""
       }`}
+      style={{ backgroundColor: scrolled ? "#F2EDE8" : "transparent" }}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
@@ -89,7 +91,7 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center gap-3">
             <Link
               href="/#contact"
-              className={`px-5 py-2.5 font-inter text-sm font-medium tracking-wide rounded-sm border transition-colors duration-200 ${
+              className={`px-[28px] py-[12px] font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] border-[1.5px] transition-colors duration-200 ${
                 transparent
                   ? "border-white/40 text-white hover:bg-white/10"
                   : "border-[#795D48] text-[#795D48] hover:bg-[#795D48] hover:text-white"
@@ -98,10 +100,15 @@ export default function Navbar() {
               Prendre RDV
             </Link>
 
-            <div className="relative" ref={dropdownRef}>
+            {/* Simulation — hover dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={openSim}
+              onMouseLeave={closeSim}
+            >
               <button
-                onClick={() => setSimOpen((v) => !v)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#795D48] text-white font-inter text-sm font-medium tracking-wide rounded-sm hover:bg-[#6a5040] transition-colors duration-200"
+                className="flex items-center gap-2 px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
+                aria-expanded={simOpen}
               >
                 Faire une simulation
                 <svg
@@ -128,17 +135,22 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.98 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+                    onMouseEnter={openSim}
+                    onMouseLeave={closeSim}
+                    className="absolute right-0 top-full mt-2 w-64 p-2 rounded-[16px] border border-[#D4C9BE]/60"
+                    style={{
+                      backgroundColor: "#F2EDE8",
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+                    }}
                   >
                     {simulatorOptions.map((opt) => (
                       <Link
                         key={opt.href}
                         href={opt.href}
                         onClick={() => setSimOpen(false)}
-                        className="flex items-center gap-3 px-5 py-4 hover:bg-[#f8f5f1] transition-colors font-inter text-sm text-[#0f0f0f]"
+                        className="block px-4 py-3 rounded-[10px] font-inter text-sm text-[#0f0f0f] hover:bg-[#795D48] hover:text-white transition-colors duration-150"
                       >
-                        <span className="text-base">{opt.emoji}</span>
-                        <span>{opt.label}</span>
+                        {opt.label}
                       </Link>
                     ))}
                   </motion.div>
@@ -177,7 +189,8 @@ export default function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="lg:hidden bg-white border-t border-[#f0ece6] overflow-hidden"
+            className="lg:hidden border-t border-[#D4C9BE]/60 overflow-hidden"
+            style={{ backgroundColor: "#F2EDE8" }}
           >
             <div className="px-6 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
@@ -191,11 +204,11 @@ export default function Navbar() {
                 </Link>
               ))}
 
-              <div className="border-t border-[#f0ece6] pt-4 flex flex-col gap-3">
+              <div className="border-t border-[#D4C9BE]/60 pt-4 flex flex-col gap-3">
                 <Link
                   href="/#contact"
                   onClick={() => setMenuOpen(false)}
-                  className="px-5 py-3 border border-[#795D48] text-[#795D48] font-inter text-sm font-medium text-center rounded-sm hover:bg-[#795D48] hover:text-white transition-colors"
+                  className="px-[28px] py-[12px] border-[1.5px] border-[#795D48] text-[#795D48] font-inter text-sm font-medium text-center rounded-[50px] hover:bg-[#795D48] hover:text-white transition-colors duration-200"
                 >
                   Prendre RDV
                 </Link>
@@ -209,10 +222,9 @@ export default function Navbar() {
                       key={opt.href}
                       href={opt.href}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 py-2.5 font-inter text-sm text-[#0f0f0f]/70 hover:text-[#795D48] transition-colors"
+                      className="py-2.5 px-3 rounded-[10px] font-inter text-sm text-[#0f0f0f]/70 hover:bg-[#795D48] hover:text-white transition-colors duration-150"
                     >
-                      <span>{opt.emoji}</span>
-                      <span>{opt.label}</span>
+                      {opt.label}
                     </Link>
                   ))}
                 </div>

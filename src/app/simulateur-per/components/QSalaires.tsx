@@ -33,7 +33,7 @@ export default function QSalaires({ data, onChange, onNext, onPrev }: Props) {
             onKeyDown={(e) => e.key === "Enter" && canContinue && onNext()}
             placeholder="Ex : 3 500"
             autoFocus
-            className="w-full h-12 border border-[#E5E0DA] rounded-xl bg-white px-4 pr-10 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
+            className="w-full h-12 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 pr-10 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-inter text-sm text-[#555555]/40">€/mois</span>
         </div>
@@ -52,7 +52,7 @@ export default function QSalaires({ data, onChange, onNext, onPrev }: Props) {
             className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
               data.abattementSalaires === "forfait10"
                 ? "border-[#795D48] bg-[#795D48]"
-                : "border-[#E5E0DA] hover:border-[#795D48]/40"
+                : "border-[#D4C9BE] hover:border-[#795D48]/40"
             }`}
           >
             {data.abattementSalaires === "forfait10" && (
@@ -78,7 +78,7 @@ export default function QSalaires({ data, onChange, onNext, onPrev }: Props) {
                 value={data.fraisReels}
                 onChange={(e) => onChange({ fraisReels: e.target.value })}
                 placeholder="Ex : 3 500"
-                className="w-full h-11 border border-[#E5E0DA] rounded-xl bg-white px-4 pr-10 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
+                className="w-full h-11 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 pr-10 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 font-inter text-sm text-[#555555]/40">€</span>
             </div>
@@ -96,7 +96,7 @@ export default function QSalaires({ data, onChange, onNext, onPrev }: Props) {
         <button
           onClick={onNext}
           disabled={!canContinue}
-          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         >
           Suivant
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

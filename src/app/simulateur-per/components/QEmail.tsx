@@ -29,7 +29,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
           onKeyDown={(e) => e.key === "Enter" && emailValid && onNext(data)}
           placeholder="votre@email.fr"
           autoFocus
-          className="w-full h-12 border border-[#E5E0DA] rounded-xl bg-white px-4 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
+          className="w-full h-12 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
         />
         {data.email && !emailValid && (
           <p className="font-inter text-xs text-red-500">
@@ -48,7 +48,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
         <button
           onClick={() => onNext(data)}
           disabled={!emailValid}
-          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+          className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         >
           Suivant
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

@@ -13,7 +13,7 @@ const btn = (selected: boolean) =>
   `px-4 py-3 rounded-xl border font-inter text-sm text-left transition-colors duration-150 ${
     selected
       ? "border-2 border-[#795D48] bg-[#F5EFE8] text-[#795D48] font-semibold"
-      : "border border-[#E5E0DA] bg-white text-[#555555] hover:border-[#795D48]/40"
+      : "border border-[#D4C9BE] bg-[#EDE8E3] text-[#555555] hover:border-[#795D48]/40"
   }`;
 
 interface Props {

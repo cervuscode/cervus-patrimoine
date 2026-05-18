@@ -9,7 +9,7 @@ export default function StepIndicator({ current }: { current: number }) {
   return (
     <div className="w-full mb-8">
       {/* Progress bar */}
-      <div className="h-0.5 bg-[#E5E0DA] rounded-full mb-6 relative">
+      <div className="h-0.5 bg-[#D4C9BE] rounded-full mb-6 relative">
         <div
           className="h-0.5 bg-[#795D48] rounded-full transition-all duration-500"
           style={{ width: `${((current - 1) / 3) * 100}%` }}
@@ -25,7 +25,7 @@ export default function StepIndicator({ current }: { current: number }) {
                   ? "bg-[#795D48] text-white"
                   : n === current
                   ? "bg-[#795D48] text-white ring-2 ring-[#795D48]/30 ring-offset-2"
-                  : "bg-[#E5E0DA] text-[#555555]/40"
+                  : "bg-[#D4C9BE] text-[#555555]/40"
               }`}
             >
               {n < current ? (

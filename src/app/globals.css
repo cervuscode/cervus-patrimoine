@@ -8,7 +8,8 @@
   }
 
   body {
-    @apply font-inter text-cervus-dark bg-white antialiased;
+    @apply font-inter text-cervus-dark antialiased;
+    background-color: #F2EDE8;
   }
 
   h1, h2, h3, h4, h5, h6 {

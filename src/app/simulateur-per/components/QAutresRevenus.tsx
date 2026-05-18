@@ -5,7 +5,7 @@ const btnYesNo = (selected: boolean) =>
   `flex-1 py-4 rounded-xl border font-inter text-sm font-medium transition-colors duration-150 ${
     selected
       ? "border-2 border-[#795D48] bg-[#F5EFE8] text-[#795D48] font-semibold"
-      : "border border-[#E5E0DA] bg-white text-[#555555] hover:border-[#795D48]/40"
+      : "border border-[#D4C9BE] bg-[#EDE8E3] text-[#555555] hover:border-[#795D48]/40"
   }`;
 
 function NumberInput({
@@ -30,7 +30,7 @@ function NumberInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="0"
-          className="w-full h-11 border border-[#E5E0DA] rounded-xl bg-white px-4 pr-10 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
+          className="w-full h-11 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 pr-10 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
         />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 font-inter text-sm text-[#555555]/40">€</span>
       </div>
@@ -92,7 +92,7 @@ export default function QAutresRevenus({ data, onChange, onNext, onPrev }: Props
 
       {/* Champs conditionnels */}
       {data.autresRevenus === true && (
-        <div className="flex flex-col gap-5 p-5 border border-[#E5E0DA] rounded-xl">
+        <div className="flex flex-col gap-5 p-5 border border-[#D4C9BE] rounded-xl">
           <NumberInput
             label="BNC — Bénéfice net"
             hint="Après abattement micro-BNC ou bénéfice net réel"
@@ -130,7 +130,7 @@ export default function QAutresRevenus({ data, onChange, onNext, onPrev }: Props
           <button
             onClick={onNext}
             disabled={!canContinue}
-            className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-xl hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
           >
             Suivant
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

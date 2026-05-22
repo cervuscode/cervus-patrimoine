@@ -32,8 +32,8 @@ async function markOtpVerifiedInBrevo(email: string, telephone: string) {
   };
 
   try {
-    await Promise.all([
-      // Mise à jour des attributs
+    const [resPut, resRemove, resAdd] = await Promise.all([
+      // Mise à jour des attributs (OTP_VERIFIE + numéro de téléphone)
       fetch(`${BREVO_API}/contacts/${encodeURIComponent(email)}`, {
         method: "PUT",
         headers,
@@ -54,8 +54,11 @@ async function markOtpVerifiedInBrevo(email: string, telephone: string) {
         body: JSON.stringify({ emails: [email] }),
       }),
     ]);
-  } catch {
-    // Non-blocking
+    if (!resPut.ok)    console.error(`[verify-otp] Brevo PUT contact: ${resPut.status}`);
+    if (!resRemove.ok) console.error(`[verify-otp] Brevo remove list #6: ${resRemove.status}`);
+    if (!resAdd.ok)    console.error(`[verify-otp] Brevo add list #5: ${resAdd.status}`);
+  } catch (err) {
+    console.error("[verify-otp] Brevo update failed:", err instanceof Error ? err.message : err);
   }
 }
 

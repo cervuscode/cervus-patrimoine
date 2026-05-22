@@ -97,6 +97,31 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
         </div>
       </div>
 
+      {/* Avertissement TMI 11% */}
+      {computed.tmi === 11 && (
+        <div
+          className="flex flex-col gap-3 p-5 rounded-xl border"
+          style={{ backgroundColor: "#FFF3CD", borderColor: "#F59E0B" }}
+        >
+          <div className="flex items-start gap-2">
+            <span className="text-lg leading-none mt-0.5">⚠️</span>
+            <p className="font-inter text-sm text-cervus-dark/80 leading-relaxed">
+              Votre taux marginal d&apos;imposition est de 11 %. Dans votre situation,
+              l&apos;avantage fiscal du PER est limité. Nous vous recommandons d&apos;échanger
+              avec un expert avant de souscrire.
+            </p>
+          </div>
+          <a
+            href={calendlyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="self-start font-inter text-sm font-medium text-cervus-dark/70 underline underline-offset-2 hover:text-cervus-gold transition-colors"
+          >
+            Parler à un expert →
+          </a>
+        </div>
+      )}
+
       {/* Dual chart */}
       {chartData.length > 0 && (
         <div className="flex flex-col gap-4">

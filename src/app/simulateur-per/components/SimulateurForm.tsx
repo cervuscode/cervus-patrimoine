@@ -26,6 +26,8 @@ import QAnneeNaissance from "./QAnneeNaissance";
 import QAgeRetraite from "./QAgeRetraite";
 import QVersements from "./QVersements";
 import QProfil from "./QProfil";
+import QObjectif from "./QObjectif";
+import QStatutPro from "./QStatutPro";
 import QIdentite from "./QIdentite";
 import QEmail from "./QEmail";
 import QTelephone from "./QTelephone";
@@ -39,10 +41,12 @@ import QTelephone from "./QTelephone";
 // Q6  Âge retraite        → step 3
 // Q7  Versements          → step 3
 // Q8  Profil              → step 3
-// Q9  Identité            → step 4
-// Q10 Email               → step 4
-// Q11 Téléphone + OTP     → step 4
-const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4] as const;
+// Q9  Objectif            → step 4
+// Q10 Statut pro          → step 4
+// Q11 Identité            → step 4
+// Q12 Email               → step 4
+// Q13 Téléphone + OTP     → step 4
+const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4] as const;
 const CURRENT_YEAR = new Date().getFullYear();
 
 // Détermine le statut fiscal effectif (intègre la garde parentale)
@@ -254,24 +258,30 @@ export default function SimulateurForm() {
           <QProfil data={data} onChange={patch} onNext={() => goTo(9)} onPrev={() => goTo(7)} />
         )}
         {qIndex === 9 && (
-          <QIdentite data={data} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
+          <QObjectif data={data} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
         )}
         {qIndex === 10 && (
+          <QStatutPro data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
+        )}
+        {qIndex === 11 && (
+          <QIdentite data={data} onChange={patch} onNext={() => goTo(12)} onPrev={() => goTo(10)} />
+        )}
+        {qIndex === 12 && (
           <QEmail
             data={data}
             onChange={patch}
             onNext={(d) => {
               triggerEarlyContact(d ?? data);
-              goTo(11);
+              goTo(13);
             }}
-            onPrev={() => goTo(9)}
+            onPrev={() => goTo(11)}
           />
         )}
-        {qIndex === 11 && (
+        {qIndex === 13 && (
           <QTelephone
             data={data}
             onChange={patch}
-            onPrev={() => goTo(10)}
+            onPrev={() => goTo(12)}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

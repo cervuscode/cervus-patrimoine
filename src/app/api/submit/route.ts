@@ -38,33 +38,40 @@ function isSubmitRateLimited(ip: string): boolean {
 }
 
 async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
+  const profilLabels: Record<string, string> = {
+    prudent:   "Prudent",
+    equilibre: "Équilibré",
+    dynamique: "Dynamique",
+  };
+  const objectifLabels: Record<string, string> = {
+    reduire_impots:    "Réduire mes impôts",
+    preparer_retraite: "Préparer ma retraite",
+    dynamiser_epargne: "Dynamiser mon épargne",
+  };
+  const statutProLabels: Record<string, string> = {
+    salarie:       "Salarié",
+    fonctionnaire: "Fonctionnaire",
+    independant:   "Indépendant",
+    liberal:       "Profession libérale",
+  };
+
   const body = {
-    sender: { name: "Cervus Patrimoine", email: "simulation@cervuspatrimoine.fr" },
+    sender: { name: "Auguste — Cervus Patrimoine", email: "auguste@cervuspatrimoine.fr" },
     to: [{ email: data.email, name: data.prenom }],
-    subject: `Votre simulation PER — Cervus Patrimoine, ${data.prenom}`,
-    htmlContent: `
-      <p>Bonjour ${data.prenom},</p>
-      <p>Merci d'avoir utilisé le simulateur PER Cervus Patrimoine.</p>
-      <p>
-        <strong>Économie fiscale estimée :</strong> ${computed.economieFiscale.toLocaleString("fr-FR")} €/an<br/>
-        <strong>Capital estimé à 64 ans :</strong> ${computed.capitalFinal.toLocaleString("fr-FR")} €<br/>
-        <strong>TMI :</strong> ${computed.tmi} %
-      </p>
-      <p>Votre rapport complet est joint à cet email.</p>
-      <p>
-        Pour approfondir votre situation patrimoniale, prenez rendez-vous avec Auguste Dechery :<br/>
-        <a href="${process.env.NEXT_PUBLIC_CALENDLY_URL ?? "https://cervuspatrimoine.fr/simulateur-per"}">
-          Prendre rendez-vous
-        </a>
-      </p>
-      <p style="font-size:11px;color:#999;font-style:italic;margin-top:24px;">
-        Ces projections sont fournies à titre indicatif et ne constituent pas un conseil en investissement.
-        Cervus Patrimoine · ORIAS n° 25006770
-      </p>
-    `,
+    templateId: 1,
+    params: {
+      PRENOM:              data.prenom,
+      CAPITAL_PROJETE:     computed.capitalFinal,
+      ECONOMIE_FISCALE:    computed.economieFiscale,
+      TMI:                 computed.tmi,
+      VERSEMENT_MENSUEL:   Math.round(computed.versementAnnuel / 12),
+      PROFIL_INVESTISSEUR: profilLabels[data.profil] ?? data.profil,
+      OBJECTIF:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
+      STATUT_PRO:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
+    },
     attachment: [
       {
-        name: `Simulation_PER_Cervus_${data.prenom}_${data.nom}.pdf`,
+        name:    "simulation-per-cervus.pdf",
         content: pdfBase64,
       },
     ],
@@ -94,6 +101,18 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
 
   const profil = { prudent: "Prudent", equilibre: "Équilibré", dynamique: "Dynamique" }[data.profil];
 
+  const objectifLabels: Record<string, string> = {
+    reduire_impots:    "Réduire mes impôts",
+    preparer_retraite: "Préparer ma retraite",
+    dynamiser_epargne: "Dynamiser mon épargne",
+  };
+  const statutProLabels: Record<string, string> = {
+    salarie:       "Salarié",
+    fonctionnaire: "Fonctionnaire",
+    independant:   "Indépendant",
+    liberal:       "Profession libérale",
+  };
+
   const body = {
     email: data.email,
     updateEnabled: true,
@@ -110,6 +129,8 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
       ECONOMIE_IMPOT: computed.economieFiscale,
       CAPITAL_PROJETE: computed.capitalFinal,
       PROFIL_RISQUE: profil,
+      ...(data.objectif ? { OBJECTIF: objectifLabels[data.objectif] ?? data.objectif } : {}),
+      ...(data.statutPro ? { STATUT_PRO: statutProLabels[data.statutPro] ?? data.statutPro } : {}),
       CONSENTEMENT_RDV: data.consentementRdv,
       OTP_VERIFIE: true,
       SIMULATION_EN_ATTENTE: false,

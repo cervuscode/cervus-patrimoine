@@ -5,11 +5,11 @@
 
 // Barème IR 2025 (revenus 2024)
 const TRANCHES: Array<{ min: number; max: number; taux: number }> = [
-  { min: 0,      max: 11497,          taux: 0    },
-  { min: 11497,  max: 29315,          taux: 0.11 },
-  { min: 29315,  max: 83823,          taux: 0.30 },
-  { min: 83823,  max: 180294,         taux: 0.41 },
-  { min: 180294, max: Infinity,       taux: 0.45 },
+  { min: 0,      max: 11600,          taux: 0    },
+  { min: 11600,  max: 29579,          taux: 0.11 },
+  { min: 29579,  max: 84577,          taux: 0.30 },
+  { min: 84577,  max: 181917,         taux: 0.41 },
+  { min: 181917, max: Infinity,       taux: 0.45 },
 ];
 
 // Plafond quotient familial 2025 : 1 791 € par demi-part supplémentaire
@@ -28,7 +28,19 @@ export function impotBrut(R: number, parts: number): number {
   return impotParPart * parts;
 }
 
-// ── CALCUL IMPÔT RÉEL avec plafonnement du quotient familial ──────────────────
+// ── DÉCOTE 2025 ────────────────────────────────────────────────────────────────
+// S'applique sur l'impôt après quotient familial, avant restitution finale.
+// Célibataire : seuil 1 929 €, formule 873 − (impôt × 0.4525)
+// Couple      : seuil 3 191 €, formule 1 444 − (impôt × 0.4525)
+// La décote ne peut pas être négative ; l'impôt final ne peut pas être négatif.
+function decote(impot: number, couple: boolean): number {
+  const seuil = couple ? 3191 : 1929;
+  const base  = couple ? 1444 :  873;
+  if (impot >= seuil) return 0;
+  return Math.max(base - impot * 0.4525, 0);
+}
+
+// ── CALCUL IMPÔT RÉEL avec plafonnement du quotient familial + décote ─────────
 // partsBase  : parts du foyer sans enfants (1 = célibataire/divorcé, 2 = couple)
 // partsTotal : parts avec enfants
 //
@@ -36,8 +48,14 @@ export function impotBrut(R: number, parts: number): number {
 // 1. Calculer l'impôt avec le quotient familial (faux barème × partsTotal)
 // 2. Calculer l'impôt sans enfants (barème réel × partsBase)
 // 3. Si l'économie dépasse le plafond → plafonner
+// 4. Appliquer la décote 2025 sur l'impôt résultant
 export function impotReel(R: number, partsBase: number, partsTotal: number): number {
-  if (partsTotal === partsBase) return impotBrut(R, partsBase);
+  const couple = partsBase === 2;
+
+  if (partsTotal === partsBase) {
+    const imp = impotBrut(R, partsBase);
+    return Math.max(imp - decote(imp, couple), 0);
+  }
 
   const impotAvecEnfants  = impotBrut(R, partsTotal); // faux barème
   const impotSansEnfants  = impotBrut(R, partsBase);  // barème réel
@@ -45,13 +63,16 @@ export function impotReel(R: number, partsBase: number, partsTotal: number): num
   const nbDemiPartsSupp   = (partsTotal - partsBase) * 2;
   const plafondTotal      = nbDemiPartsSupp * PLAFOND_PAR_DEMI_PART;
 
+  let impot: number;
   if (economieReelle <= plafondTotal) {
     // Plafond non atteint — quotient familial pleinement appliqué
-    return impotAvecEnfants;
+    impot = impotAvecEnfants;
   } else {
     // Plafond atteint — on plafonne l'avantage fiscal
-    return impotSansEnfants - plafondTotal;
+    impot = impotSansEnfants - plafondTotal;
   }
+
+  return Math.max(impot - decote(impot, couple), 0);
 }
 
 // ── TMI EFFECTIVE ──────────────────────────────────────────────────────────────

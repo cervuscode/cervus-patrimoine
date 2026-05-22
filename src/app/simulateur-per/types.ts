@@ -1,6 +1,8 @@
 export type Statut = 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole';
 export type AbattementSalaires = 'forfait10' | 'fraisReels';
 export type Profil = 'prudent' | 'equilibre' | 'dynamique';
+export type Objectif = 'reduire_impots' | 'preparer_retraite' | 'dynamiser_epargne';
+export type StatutPro = 'salarie' | 'fonctionnaire' | 'independant' | 'liberal';
 export type SimStep = 1 | 2 | 3 | 4 | 'result';
 
 export interface SimulateurData {
@@ -24,6 +26,10 @@ export interface SimulateurData {
   versementInitial: string;        // apport unique, 0 par défaut
   versementMensuel: string;
   profil: Profil;
+
+  // Étape 4 — Objectif & statut pro
+  objectif: Objectif | '';
+  statutPro: StatutPro | '';
 
   // Étape 4 — Coordonnées
   prenom: string;
@@ -67,6 +73,8 @@ export const INITIAL_DATA: SimulateurData = {
   versementInitial: '',
   versementMensuel: '',
   profil: 'equilibre',
+  objectif: '',
+  statutPro: '',
   prenom: '',
   nom: '',
   email: '',

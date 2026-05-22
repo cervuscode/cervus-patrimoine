@@ -190,7 +190,8 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
   });
 
   if (!res.ok) {
-    console.error(`[submit] Brevo contact error: ${res.status}`);
+    const errBody = await res.text().catch(() => "(unreadable)");
+    console.error(`[submit] Brevo contact error: ${res.status} — ${errBody}`);
   }
 }
 

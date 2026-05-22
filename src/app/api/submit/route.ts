@@ -161,7 +161,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
     attributes: {
       FIRSTNAME: data.prenom,
       LASTNAME: data.nom,
-      ...(data.telephone ? { SMS: formatPhoneForBrevo(data.telephone) } : {}),
+      ...(data.telephone ? { TELEPHONE: formatPhoneForBrevo(data.telephone) } : {}),
       SOURCE: "Simu-PER",
       STATUT_FISCAL: statut,
       TMI: computed.tmi,

@@ -38,7 +38,7 @@ async function markOtpVerifiedInBrevo(email: string, telephone: string) {
         method: "PUT",
         headers,
         body: JSON.stringify({
-          attributes: { OTP_VERIFIE: true, SMS: formatted, SIMULATION_EN_ATTENTE: false },
+          attributes: { OTP_VERIFIE: true, TELEPHONE: formatted, SIMULATION_EN_ATTENTE: false },
         }),
       }),
       // Retrait de la liste #6 (Leads sans OTP)

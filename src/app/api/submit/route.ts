@@ -37,6 +37,48 @@ function isSubmitRateLimited(ip: string): boolean {
   return false;
 }
 
+async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
+  const webhookUrl = process.env.MAKE_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const date = new Date().toISOString().slice(0, 10);
+  const profilLabels: Record<string, string> = {
+    prudent: "Prudent", equilibre: "Équilibré", dynamique: "Dynamique",
+  };
+  const objectifLabels: Record<string, string> = {
+    reduire_impots: "Réduire mes impôts",
+    preparer_retraite: "Préparer ma retraite",
+    dynamiser_epargne: "Dynamiser mon épargne",
+  };
+  const statutProLabels: Record<string, string> = {
+    salarie: "Salarié", fonctionnaire: "Fonctionnaire",
+    independant: "Indépendant", liberal: "Profession libérale",
+  };
+
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type:                "otp_valide",
+      email:               data.email,
+      prenom:              data.prenom,
+      pdf:                 pdfBase64,
+      nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+      capital_projete:     computed.capitalFinal,
+      economie_fiscale:    computed.economieFiscale,
+      tmi:                 computed.tmi,
+      versement_mensuel:   Math.round(computed.versementAnnuel / 12),
+      profil_investisseur: profilLabels[data.profil] ?? data.profil,
+      objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
+      statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
+    }),
+  });
+
+  if (!res.ok) {
+    console.error(`[submit] Make webhook error: ${res.status}`);
+  }
+}
+
 async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
   const profilLabels: Record<string, string> = {
     prudent:   "Prudent",
@@ -185,10 +227,11 @@ export async function POST(req: NextRequest) {
     );
     const pdfBase64 = pdfBuffer.toString("base64");
 
-    // Run email + CRM in parallel — non-blocking on partial failure
+    // Run email + CRM + Make webhook in parallel — non-blocking on partial failure
     await Promise.allSettled([
       sendEmail(data, computed, pdfBase64),
       createBrevoContact(data, computed),
+      sendMakeWebhook(data, computed, pdfBase64),
     ]);
 
     return NextResponse.json({ ok: true });

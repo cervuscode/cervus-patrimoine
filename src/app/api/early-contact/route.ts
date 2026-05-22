@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { renderToBuffer } from "@react-pdf/renderer";
+import React from "react";
+import PdfDocument from "@/app/api/submit/PdfDocument";
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 
 const BREVO_API = "https://api.brevo.com/v3";
@@ -22,6 +25,39 @@ function isRateLimited(ip: string): boolean {
   if (entry.count >= MAX_ATTEMPTS) return true;
   entry.count += 1;
   return false;
+}
+
+async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedResults) {
+  const webhookUrl = process.env.MAKE_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const date = new Date().toISOString().slice(0, 10);
+
+  // Génère le PDF pour la pièce jointe dans le scénario Make sans OTP
+  const pdfBuffer = await renderToBuffer(
+    // @ts-expect-error — react-pdf types differ from React's generic ReactElement
+    React.createElement(PdfDocument, { data, computed })
+  );
+  const pdfBase64 = pdfBuffer.toString("base64");
+
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type:             "sans_otp_30min",
+      email:            data.email,
+      prenom:           data.prenom,
+      pdf:              pdfBase64,
+      nom_fichier:      `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+      capital_projete:  computed.capitalFinal,
+      economie_fiscale: computed.economieFiscale,
+      tmi:              computed.tmi,
+    }),
+  });
+
+  if (!res.ok) {
+    console.error(`[early-contact] Make webhook error: ${res.status}`);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -75,18 +111,19 @@ export async function POST(req: NextRequest) {
       listIds: [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP
     };
 
-    const res = await fetch(`${BREVO_API}/contacts`, {
-      method: "POST",
-      headers: {
-        "api-key": process.env.BREVO_API_KEY!,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(brevoBody),
-    });
-
-    if (!res.ok) {
-      console.error(`[early-contact] Brevo error: ${res.status}`);
-    }
+    await Promise.allSettled([
+      fetch(`${BREVO_API}/contacts`, {
+        method: "POST",
+        headers: {
+          "api-key": process.env.BREVO_API_KEY!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(brevoBody),
+      }).then((res) => {
+        if (!res.ok) console.error(`[early-contact] Brevo error: ${res.status}`);
+      }),
+      sendMakeWebhookSansOtp(data, computed),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {

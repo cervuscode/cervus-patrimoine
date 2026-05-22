@@ -123,7 +123,8 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erreur envoi SMS");
-      onChange({ otpSent: true });
+      onChange({ otpSent: true, otpCode: "" });
+      setVerifyError("");
       startCountdown();
       startResendCooldown();
     } catch (e: unknown) {

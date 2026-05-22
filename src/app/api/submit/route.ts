@@ -135,7 +135,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
       OTP_VERIFIE: true,
       SIMULATION_EN_ATTENTE: false,
     },
-    listIds: [4], // ID liste "Leads Simu-PER" — à ajuster selon votre compte Brevo
+    listIds: [5], // Liste "Leads Simu-PER"
   };
 
   const res = await fetch(`${BREVO_API}/contacts`, {

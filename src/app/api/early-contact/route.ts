@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         OTP_VERIFIE: false,
         SIMULATION_EN_ATTENTE: false,
       },
-      listIds: [4],
+      listIds: [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP
     };
 
     const res = await fetch(`${BREVO_API}/contacts`, {

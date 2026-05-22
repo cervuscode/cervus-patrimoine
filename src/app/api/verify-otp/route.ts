@@ -25,17 +25,35 @@ async function markOtpVerifiedInBrevo(email: string, telephone: string) {
     : cleaned.startsWith("+")
     ? cleaned
     : "+33" + cleaned;
+
+  const headers = {
+    "api-key": process.env.BREVO_API_KEY!,
+    "Content-Type": "application/json",
+  };
+
   try {
-    await fetch(`${BREVO_API}/contacts/${encodeURIComponent(email)}`, {
-      method: "PUT",
-      headers: {
-        "api-key": process.env.BREVO_API_KEY!,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        attributes: { OTP_VERIFIE: true, SMS: formatted, SIMULATION_EN_ATTENTE: false },
+    await Promise.all([
+      // Mise à jour des attributs
+      fetch(`${BREVO_API}/contacts/${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          attributes: { OTP_VERIFIE: true, SMS: formatted, SIMULATION_EN_ATTENTE: false },
+        }),
       }),
-    });
+      // Retrait de la liste #6 (Leads sans OTP)
+      fetch(`${BREVO_API}/contacts/lists/6/contacts/remove`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ emails: [email] }),
+      }),
+      // Ajout à la liste #5 (Leads Simu-PER)
+      fetch(`${BREVO_API}/contacts/lists/5/contacts/add`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ emails: [email] }),
+      }),
+    ]);
   } catch {
     // Non-blocking
   }

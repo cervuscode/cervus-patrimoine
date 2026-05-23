@@ -29,7 +29,12 @@ function isRateLimited(ip: string): boolean {
 
 async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedResults) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
-  if (!webhookUrl) return;
+  console.log("[Make] URL:", webhookUrl ?? "undefined — MAKE_WEBHOOK_URL non défini dans les variables d'env");
+  if (!webhookUrl) {
+    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL manquant (type: sans_otp_30min)");
+    return;
+  }
+  console.log("[Make] Envoi webhook: sans_otp_30min");
 
   const date = new Date().toISOString().slice(0, 10);
 
@@ -56,7 +61,9 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
   });
 
   if (!res.ok) {
-    console.error(`[early-contact] Make webhook error: ${res.status}`);
+    console.error(`[Make] Webhook sans_otp_30min error: ${res.status}`);
+  } else {
+    console.log("[Make] Webhook sans_otp_30min envoyé avec succès");
   }
 }
 

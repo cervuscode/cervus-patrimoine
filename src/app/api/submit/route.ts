@@ -39,7 +39,12 @@ function isSubmitRateLimited(ip: string): boolean {
 
 async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
-  if (!webhookUrl) return;
+  console.log("[Make] URL:", webhookUrl ?? "undefined — MAKE_WEBHOOK_URL non défini dans les variables d'env");
+  if (!webhookUrl) {
+    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL manquant (type: otp_valide)");
+    return;
+  }
+  console.log("[Make] Envoi webhook: otp_valide");
 
   const date = new Date().toISOString().slice(0, 10);
   const profilLabels: Record<string, string> = {
@@ -75,7 +80,9 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
   });
 
   if (!res.ok) {
-    console.error(`[submit] Make webhook error: ${res.status}`);
+    console.error(`[Make] Webhook otp_valide error: ${res.status}`);
+  } else {
+    console.log("[Make] Webhook otp_valide envoyé avec succès");
   }
 }
 

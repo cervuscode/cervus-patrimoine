@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { SimulateurData } from "../types";
+import { SimulateurData, ComputedResults } from "../types";
 import Disclaimer from "./Disclaimer";
 
 const PHONE_WHITELIST = new Set(["0781196794"]);
@@ -10,6 +10,7 @@ const RESEND_COOLDOWN_S = 30;
 
 interface Props {
   data: SimulateurData;
+  computed: ComputedResults;
   onChange: (p: Partial<SimulateurData>) => void;
   onPrev: () => void;
   onSubmit: () => void;
@@ -33,7 +34,7 @@ function formatCountdown(s: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export default function QTelephone({ data, onChange, onPrev, onSubmit, submitting }: Props) {
+export default function QTelephone({ data, computed, onChange, onPrev, onSubmit, submitting }: Props) {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [verifyLoading, setVerifyLoading] = useState(false);
@@ -183,7 +184,7 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
             Ce numéro est déjà associé à une simulation.
           </h2>
           <p className="font-inter text-sm text-[#555555] leading-relaxed">
-            Prenez rendez-vous avec Auguste pour aller plus loin et explorer de nouveaux scénarios.
+            Pour aller plus loin et explorer de nouveaux scénarios, échangez avec un expert.
           </p>
         </div>
         <a
@@ -192,14 +193,8 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
           rel="noopener noreferrer"
           className="flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors text-center"
         >
-          Prendre rendez-vous avec Auguste →
+          Parler à un expert →
         </a>
-        <button
-          onClick={() => setShowDuplicate(false)}
-          className="self-center font-inter text-xs text-[#555555]/40 hover:text-[#555555]/70 transition-colors"
-        >
-          Continuer quand même →
-        </button>
       </div>
     );
   }
@@ -208,8 +203,8 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
     <div className="flex flex-col gap-8 pt-8">
       {/* Badge progression */}
       <div className="inline-flex items-center gap-2 self-start bg-[#795D48]/10 border border-[#795D48]/20 rounded-full px-3 py-1">
-        <span className="font-inter text-xs text-[#795D48] font-medium">Vous y êtes presque !</span>
-        <span className="font-inter text-xs text-[#795D48]/60">Plus que 1 question</span>
+        <span className="font-inter text-xs text-[#795D48] font-medium">Vos résultats sont prêts</span>
+        <span className="font-inter text-xs text-[#795D48]/60">plus que 1 étape</span>
       </div>
 
       <div>
@@ -219,9 +214,25 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
         <p className="font-inter text-sm text-[#555555]">
           Un code de vérification vous sera envoyé par SMS.
         </p>
-        <p className="font-inter text-sm text-[#795D48] mt-2 leading-relaxed">
-          Page suivante : vos résultats personnalisés + un compte rendu complet de votre simulation envoyé par email.
-        </p>
+        {computed.economieFiscale > 0 && (
+          <div className="mt-3 p-4 bg-[#795D48]/8 border border-[#795D48]/20 rounded-xl flex flex-col gap-1">
+            <p className="font-inter text-sm font-semibold text-[#795D48]">
+              Votre économie fiscale estimée :{" "}
+              {new Intl.NumberFormat("fr-FR").format(computed.economieFiscale)} €/an
+            </p>
+            <p className="font-inter text-sm text-[#555555]">
+              Recevez votre analyse complète par email
+            </p>
+            <p className="font-inter text-sm text-[#555555]">
+              + accédez à vos résultats maintenant
+            </p>
+          </div>
+        )}
+        {computed.economieFiscale === 0 && (
+          <p className="font-inter text-sm text-[#795D48] mt-2 leading-relaxed">
+            Recevez votre analyse complète par email et accédez à vos résultats personnalisés.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -326,6 +337,20 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
             )}
           </div>
         )}
+      </div>
+
+      {/* Éléments de réassurance */}
+      <div className="flex flex-col gap-2">
+        {[
+          { icon: "🔒", text: "Vos données sont sécurisées" },
+          { icon: "📄", text: "Simulation détaillée en PDF" },
+          { icon: "🎯", text: "Accompagnement personnalisé offert" },
+        ].map(({ icon, text }) => (
+          <div key={text} className="flex items-center gap-2">
+            <span className="text-base leading-none">{icon}</span>
+            <span className="font-inter text-xs text-[#555555]">{text}</span>
+          </div>
+        ))}
       </div>
 
       <Disclaimer />

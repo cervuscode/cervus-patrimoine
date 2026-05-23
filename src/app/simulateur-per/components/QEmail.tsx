@@ -46,7 +46,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
             Vous avez déjà effectué une simulation.
           </h2>
           <p className="font-inter text-sm text-[#555555] leading-relaxed">
-            Pour explorer d&apos;autres scénarios personnalisés, échangez directement avec Auguste.
+            Pour explorer d&apos;autres scénarios personnalisés, échangez directement avec un expert.
           </p>
         </div>
         <a
@@ -55,14 +55,8 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
           rel="noopener noreferrer"
           className="flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors text-center"
         >
-          Prendre rendez-vous avec Auguste →
+          Parler à un expert →
         </a>
-        <button
-          onClick={() => { setShowDuplicate(false); onNext(data); }}
-          className="self-center font-inter text-xs text-[#555555]/40 hover:text-[#555555]/70 transition-colors"
-        >
-          Continuer quand même →
-        </button>
       </div>
     );
   }
@@ -71,8 +65,8 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
     <div className="flex flex-col gap-8 pt-8">
       {/* Badge progression */}
       <div className="inline-flex items-center gap-2 self-start bg-[#795D48]/10 border border-[#795D48]/20 rounded-full px-3 py-1">
-        <span className="font-inter text-xs text-[#795D48] font-medium">Vous y êtes presque !</span>
-        <span className="font-inter text-xs text-[#795D48]/60">Plus que 2 questions</span>
+        <span className="font-inter text-xs text-[#795D48] font-medium">Vos résultats sont prêts</span>
+        <span className="font-inter text-xs text-[#795D48]/60">plus que 2 étapes</span>
       </div>
 
       <div>

@@ -284,6 +284,7 @@ export default function SimulateurForm() {
         {qIndex === 14 && (
           <QTelephone
             data={data}
+            computed={computed}
             onChange={patch}
             onPrev={() => goTo(13)}
             onSubmit={handleSubmit}

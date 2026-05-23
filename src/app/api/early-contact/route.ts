@@ -90,22 +90,31 @@ export async function POST(req: NextRequest) {
 
     const profil = { prudent: "Prudent", equilibre: "Équilibré", dynamique: "Dynamique" }[data.profil] ?? "";
 
+    const today = new Date();
+    const dateSimulation = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
     const brevoBody = {
       email: data.email,
       updateEnabled: true,
       attributes: {
-        FIRSTNAME: data.prenom,
-        LASTNAME: data.nom,
-        SOURCE: "Simu-PER",
-        STATUT_FISCAL: statut,
-        TMI: computed.tmi,
-        REVENUS_ANNUELS: computed.revenuImposable,
-        AGE_RETRAITE: computed.ageRetraiteNum,
-        VERSEMENT_PER: computed.versementAnnuel,
-        ECONOMIE_IMPOT: computed.economieFiscale,
-        CAPITAL_PROJETE: computed.capitalFinal,
-        PROFIL_RISQUE: profil,
-        OTP_VERIFIE: false,
+        PRENOM:              data.prenom,
+        NOM:                 data.nom,
+        SOURCE:              "Simu-PER",
+        STATUT_MARITAL:      statut,
+        TMI:                 computed.tmi,
+        REVENU_IMPOSABLE:    computed.revenuImposable,
+        ANNEE_NAISSANCE:     parseInt(data.anneeNaissance) || 0,
+        NB_ENFANT:           data.nbEnfants,
+        AUTRE_REVENU:        data.autresRevenus ?? false,
+        VERSEMENT_INITIAL:   parseFloat(data.versementInitial) || 0,
+        VERSEMENT_MENSUEL:   parseFloat(data.versementMensuel) || 0,
+        VERSEMENT_PER:       computed.versementAnnuel,
+        PROFIL_INVESTISSEUR: profil,
+        CAPITAL_PROJETE:     computed.capitalFinal,
+        ECONOMIE_FISCALE:    computed.economieFiscale,
+        AGE_RETRAITE:        computed.ageRetraiteNum,
+        DATE_SIMULATION:     dateSimulation,
+        OTP_VERIFIE:         false,
         SIMULATION_EN_ATTENTE: false,
       },
       listIds: [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP

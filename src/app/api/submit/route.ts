@@ -155,26 +155,35 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
     liberal:       "Profession libérale",
   };
 
+  const today = new Date();
+  const dateSimulation = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
   const body = {
     email: data.email,
     updateEnabled: true,
     attributes: {
-      FIRSTNAME: data.prenom,
-      LASTNAME: data.nom,
+      PRENOM:              data.prenom,
+      NOM:                 data.nom,
       ...(data.telephone ? { TELEPHONE: formatPhoneForBrevo(data.telephone) } : {}),
-      SOURCE: "Simu-PER",
-      STATUT_FISCAL: statut,
-      TMI: computed.tmi,
-      REVENUS_ANNUELS: computed.revenuImposable,
-      AGE_RETRAITE: computed.ageRetraiteNum,
-      VERSEMENT_PER: computed.versementAnnuel,
-      ECONOMIE_IMPOT: computed.economieFiscale,
-      CAPITAL_PROJETE: computed.capitalFinal,
-      PROFIL_RISQUE: profil,
-      ...(data.objectif ? { OBJECTIF: objectifLabels[data.objectif] ?? data.objectif } : {}),
-      ...(data.statutPro ? { STATUT_PRO: statutProLabels[data.statutPro] ?? data.statutPro } : {}),
-      CONSENTEMENT_RDV: data.consentementRdv,
-      OTP_VERIFIE: true,
+      SOURCE:              "Simu-PER",
+      STATUT_MARITAL:      statut,
+      TMI:                 computed.tmi,
+      REVENU_IMPOSABLE:    computed.revenuImposable,
+      ANNEE_NAISSANCE:     parseInt(data.anneeNaissance) || 0,
+      NB_ENFANT:           data.nbEnfants,
+      AUTRE_REVENU:        data.autresRevenus ?? false,
+      VERSEMENT_INITIAL:   parseFloat(data.versementInitial) || 0,
+      VERSEMENT_MENSUEL:   parseFloat(data.versementMensuel) || 0,
+      VERSEMENT_PER:       computed.versementAnnuel,
+      PROFIL_INVESTISSEUR: profil,
+      CAPITAL_PROJETE:     computed.capitalFinal,
+      ECONOMIE_FISCALE:    computed.economieFiscale,
+      AGE_RETRAITE:        computed.ageRetraiteNum,
+      DATE_SIMULATION:     dateSimulation,
+      ...(data.objectif  ? { OBJECTIF:   objectifLabels[data.objectif]    ?? data.objectif  } : {}),
+      ...(data.statutPro ? { STATUT_PRO: statutProLabels[data.statutPro]  ?? data.statutPro } : {}),
+      CONSENTEMENT_RDV:    data.consentementRdv,
+      OTP_VERIFIE:         true,
       SIMULATION_EN_ATTENTE: false,
     },
     listIds: [5], // Liste "Leads Simu-PER"
@@ -191,6 +200,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => "(unreadable)");
+    // errBody = message d'erreur Brevo uniquement, pas de données utilisateur
     console.error(`[submit] Brevo contact error: ${res.status} — ${errBody}`);
   }
 }

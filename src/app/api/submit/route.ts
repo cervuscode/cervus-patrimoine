@@ -38,13 +38,14 @@ function isSubmitRateLimited(ip: string): boolean {
 }
 
 async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
+  console.log("[Make] Début sendMakeWebhook, type: otp_valide");
+  console.log("[Make] URL présente:", !!process.env.MAKE_WEBHOOK_URL);
+
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
-  console.log("[Make] URL:", webhookUrl ?? "undefined — MAKE_WEBHOOK_URL non défini dans les variables d'env");
   if (!webhookUrl) {
-    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL manquant (type: otp_valide)");
+    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL absent des variables d'env (type: otp_valide)");
     return;
   }
-  console.log("[Make] Envoi webhook: otp_valide");
 
   const date = new Date().toISOString().slice(0, 10);
   const profilLabels: Record<string, string> = {
@@ -60,29 +61,34 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
     independant: "Indépendant", liberal: "Profession libérale",
   };
 
-  const res = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type:                "otp_valide",
-      email:               data.email,
-      prenom:              data.prenom,
-      pdf:                 pdfBase64,
-      nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
-      capital_projete:     computed.capitalFinal,
-      economie_fiscale:    computed.economieFiscale,
-      tmi:                 computed.tmi,
-      versement_mensuel:   Math.round(computed.versementAnnuel / 12),
-      profil_investisseur: profilLabels[data.profil] ?? data.profil,
-      objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
-      statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
-    }),
-  });
-
-  if (!res.ok) {
-    console.error(`[Make] Webhook otp_valide error: ${res.status}`);
-  } else {
-    console.log("[Make] Webhook otp_valide envoyé avec succès");
+  try {
+    console.log("[Make] Envoi fetch vers Make (otp_valide)...");
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type:                "otp_valide",
+        email:               data.email,
+        prenom:              data.prenom,
+        pdf:                 pdfBase64,
+        nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+        capital_projete:     computed.capitalFinal,
+        economie_fiscale:    computed.economieFiscale,
+        tmi:                 computed.tmi,
+        versement_mensuel:   Math.round(computed.versementAnnuel / 12),
+        profil_investisseur: profilLabels[data.profil] ?? data.profil,
+        objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
+        statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "(unreadable)");
+      console.error(`[Make] Webhook otp_valide HTTP error: ${res.status} — ${body}`);
+    } else {
+      console.log("[Make] Webhook otp_valide envoyé avec succès, status:", res.status);
+    }
+  } catch (err: unknown) {
+    console.error("[Make] Webhook otp_valide exception réseau:", err instanceof Error ? err.message : err);
   }
 }
 
@@ -246,11 +252,17 @@ export async function POST(req: NextRequest) {
     const pdfBase64 = pdfBuffer.toString("base64");
 
     // Run email + CRM + Make webhook in parallel — non-blocking on partial failure
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       sendEmail(data, computed, pdfBase64),
       createBrevoContact(data, computed),
       sendMakeWebhook(data, computed, pdfBase64),
     ]);
+    results.forEach((r, i) => {
+      const label = ["sendEmail", "createBrevoContact", "sendMakeWebhook"][i];
+      if (r.status === "rejected") {
+        console.error(`[submit] ${label} rejeté:`, r.reason instanceof Error ? r.reason.message : r.reason);
+      }
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {

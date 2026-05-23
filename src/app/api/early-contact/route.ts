@@ -28,13 +28,14 @@ function isRateLimited(ip: string): boolean {
 }
 
 async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedResults) {
+  console.log("[Make] Début sendMakeWebhookSansOtp, type: sans_otp_30min");
+  console.log("[Make] URL présente:", !!process.env.MAKE_WEBHOOK_URL);
+
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
-  console.log("[Make] URL:", webhookUrl ?? "undefined — MAKE_WEBHOOK_URL non défini dans les variables d'env");
   if (!webhookUrl) {
-    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL manquant (type: sans_otp_30min)");
+    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL absent des variables d'env (type: sans_otp_30min)");
     return;
   }
-  console.log("[Make] Envoi webhook: sans_otp_30min");
 
   const date = new Date().toISOString().slice(0, 10);
 
@@ -45,25 +46,30 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
   );
   const pdfBase64 = pdfBuffer.toString("base64");
 
-  const res = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type:             "sans_otp_30min",
-      email:            data.email,
-      prenom:           data.prenom,
-      pdf:              pdfBase64,
-      nom_fichier:      `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
-      capital_projete:  computed.capitalFinal,
-      economie_fiscale: computed.economieFiscale,
-      tmi:              computed.tmi,
-    }),
-  });
-
-  if (!res.ok) {
-    console.error(`[Make] Webhook sans_otp_30min error: ${res.status}`);
-  } else {
-    console.log("[Make] Webhook sans_otp_30min envoyé avec succès");
+  try {
+    console.log("[Make] Envoi fetch vers Make (sans_otp_30min)...");
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type:             "sans_otp_30min",
+        email:            data.email,
+        prenom:           data.prenom,
+        pdf:              pdfBase64,
+        nom_fichier:      `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+        capital_projete:  computed.capitalFinal,
+        economie_fiscale: computed.economieFiscale,
+        tmi:              computed.tmi,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "(unreadable)");
+      console.error(`[Make] Webhook sans_otp_30min HTTP error: ${res.status} — ${body}`);
+    } else {
+      console.log("[Make] Webhook sans_otp_30min envoyé avec succès, status:", res.status);
+    }
+  } catch (err: unknown) {
+    console.error("[Make] Webhook sans_otp_30min exception réseau:", err instanceof Error ? err.message : err);
   }
 }
 
@@ -127,7 +133,7 @@ export async function POST(req: NextRequest) {
       listIds: [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP
     };
 
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       fetch(`${BREVO_API}/contacts`, {
         method: "POST",
         headers: {
@@ -140,6 +146,12 @@ export async function POST(req: NextRequest) {
       }),
       sendMakeWebhookSansOtp(data, computed),
     ]);
+    results.forEach((r, i) => {
+      const label = ["brevoContact", "sendMakeWebhookSansOtp"][i];
+      if (r.status === "rejected") {
+        console.error(`[early-contact] ${label} rejeté:`, r.reason instanceof Error ? r.reason.message : r.reason);
+      }
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {

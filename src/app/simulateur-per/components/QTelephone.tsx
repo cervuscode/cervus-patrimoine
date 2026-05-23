@@ -38,6 +38,8 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
   const [otpError, setOtpError] = useState("");
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
 
   // Countdown: seconds remaining for current OTP
   const [countdown, setCountdown] = useState(0);
@@ -116,6 +118,20 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
     setOtpLoading(true);
     setOtpError("");
     try {
+      // Vérifier si le numéro existe déjà dans Brevo (premier envoi uniquement)
+      if (!data.otpSent && !isWhitelisted) {
+        const checkRes = await fetch("/api/check-contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telephone: data.telephone }),
+        });
+        const checkJson = await checkRes.json();
+        if (checkJson.exists) {
+          setShowDuplicate(true);
+          return;
+        }
+      }
+
       const res = await fetch("/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,14 +175,52 @@ export default function QTelephone({ data, onChange, onPrev, onSubmit, submittin
     }
   }
 
+  if (showDuplicate) {
+    return (
+      <div className="flex flex-col gap-8 pt-8">
+        <div>
+          <h2 className="font-cormorant text-[2.5rem] font-light text-[#0f0f0f] mb-2 leading-tight">
+            Ce numéro est déjà associé à une simulation.
+          </h2>
+          <p className="font-inter text-sm text-[#555555] leading-relaxed">
+            Prenez rendez-vous avec Auguste pour aller plus loin et explorer de nouveaux scénarios.
+          </p>
+        </div>
+        <a
+          href={calendlyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors text-center"
+        >
+          Prendre rendez-vous avec Auguste →
+        </a>
+        <button
+          onClick={() => setShowDuplicate(false)}
+          className="self-center font-inter text-xs text-[#555555]/40 hover:text-[#555555]/70 transition-colors"
+        >
+          Continuer quand même →
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8 pt-8">
+      {/* Badge progression */}
+      <div className="inline-flex items-center gap-2 self-start bg-[#795D48]/10 border border-[#795D48]/20 rounded-full px-3 py-1">
+        <span className="font-inter text-xs text-[#795D48] font-medium">Vous y êtes presque !</span>
+        <span className="font-inter text-xs text-[#795D48]/60">Plus que 1 question</span>
+      </div>
+
       <div>
         <h2 className="font-cormorant text-[2.5rem] font-light text-[#0f0f0f] mb-1 leading-tight">
           Votre numéro de téléphone
         </h2>
         <p className="font-inter text-sm text-[#555555]">
           Un code de vérification vous sera envoyé par SMS.
+        </p>
+        <p className="font-inter text-sm text-[#795D48] mt-2 leading-relaxed">
+          Page suivante : vos résultats personnalisés + un compte rendu complet de votre simulation envoyé par email.
         </p>
       </div>
 

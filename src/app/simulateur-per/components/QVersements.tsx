@@ -65,12 +65,6 @@ export default function QVersements({ data, computed, onChange, onNext, onPrev }
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-inter text-sm text-[#555555]/40">€/mois</span>
         </div>
-        {mensuel > 0 && computed.economieFiscale > 0 && (
-          <p className="font-inter text-xs text-[#795D48]">
-            soit {computed.versementAnnuel.toLocaleString("fr-FR")} €/an — économie fiscale estimée :{" "}
-            <strong>{computed.economieFiscale.toLocaleString("fr-FR")} €/an</strong>
-          </p>
-        )}
       </div>
 
       <div className="flex items-center justify-between">

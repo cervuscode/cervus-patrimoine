@@ -12,6 +12,12 @@ export default function QIdentite({ data, onChange, onNext, onPrev }: Props) {
 
   return (
     <div className="flex flex-col gap-8 pt-8">
+      {/* Badge progression */}
+      <div className="inline-flex items-center gap-2 self-start bg-[#795D48]/10 border border-[#795D48]/20 rounded-full px-3 py-1">
+        <span className="font-inter text-xs text-[#795D48] font-medium">Vous y êtes presque !</span>
+        <span className="font-inter text-xs text-[#795D48]/60">Plus que 3 questions</span>
+      </div>
+
       <div>
         <h2 className="font-cormorant text-[2.5rem] font-light text-[#0f0f0f] mb-1 leading-tight">
           Votre identité

@@ -28,6 +28,7 @@ import QVersements from "./QVersements";
 import QProfil from "./QProfil";
 import QObjectif from "./QObjectif";
 import QStatutPro from "./QStatutPro";
+import QLoading from "./QLoading";
 import QIdentite from "./QIdentite";
 import QEmail from "./QEmail";
 import QTelephone from "./QTelephone";
@@ -46,7 +47,7 @@ import QTelephone from "./QTelephone";
 // Q11 Identité            → step 4
 // Q12 Email               → step 4
 // Q13 Téléphone + OTP     → step 4
-const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4] as const;
+const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4] as const;
 const CURRENT_YEAR = new Date().getFullYear();
 
 // Détermine le statut fiscal effectif (intègre la garde parentale)
@@ -264,24 +265,27 @@ export default function SimulateurForm() {
           <QStatutPro data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
         )}
         {qIndex === 11 && (
-          <QIdentite data={data} onChange={patch} onNext={() => goTo(12)} onPrev={() => goTo(10)} />
+          <QLoading onNext={() => goTo(12)} />
         )}
         {qIndex === 12 && (
+          <QIdentite data={data} onChange={patch} onNext={() => goTo(13)} onPrev={() => goTo(10)} />
+        )}
+        {qIndex === 13 && (
           <QEmail
             data={data}
             onChange={patch}
             onNext={(d) => {
               triggerEarlyContact(d ?? data);
-              goTo(13);
+              goTo(14);
             }}
-            onPrev={() => goTo(11)}
+            onPrev={() => goTo(12)}
           />
         )}
-        {qIndex === 13 && (
+        {qIndex === 14 && (
           <QTelephone
             data={data}
             onChange={patch}
-            onPrev={() => goTo(12)}
+            onPrev={() => goTo(13)}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

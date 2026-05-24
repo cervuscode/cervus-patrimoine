@@ -39,15 +39,31 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
 
   const date = new Date().toISOString().slice(0, 10);
 
-  // Génère le PDF pour la pièce jointe dans le scénario Make sans OTP
-  const pdfBuffer = await renderToBuffer(
-    // @ts-expect-error — react-pdf types differ from React's generic ReactElement
-    React.createElement(PdfDocument, { data, computed })
-  );
+  // Génère le PDF pour la pièce jointe dans le scénario Make sans OTP — explicit try/catch
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await renderToBuffer(
+      // @ts-expect-error — react-pdf types differ from React's generic ReactElement
+      React.createElement(PdfDocument, { data, computed })
+    ) as Buffer;
+  } catch (renderErr: unknown) {
+    console.error("[early-contact] renderToBuffer ERREUR:", renderErr instanceof Error ? renderErr.message : renderErr);
+    return;
+  }
+
+  const byteSize = pdfBuffer.byteLength ?? (pdfBuffer as Buffer).length;
+  const magicOk = pdfBuffer[0] === 0x25 && pdfBuffer[1] === 0x50 && pdfBuffer[2] === 0x44 && pdfBuffer[3] === 0x46;
+  if (byteSize < 5000) {
+    console.error(`[early-contact] PDF SUSPECT — taille ${byteSize} octets (< 5000), PDF probablement vide ou tronqué`);
+  }
+  if (!magicOk) {
+    console.error(`[early-contact] PDF SUSPECT — magic bytes invalides, premiers bytes: ${Array.from(pdfBuffer.slice(0, 4)).map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
+  }
+
   // Buffer.toString("base64") produces pure base64 — strip prefix defensively just in case
   const rawBase64 = pdfBuffer.toString("base64");
   const pdfBase64 = rawBase64.replace(/^data:[^;]+;base64,/, "");
-  console.log(`[early-contact] PDF généré — ${pdfBuffer.byteLength} octets, base64 ${pdfBase64.length} chars, préfixe data: ${rawBase64 !== pdfBase64 ? "retiré" : "absent (OK)"}, début: ${pdfBase64.slice(0, 20)}`);
+  console.log(`[early-contact] PDF généré — ${byteSize} octets, magic %PDF: ${magicOk ? "OK" : "INVALIDE"}, base64 ${pdfBase64.length} chars, début: ${pdfBase64.slice(0, 20)}`);
 
   try {
     console.log(`[Make] Envoi fetch vers Make (sans_otp_30min) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);

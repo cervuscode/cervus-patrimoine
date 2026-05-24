@@ -91,7 +91,7 @@ const s = StyleSheet.create({
   },
   card: {
     backgroundColor: WHITE,
-    borderRadius: 2,
+    borderRadius: 12,
     padding: 8,
   },
   cardLbl: {
@@ -104,9 +104,6 @@ const s = StyleSheet.create({
   cardVal: { fontSize: 10, fontFamily: "Helvetica-Bold", color: DARK },
   cardAcc: { fontSize: 10, fontFamily: "Helvetica-Bold", color: GOLD },
   cardSub: { fontSize: 6.5, color: GREY, marginTop: 2 },
-  tblHdr:  { flexDirection: "row", backgroundColor: DARK },
-  tblRow:  { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: SOFT },
-  tblCell: { padding: 5, fontSize: 8 },
   footer:  {
     position: "absolute",
     bottom: 14,
@@ -183,12 +180,12 @@ export default function PdfDocument({ data, computed }: Props) {
 
   const showYrLabel = (b: Bar) => b.yr === 1 || b.yr % 5 === 0 || b.yr === bars.length;
 
-  // Table rows
-  const tableRows = [
-    { label: "Impôt sur le revenu annuel",               avant: fmt(impotAvant),   apres: fmt(impotApres),   hi: false },
-    { label: "Prélèvement à la source / mois",           avant: fmt(pasMensAvant), apres: fmt(pasMensApres), hi: false },
-    { label: "Économie fiscale annuelle",                  avant: "—",               apres: fmt(economieAnn),  hi: true  },
-    { label: "Coût réel du versement (" + fmt(vMens) + "/mois)", avant: fmt(vMens), apres: fmt(coutReel),     hi: true  },
+  // Impact cards (replace table)
+  const impactCards = [
+    { label: "Impôt annuel",        avant: fmt(impotAvant),   apres: fmt(impotApres),   sub: null },
+    { label: "PAS mensuel",          avant: fmt(pasMensAvant), apres: fmt(pasMensApres), sub: null },
+    { label: "Économie fiscale",     avant: null,              apres: fmt(economieAnn),  sub: "par an" },
+    { label: "Coût réel versement",  avant: fmt(vMens),        apres: fmt(coutReel),     sub: "par mois" },
   ];
 
   return (
@@ -258,50 +255,42 @@ export default function PdfDocument({ data, computed }: Props) {
           </View>
         </View>
 
-        {/* ── 3. IMPACT FISCAL ────────────────────────────────────────────── */}
+        {/* ── 3. IMPACT FISCAL — 4 cards ──────────────────────────────────── */}
         <View style={{ marginBottom: 12 }}>
           <Text style={s.secTitle}>{"L'impact fiscal de vos versements"}</Text>
           <View style={s.secLine} />
-          <View style={{ borderWidth: 0.5, borderColor: SOFT, borderRadius: 2, overflow: "hidden" }}>
-            {/* Header */}
-            <View style={s.tblHdr}>
-              <View style={[s.tblCell, { flex: 2.2 }]}>
-                <Text style={{ fontSize: 7, color: "#666" }}>{" "}</Text>
-              </View>
-              <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: "#333" }]}>
-                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 7.5, color: WHITE, textAlign: "center" }}>
-                  Sans PER
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            {impactCards.map((card, i) => (
+              <View key={i} style={{
+                flex: 1,
+                backgroundColor: WHITE,
+                borderRadius: 12,
+                padding: 10,
+                borderWidth: 0.75,
+                borderColor: "#EDE7E1",
+              }}>
+                {/* Label */}
+                <Text style={{ fontSize: 6, color: GREY, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
+                  {card.label}
                 </Text>
-              </View>
-              <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: "#333", backgroundColor: GOLD }]}>
-                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 7.5, color: WHITE, textAlign: "center" }}>
-                  Avec PER
-                </Text>
-              </View>
-            </View>
-            {/* Rows */}
-            {tableRows.map((row, i) => (
-              <View key={i} style={[s.tblRow, { backgroundColor: i % 2 === 0 ? WHITE : "#f9f5f2" }]}>
-                <View style={[s.tblCell, { flex: 2.2 }]}>
-                  <Text style={{ fontSize: 8, color: DARK }}>{row.label}</Text>
-                </View>
-                <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: SOFT }]}>
-                  <Text style={{ fontSize: 8, color: GREY, textAlign: "center" }}>{row.avant}</Text>
-                </View>
-                <View style={[
-                  s.tblCell,
-                  { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: SOFT },
-                  row.hi ? { backgroundColor: "#fdf0e8" } : {},
-                ]}>
-                  <Text style={{
-                    fontSize: 8,
-                    textAlign: "center",
-                    color: row.hi ? GOLD : DARK,
-                    fontFamily: row.hi ? "Helvetica-Bold" : "Helvetica",
-                  }}>
-                    {row.apres}
+                {/* Avant barré */}
+                {card.avant !== null ? (
+                  <Text style={{ fontSize: 7.5, color: "#C4B8B0", textDecoration: "line-through", marginBottom: 3 }}>
+                    {card.avant}
                   </Text>
-                </View>
+                ) : (
+                  <Text style={{ fontSize: 7.5, color: "#D4C9BE", marginBottom: 3 }}>
+                    sans PER
+                  </Text>
+                )}
+                {/* Après — valeur principale */}
+                <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: GOLD }}>
+                  {card.apres}
+                </Text>
+                {/* Sous-label optionnel */}
+                {card.sub && (
+                  <Text style={{ fontSize: 6, color: GREY, marginTop: 2 }}>{card.sub}</Text>
+                )}
               </View>
             ))}
           </View>
@@ -328,19 +317,18 @@ export default function PdfDocument({ data, computed }: Props) {
               ))}
             </View>
 
-            {/* Bars — anchored to bottom via alignItems: "flex-end" */}
-            <View style={{ flexDirection: "row", alignItems: "flex-end", height: BAR_H, gap: 1 }}>
+            {/* Bars — anchored to bottom, each bar is 60% of its slot width */}
+            <View style={{ flexDirection: "row", alignItems: "flex-end", height: BAR_H }}>
               {bars.map((b, i) => (
-                <View
-                  key={i}
-                  style={{ flex: 1, height: b.barH, flexDirection: "column", overflow: "hidden" }}
-                >
-                  {/* Plus-value — top (GOLD) */}
-                  <View style={{ flex: b.pvFlex, backgroundColor: GOLD }} />
-                  {/* Versements — middle (BROWN) */}
-                  <View style={{ flex: b.versFlex, backgroundColor: BROWN }} />
-                  {/* Gain fiscal — bottom (TAUPE) */}
-                  <View style={{ flex: b.gainFlex, backgroundColor: TAUPE }} />
+                <View key={i} style={{ flex: 1, height: BAR_H, alignItems: "center", justifyContent: "flex-end" }}>
+                  <View style={{ width: "58%", height: b.barH, flexDirection: "column", overflow: "hidden", borderRadius: 1 }}>
+                    {/* Plus-value — top (GOLD) */}
+                    <View style={{ flex: b.pvFlex, backgroundColor: GOLD }} />
+                    {/* Versements — middle (BROWN) */}
+                    <View style={{ flex: b.versFlex, backgroundColor: BROWN }} />
+                    {/* Gain fiscal — bottom (TAUPE) */}
+                    <View style={{ flex: b.gainFlex, backgroundColor: TAUPE }} />
+                  </View>
                 </View>
               ))}
             </View>
@@ -399,7 +387,7 @@ export default function PdfDocument({ data, computed }: Props) {
             backgroundColor: WHITE,
             borderWidth: 0.75,
             borderColor: GOLD,
-            borderRadius: 3,
+            borderRadius: 14,
             padding: 12,
             justifyContent: "center",
           }}>

@@ -29,15 +29,19 @@ export function impotBrut(R: number, parts: number): number {
 }
 
 // ── DÉCOTE 2025 ────────────────────────────────────────────────────────────────
-// S'applique sur l'impôt après quotient familial, avant restitution finale.
-// Célibataire : seuil 1 929 €, formule 873 − (impôt × 0.4525)
-// Couple      : seuil 3 191 €, formule 1 444 − (impôt × 0.4525)
-// La décote ne peut pas être négative ; l'impôt final ne peut pas être négatif.
-function decote(impot: number, couple: boolean): number {
-  const seuil = couple ? 3191 : 1929;
-  const base  = couple ? 1444 :  873;
-  if (impot >= seuil) return 0;
-  return Math.max(base - impot * 0.4525, 0);
+// Retourne l'impôt APRÈS décote (pas la réduction).
+// Célibataire : seuil 1 929 €, flat 873, coef 0.4525
+// Couple      : seuil 3 191 €, flat 1 444, coef 0.4525
+// Règle : la décote ne peut jamais augmenter l'impôt → Math.min(impotBrut, flat − coef × impotBrut)
+function applyDecote(impotBrut: number, couple: boolean): number {
+  const [seuil, coef, flat] = couple
+    ? [3191, 0.4525, 1444]
+    : [1929, 0.4525, 873];
+  if (impotBrut < seuil) {
+    const impotApresDecote = Math.max(0, flat - coef * impotBrut);
+    return Math.min(impotBrut, impotApresDecote);
+  }
+  return impotBrut;
 }
 
 // ── CALCUL IMPÔT RÉEL avec plafonnement du quotient familial + décote ─────────
@@ -54,7 +58,7 @@ export function impotReel(R: number, partsBase: number, partsTotal: number): num
 
   if (partsTotal === partsBase) {
     const imp = impotBrut(R, partsBase);
-    return Math.max(imp - decote(imp, couple), 0);
+    return applyDecote(imp, couple);
   }
 
   const impotAvecEnfants  = impotBrut(R, partsTotal); // faux barème
@@ -72,7 +76,7 @@ export function impotReel(R: number, partsBase: number, partsTotal: number): num
     impot = impotSansEnfants - plafondTotal;
   }
 
-  return Math.max(impot - decote(impot, couple), 0);
+  return applyDecote(impot, couple);
 }
 
 // ── TMI EFFECTIVE ──────────────────────────────────────────────────────────────

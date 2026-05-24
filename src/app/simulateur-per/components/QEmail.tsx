@@ -66,7 +66,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
       {/* Badge progression */}
       <div className="inline-flex items-center gap-2 self-start bg-[#795D48]/10 border border-[#795D48]/20 rounded-full px-3 py-1">
         <span className="font-inter text-xs text-[#795D48] font-medium">Vos résultats sont prêts</span>
-        <span className="font-inter text-xs text-[#795D48]/60">plus que 2 étapes</span>
+        <span className="font-inter text-xs text-[#795D48]/60">plus que 1 étape</span>
       </div>
 
       <div>

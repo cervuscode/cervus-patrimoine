@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
         ECONOMIE_FISCALE:    computed.economieFiscale,
         AGE_RETRAITE:        computed.ageRetraiteNum,
         DATE_SIMULATION:     dateSimulation,
+        ...(data.revenusConjoint ? { REVENU_CONJOINT: (parseFloat(data.revenusConjoint) || 0) * 12 } : {}),
         OTP_VERIFIE:         false,
         SIMULATION_EN_ATTENTE: false,
       },

@@ -132,18 +132,19 @@ export function calculerParts(
 // ── CALCUL REVENU NET IMPOSABLE ───────────────────────────────────────────────
 // Prend en compte les différentes sources de revenus
 export interface RevenusInput {
-  salaires?:       number; // net avant impôt
+  salaires?:          number; // net avant impôt
   abattementSalaires: 'forfait10' | 'fraisReels';
-  fraisReels?:     number; // si abattementSalaires = 'fraisReels'
-  bnc?:            number; // bénéfice net directement
-  bic?:            number; // bénéfice net directement
-  foncier?:        number; // revenu net directement
+  fraisReels?:        number; // si abattementSalaires = 'fraisReels'
+  salaireConjoint?:   number; // net annuel conjoint (marié/pacsé) — forfait 10% appliqué
+  bnc?:               number; // bénéfice net directement
+  bic?:               number; // bénéfice net directement
+  foncier?:           number; // revenu net directement
 }
 
 export function calculerRevenuImposable(revenus: RevenusInput): number {
   let total = 0;
 
-  // Salaires
+  // Salaires déclarant principal
   if (revenus.salaires && revenus.salaires > 0) {
     if (revenus.abattementSalaires === 'forfait10') {
       const abattement = Math.min(Math.max(revenus.salaires * 0.10, 495), 14171);
@@ -152,6 +153,12 @@ export function calculerRevenuImposable(revenus: RevenusInput): number {
       const frais = revenus.fraisReels || 0;
       total += Math.max(revenus.salaires - frais, 0);
     }
+  }
+
+  // Salaires conjoint — forfait 10% systématique
+  if (revenus.salaireConjoint && revenus.salaireConjoint > 0) {
+    const abattement = Math.min(Math.max(revenus.salaireConjoint * 0.10, 495), 14171);
+    total += revenus.salaireConjoint - abattement;
   }
 
   // BNC, BIC, Foncier — montants nets saisis directement

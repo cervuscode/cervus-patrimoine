@@ -18,6 +18,7 @@ const MOCK: SimulateurData = {
   salaireMensuel:     "5500",
   abattementSalaires: "forfait10",
   fraisReels:         "",
+  revenusConjoint:    "",
   autresRevenus:      false,
   bnc:                "",
   bic:                "",

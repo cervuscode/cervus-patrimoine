@@ -28,26 +28,29 @@ import QVersements from "./QVersements";
 import QProfil from "./QProfil";
 import QObjectif from "./QObjectif";
 import QStatutPro from "./QStatutPro";
+import QRevenusConjoint from "./QRevenusConjoint";
 import QLoading from "./QLoading";
 import QIdentite from "./QIdentite";
 import QEmail from "./QEmail";
 import QTelephone from "./QTelephone";
 
-// Q0  Statut              → step 1
-// Q1  Enfants             → step 1
-// Q2  Garde (conditional) → step 1
-// Q3  Salaires            → step 2
-// Q4  Autres revenus      → step 2
-// Q5  Année naissance     → step 3
-// Q6  Âge retraite        → step 3
-// Q7  Versements          → step 3
-// Q8  Profil              → step 3
-// Q9  Objectif            → step 4
-// Q10 Statut pro          → step 4
-// Q11 Identité            → step 4
-// Q12 Email               → step 4
-// Q13 Téléphone + OTP     → step 4
-const QUESTION_STEP = [1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4] as const;
+// Q0  Statut                      → step 1
+// Q1  Enfants                     → step 1
+// Q2  Garde (conditional)         → step 1
+// Q3  Statut pro                  → step 1
+// Q4  Salaires (labels per statut)→ step 2
+// Q5  Revenus conjoint (marié/pacsé) → step 2
+// Q6  Autres revenus              → step 2
+// Q7  Année naissance             → step 3
+// Q8  Âge retraite                → step 3
+// Q9  Versements                  → step 3
+// Q10 Profil                      → step 3
+// Q11 Objectif                    → step 4
+// Q12 Loading                     → step 4
+// Q13 Identité                    → step 4
+// Q14 Email                       → step 4
+// Q15 Téléphone + OTP             → step 4
+const QUESTION_STEP = [1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4] as const;
 const CURRENT_YEAR = new Date().getFullYear();
 
 // Détermine le statut fiscal effectif (intègre la garde parentale)
@@ -67,10 +70,14 @@ function compute(data: SimulateurData): ComputedResults {
   const { partsBase, partsTotal } =
     statut ? calculerParts(statut, data.nbEnfants) : { partsBase: 1, partsTotal: 1 };
 
+  const isIndep = data.statutPro === "independant" || data.statutPro === "liberal";
+  const needsConjoint = data.statut === "marie" || data.statut === "pacse";
+
   const revenuImposable = calculerRevenuImposable({
     salaires: (parseFloat(data.salaireMensuel) || 0) * 12,
-    abattementSalaires: data.abattementSalaires,
-    fraisReels: parseFloat(data.fraisReels) || 0,
+    abattementSalaires: isIndep ? "fraisReels" : data.abattementSalaires,
+    fraisReels: isIndep ? 0 : (parseFloat(data.fraisReels) || 0),
+    salaireConjoint: needsConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : undefined,
     bnc: parseFloat(data.bnc) || 0,
     bic: parseFloat(data.bic) || 0,
     foncier: parseFloat(data.foncier) || 0,
@@ -141,11 +148,23 @@ export default function SimulateurForm() {
     goTo(needsGarde ? 2 : 3);
   }
 
-  // Retour depuis Q3 (salaires) : revenir à Q2 ou Q1 selon le cas
-  function prevFromSalaires() {
+  // Retour depuis Q3 (statut pro) : revenir à Q2 ou Q1 selon le cas
+  function prevFromStatutPro() {
     const needsGarde =
       (data.statut === "celibataire" || data.statut === "divorce") && data.nbEnfants > 0;
     goTo(needsGarde ? 2 : 1);
+  }
+
+  // Avance depuis Q4 (salaires) : aller à Q5 (conjoint) si marié/pacsé
+  function afterSalaires() {
+    const needsConjoint = data.statut === "marie" || data.statut === "pacse";
+    goTo(needsConjoint ? 5 : 6);
+  }
+
+  // Retour depuis Q6 (autres revenus) : revenir à Q5 (conjoint) ou Q4 (salaires)
+  function prevFromAutresRevenus() {
+    const needsConjoint = data.statut === "marie" || data.statut === "pacse";
+    goTo(needsConjoint ? 5 : 4);
   }
 
   // Crée une fiche Brevo anticipée dès validation de l'email (avant OTP)
@@ -241,52 +260,55 @@ export default function SimulateurForm() {
           <QGarde data={data} onChange={patch} onNext={() => goTo(3)} onPrev={() => goTo(1)} />
         )}
         {qIndex === 3 && (
-          <QSalaires data={data} onChange={patch} onNext={() => goTo(4)} onPrev={prevFromSalaires} />
+          <QStatutPro data={data} onChange={patch} onNext={() => goTo(4)} onPrev={prevFromStatutPro} />
         )}
         {qIndex === 4 && (
-          <QAutresRevenus data={data} onChange={patch} onNext={() => goTo(5)} onPrev={() => goTo(3)} />
+          <QSalaires data={data} onChange={patch} onNext={afterSalaires} onPrev={() => goTo(3)} />
         )}
         {qIndex === 5 && (
-          <QAnneeNaissance data={data} onChange={patch} onNext={() => goTo(6)} onPrev={() => goTo(4)} />
+          <QRevenusConjoint data={data} onChange={patch} onNext={() => goTo(6)} onPrev={() => goTo(4)} />
         )}
         {qIndex === 6 && (
-          <QAgeRetraite data={data} onChange={patch} onNext={() => goTo(7)} onPrev={() => goTo(5)} />
+          <QAutresRevenus data={data} onChange={patch} onNext={() => goTo(7)} onPrev={prevFromAutresRevenus} />
         )}
         {qIndex === 7 && (
-          <QVersements data={data} computed={computed} onChange={patch} onNext={() => goTo(8)} onPrev={() => goTo(6)} />
+          <QAnneeNaissance data={data} onChange={patch} onNext={() => goTo(8)} onPrev={() => goTo(6)} />
         )}
         {qIndex === 8 && (
-          <QProfil data={data} onChange={patch} onNext={() => goTo(9)} onPrev={() => goTo(7)} />
+          <QAgeRetraite data={data} onChange={patch} onNext={() => goTo(9)} onPrev={() => goTo(7)} />
         )}
         {qIndex === 9 && (
-          <QObjectif data={data} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
+          <QVersements data={data} computed={computed} onChange={patch} onNext={() => goTo(10)} onPrev={() => goTo(8)} />
         )}
         {qIndex === 10 && (
-          <QStatutPro data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
+          <QProfil data={data} onChange={patch} onNext={() => goTo(11)} onPrev={() => goTo(9)} />
         )}
         {qIndex === 11 && (
-          <QLoading onNext={() => goTo(12)} />
+          <QObjectif data={data} onChange={patch} onNext={() => goTo(12)} onPrev={() => goTo(10)} />
         )}
         {qIndex === 12 && (
-          <QIdentite data={data} onChange={patch} onNext={() => goTo(13)} onPrev={() => goTo(10)} />
+          <QLoading onNext={() => goTo(13)} />
         )}
         {qIndex === 13 && (
+          <QIdentite data={data} onChange={patch} onNext={() => goTo(14)} onPrev={() => goTo(11)} />
+        )}
+        {qIndex === 14 && (
           <QEmail
             data={data}
             onChange={patch}
             onNext={(d) => {
               triggerEarlyContact(d ?? data);
-              goTo(14);
+              goTo(15);
             }}
-            onPrev={() => goTo(12)}
+            onPrev={() => goTo(13)}
           />
         )}
-        {qIndex === 14 && (
+        {qIndex === 15 && (
           <QTelephone
             data={data}
             computed={computed}
             onChange={patch}
-            onPrev={() => goTo(13)}
+            onPrev={() => goTo(14)}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

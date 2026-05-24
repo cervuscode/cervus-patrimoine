@@ -195,6 +195,7 @@ async function createBrevoContact(data: SimulateurData, computed: ComputedResult
       DATE_SIMULATION:     dateSimulation,
       ...(data.objectif  ? { OBJECTIF:   objectifLabels[data.objectif]    ?? data.objectif  } : {}),
       ...(data.statutPro ? { STATUT_PRO: statutProLabels[data.statutPro]  ?? data.statutPro } : {}),
+      ...(data.revenusConjoint ? { REVENU_CONJOINT: (parseFloat(data.revenusConjoint) || 0) * 12 } : {}),
       CONSENTEMENT_RDV:    data.consentementRdv,
       OTP_VERIFIE:         true,
       SIMULATION_EN_ATTENTE: false,

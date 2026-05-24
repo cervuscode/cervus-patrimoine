@@ -15,6 +15,7 @@ export interface SimulateurData {
   salaireMensuel: string;          // mensuel saisi, × 12 dans compute()
   abattementSalaires: AbattementSalaires;
   fraisReels: string;
+  revenusConjoint: string;         // mensuel net du conjoint (marié/pacsé), × 12
   autresRevenus: boolean | null;   // null = pas encore répondu
   bnc: string;
   bic: string;
@@ -64,6 +65,7 @@ export const INITIAL_DATA: SimulateurData = {
   salaireMensuel: '',
   abattementSalaires: 'forfait10',
   fraisReels: '',
+  revenusConjoint: '',
   autresRevenus: null,
   bnc: '',
   bic: '',

@@ -6,38 +6,57 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
-import { SimulateurData, ComputedResults, PROFIL_TAUX } from "@/app/simulateur-per/types";
-import { impotReel, projectionPER } from "@/lib/fiscal-engine";
+import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
+import { impotReel } from "@/lib/fiscal-engine";
 
-// ── Constantes design ────────────────────────────────────────────────────────
-const GOLD      = "#795D48";
-const BROWN     = "#5D4738";
-const DARK      = "#0f0f0f";
-const CREAM     = "#F2EDE8";
-const GREY      = "#888888";
-const GREY_LIGHT = "#bbbbbb";
-const WHITE     = "#ffffff";
-const CREAM_ROW = "#faf7f5";
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const CREAM  = "#F2EDE8";
+const WHITE  = "#ffffff";
+const GOLD   = "#795D48";
+const BROWN  = "#5D4738";
+const DARK   = "#1C1C1C";
+const GREY   = "#888888";
+const SOFT   = "#D4C9BE";
+const TAUPE  = "#C4B8B0"; // gain fiscal segment — darker than CREAM for visibility on cream bg
 
 const LOGO_PATH = process.cwd() + "/public/cervus_logo.png";
 const CALENDLY  = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "cervuspatrimoine.fr/rendez-vous";
 
-// ── Utilitaires ──────────────────────────────────────────────────────────────
+// ── Number formatting ─────────────────────────────────────────────────────────
+// toLocaleString("fr-FR") uses \u00a0 as thousands sep → renders as "/" in PDF fonts.
+// Manual formatter uses regular space instead.
+function fmtNum(n: number): string {
+  const a = Math.round(Math.abs(n));
+  const s = a.toString();
+  let r = "";
+  for (let i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) r += " ";
+    r += s[i];
+  }
+  return (n < 0 ? "-" : "") + r;
+}
 function fmt(n: number): string {
-  return Math.round(n).toLocaleString("fr-FR") + "\u00a0€";
+  return fmtNum(n) + " \u20AC";
 }
 function fmtK(n: number): string {
-  if (n >= 10000) return (n / 1000).toFixed(0) + "\u00a0k€";
-  return Math.round(n).toLocaleString("fr-FR") + "\u00a0€";
+  if (Math.abs(n) >= 10000) return Math.round(n / 1000) + " k\u20AC";
+  return fmtNum(n) + " \u20AC";
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUT_LABELS: Record<string, string> = {
-  celibataire: "Célibataire",
-  divorce:     "Divorcé(e)",
-  marie:       "Marié(e)",
-  pacse:       "Pacsé(e)",
-  parent_isole:"Parent isolé",
+  celibataire:  "Célibataire",
+  divorce:      "Divorcé(e)",
+  marie:        "Marié(e)",
+  pacse:        "Pacsé(e)",
+  parent_isole: "Parent isolé",
 };
+const PROFIL_LABELS: Record<string, string> = {
+  prudent:   "Prudent",
+  equilibre: "Équilibré",
+  dynamique: "Dynamique",
+};
+
 function displayStatut(data: SimulateurData): string {
   if (
     (data.statut === "celibataire" || data.statut === "divorce") &&
@@ -47,249 +66,238 @@ function displayStatut(data: SimulateurData): string {
   return STATUT_LABELS[data.statut] ?? data.statut;
 }
 
-// ── StyleSheet ───────────────────────────────────────────────────────────────
+// ── StyleSheet ────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   page: {
-    paddingTop: 28,
-    paddingBottom: 36,
-    paddingHorizontal: 34,
+    paddingTop: 30,
+    paddingBottom: 44,
+    paddingHorizontal: 36,
     fontFamily: "Helvetica",
     fontSize: 9,
     color: DARK,
-    backgroundColor: WHITE,
-  },
-  sectionLabel: {
-    fontSize: 7,
-    fontFamily: "Helvetica-Bold",
-    color: GOLD,
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-    marginBottom: 5,
-  },
-  separator: { height: 0.75, backgroundColor: GOLD, marginBottom: 10 },
-  card: {
     backgroundColor: CREAM,
-    padding: 7,
+  },
+  secTitle: {
+    fontFamily: "Times-Roman",
+    fontSize: 13,
+    color: DARK,
+    letterSpacing: 0.4,
+  },
+  secLine: {
+    height: 0.6,
+    backgroundColor: GOLD,
+    marginTop: 3,
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: WHITE,
     borderRadius: 2,
+    padding: 8,
   },
-  cardLabel: { fontSize: 6.5, color: GREY, marginBottom: 1 },
-  cardValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: DARK },
-  cardSub: { fontSize: 7, color: GREY, marginTop: 1 },
-  // Table
-  tblHeader: {
-    flexDirection: "row",
-    backgroundColor: DARK,
+  cardLbl: {
+    fontSize: 6,
+    color: GREY,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 3,
   },
-  tblRow: {
-    flexDirection: "row",
-    borderTopWidth: 0.5,
-    borderTopColor: CREAM,
-  },
-  tblCell: {
-    padding: 5,
-    fontSize: 8,
-  },
-  // Footer
-  footer: {
+  cardVal: { fontSize: 10, fontFamily: "Helvetica-Bold", color: DARK },
+  cardAcc: { fontSize: 10, fontFamily: "Helvetica-Bold", color: GOLD },
+  cardSub: { fontSize: 6.5, color: GREY, marginTop: 2 },
+  tblHdr:  { flexDirection: "row", backgroundColor: DARK },
+  tblRow:  { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: SOFT },
+  tblCell: { padding: 5, fontSize: 8 },
+  footer:  {
     position: "absolute",
-    bottom: 16,
-    left: 34,
-    right: 34,
-    fontSize: 6.5,
-    color: GOLD,
+    bottom: 14,
+    left: 36,
+    right: 36,
+    fontSize: 6,
+    color: GREY,
     textAlign: "center",
+    borderTopWidth: 0.4,
+    borderTopColor: SOFT,
+    paddingTop: 5,
   },
 });
 
-// ── Composant principal ──────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 interface Props {
   data: SimulateurData;
   computed: ComputedResults;
 }
 
 export default function PdfDocument({ data, computed }: Props) {
-  const versementMensuel  = parseFloat(data.versementMensuel)  || 0;
-  const versementInitial  = parseFloat(data.versementInitial)  || 0;
-  const versementAnnuel   = computed.versementAnnuel;
+  const vMens = parseFloat(data.versementMensuel) || 0;
+  const vInit = parseFloat(data.versementInitial) || 0;
+  const vAnn  = computed.versementAnnuel;
 
-  // ── Calculs fiscaux réels ────────────────────────────────────────────────
+  // Fiscal calculations
   const impotAvant   = Math.round(impotReel(computed.revenuImposable, computed.partsBase, computed.partsTotal));
-  const revApres     = Math.max(0, computed.revenuImposable - versementAnnuel);
+  const revApres     = Math.max(0, computed.revenuImposable - vAnn);
   const impotApres   = Math.round(impotReel(revApres, computed.partsBase, computed.partsTotal));
   const economieAnn  = impotAvant - impotApres;
-  const coutReelMens = Math.max(0, Math.round(versementMensuel - economieAnn / 12));
+  const coutReel     = Math.max(0, Math.round(vMens - economieAnn / 12));
   const pasMensAvant = Math.round(impotAvant / 12);
   const pasMensApres = Math.round(impotApres / 12);
 
-  // ── Date ─────────────────────────────────────────────────────────────────
-  const today   = new Date();
-  const dateStr = today.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  const dateStr = new Date().toLocaleDateString("fr-FR", {
+    day: "2-digit", month: "long", year: "numeric",
+  });
 
-  // ── Projections 3 profils ─────────────────────────────────────────────────
-  const PROFILES = ["prudent", "equilibre", "dynamique"] as const;
-  const PROFIL_NAMES: Record<string, string> = {
-    prudent:   "Prudent",
-    equilibre: "Équilibré",
-    dynamique: "Dynamique",
+  // ── Annual chart data ───────────────────────────────────────────────────────
+  const canProject = computed.nAnnees > 0 && vMens > 0 && computed.courbe.length > 0;
+  const BAR_H = 88;
+
+  type Bar = {
+    yr: number; annee: number; capital: number;
+    versAcc: number; gainAcc: number; pv: number;
+    totalVisual: number;
+    barH: number; pvFlex: number; versFlex: number; gainFlex: number;
   };
-  const versementsTotal  = versementMensuel * 12 * computed.nAnnees + versementInitial;
-  const gainFiscalTotal  = economieAnn * computed.nAnnees;
-  const canProject       = computed.nAnnees > 0 && versementMensuel > 0;
 
-  const projData = PROFILES.map(p => {
-    const { capitalFinal } = canProject
-      ? projectionPER(versementMensuel, PROFIL_TAUX[p], computed.nAnnees, versementInitial)
-      : { capitalFinal: 0 };
-    const plusValue    = Math.max(0, capitalFinal - versementsTotal);
-    const totalBarVal  = gainFiscalTotal + capitalFinal;
-    return { profil: p, capitalFinal, plusValue, totalBarVal };
-  });
+  const bars: Bar[] = (() => {
+    if (!canProject) return [];
+    const raw = computed.courbe.map((pt, i) => {
+      const yr      = i + 1;
+      const versAcc = vMens * 12 * yr + vInit;
+      const gainAcc = economieAnn * yr;
+      const pv      = Math.max(0, pt.capital - versAcc);
+      const total   = gainAcc + pt.capital; // gain fiscal + (versements + plus-value)
+      return { yr, annee: pt.annee, capital: pt.capital, versAcc, gainAcc, pv, totalVisual: total };
+    });
+    const maxTotal = Math.max(...raw.map(d => d.totalVisual), 1);
+    return raw.map(d => {
+      const barH = Math.max((d.totalVisual / maxTotal) * BAR_H, 1);
+      const tot  = Math.max(d.totalVisual, 1);
+      // flex values are proportional to segment height within the bar
+      return {
+        ...d,
+        barH,
+        pvFlex:   Math.max(d.pv      / tot, 0.001),
+        versFlex: Math.max(d.versAcc / tot, 0.001),
+        gainFlex: Math.max(d.gainAcc / tot, 0.001),
+      };
+    });
+  })();
 
-  const BAR_MAX_H = 88;
-  const maxBarVal = Math.max(...projData.map(p => p.totalBarVal), 1);
+  const showYrLabel = (b: Bar) => b.yr === 1 || b.yr % 5 === 0 || b.yr === bars.length;
 
-  const barData = projData.map(pd => {
-    const barH  = (pd.totalBarVal / maxBarVal) * BAR_MAX_H;
-    const total = Math.max(pd.totalBarVal, 1);
-    return {
-      ...pd,
-      barH:   Math.max(barH, 1),
-      gainH:  Math.max((gainFiscalTotal  / total) * barH, 0),
-      versH:  Math.max((versementsTotal  / total) * barH, 0),
-      pvH:    Math.max((pd.plusValue     / total) * barH, 0),
-    };
-  });
+  // Table rows
+  const tableRows = [
+    { label: "Impôt sur le revenu annuel",               avant: fmt(impotAvant),   apres: fmt(impotApres),   hi: false },
+    { label: "Prélèvement à la source / mois",           avant: fmt(pasMensAvant), apres: fmt(pasMensApres), hi: false },
+    { label: "Économie fiscale annuelle",                  avant: "—",               apres: fmt(economieAnn),  hi: true  },
+    { label: "Coût réel du versement (" + fmt(vMens) + "/mois)", avant: fmt(vMens), apres: fmt(coutReel),     hi: true  },
+  ];
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────
   return (
     <Document>
       <Page size="A4" style={s.page}>
 
-        {/* ── 1. EN-TÊTE ─────────────────────────────────────────────────── */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {/* ── 1. EN-TÊTE ──────────────────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={LOGO_PATH} style={{ width: 44, height: 44 }} />
+            <Image src={LOGO_PATH} style={{ width: 38, height: 38 }} />
             <View>
-              <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", color: DARK }}>
-                Votre Simulation PER Personnalisée
+              <Text style={{ fontFamily: "Times-Roman", fontSize: 15, color: GREY, letterSpacing: 1 }}>
+                Simulation PER
               </Text>
-              <Text style={{ fontSize: 8.5, color: GREY, marginTop: 2 }}>
-                {data.prenom} {data.nom}{"  ·  "}{dateStr}
+              <Text style={{ fontFamily: "Times-Bold", fontSize: 16, color: DARK, letterSpacing: 0.5 }}>
+                {data.prenom} {data.nom}
               </Text>
             </View>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: GOLD }}>CERVUS PATRIMOINE</Text>
-            <Text style={{ fontSize: 6.5, color: GREY_LIGHT, marginTop: 1 }}>Conseil indépendant</Text>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GOLD, letterSpacing: 1.5 }}>
+              CERVUS PATRIMOINE
+            </Text>
+            <Text style={{ fontSize: 6.5, color: GREY, marginTop: 2 }}>
+              Conseil indépendant
+            </Text>
+            <Text style={{ fontSize: 6, color: GREY, marginTop: 1 }}>
+              {dateStr}
+            </Text>
           </View>
         </View>
 
-        <View style={s.separator} />
+        <View style={{ height: 0.6, backgroundColor: GOLD, marginBottom: 14 }} />
 
-        {/* ── 2. VOTRE SITUATION ──────────────────────────────────────────── */}
-        <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>Votre situation</Text>
-          <View style={{ flexDirection: "row", gap: 6 }}>
-            {/* Famille */}
-            <View style={[s.card, { flex: 2 }]}>
-              <Text style={s.cardLabel}>Situation familiale</Text>
-              <Text style={s.cardValue}>
-                {displayStatut(data)}
-                {data.nbEnfants > 0 ? `,  ${data.nbEnfants} enfant${data.nbEnfants > 1 ? "s" : ""}` : ""}
-              </Text>
-              <Text style={s.cardSub}>{computed.partsTotal} parts fiscales</Text>
-            </View>
-            {/* TMI */}
-            <View style={[s.card, { flex: 1, alignItems: "center", justifyContent: "center" }]}>
-              <Text style={[s.cardLabel, { textAlign: "center" }]}>TMI</Text>
-              <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold", color: GOLD }}>{computed.tmi}%</Text>
-            </View>
-            {/* Revenu */}
-            <View style={[s.card, { flex: 1.8 }]}>
-              <Text style={s.cardLabel}>Revenu imposable</Text>
-              <Text style={s.cardValue}>{fmt(computed.revenuImposable)}</Text>
-              <Text style={s.cardSub}>Versement PER : {fmt(versementMensuel)}/mois</Text>
-            </View>
-            {/* Impôt actuel */}
-            <View style={[s.card, { flex: 1.8 }]}>
-              <Text style={s.cardLabel}>Impôt actuel</Text>
-              <Text style={s.cardValue}>{fmt(impotAvant)}/an</Text>
-              <Text style={s.cardSub}>Soit {fmt(pasMensAvant)}/mois (PAS)</Text>
-            </View>
+        {/* ── 2. KPI CARDS ────────────────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
+          {/* Situation */}
+          <View style={[s.card, { flex: 2 }]}>
+            <Text style={s.cardLbl}>Situation</Text>
+            <Text style={s.cardVal}>
+              {displayStatut(data)}
+              {data.nbEnfants > 0 ? " · " + data.nbEnfants + " enfant" + (data.nbEnfants > 1 ? "s" : "") : ""}
+            </Text>
+            <Text style={s.cardSub}>
+              {computed.partsTotal} parts · {PROFIL_LABELS[data.profil] ?? data.profil}
+            </Text>
+          </View>
+          {/* TMI */}
+          <View style={[s.card, { flex: 1, alignItems: "center", justifyContent: "center" }]}>
+            <Text style={[s.cardLbl, { textAlign: "center" }]}>TMI</Text>
+            <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 22, color: GOLD, textAlign: "center" }}>
+              {computed.tmi}%
+            </Text>
+          </View>
+          {/* Économie */}
+          <View style={[s.card, { flex: 1.6 }]}>
+            <Text style={s.cardLbl}>Économie / an</Text>
+            <Text style={s.cardAcc}>{fmt(economieAnn)}</Text>
+            <Text style={s.cardSub}>{"soit " + fmt(Math.round(economieAnn / 12)) + "/mois"}</Text>
+          </View>
+          {/* Capital */}
+          <View style={[s.card, { flex: 1.6 }]}>
+            <Text style={s.cardLbl}>Capital projeté</Text>
+            <Text style={s.cardAcc}>{fmtK(computed.capitalFinal)}</Text>
+            <Text style={s.cardSub}>{"dans " + computed.nAnnees + " ans"}</Text>
           </View>
         </View>
 
-        {/* ── 3. IMPACT DES VERSEMENTS ────────────────────────────────────── */}
-        <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>{"L'impact de vos versements PER"}</Text>
-
-          {/* Table */}
-          <View style={{ borderWidth: 0.5, borderColor: "#e0d8d0", borderRadius: 2, overflow: "hidden" }}>
+        {/* ── 3. IMPACT FISCAL ────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 12 }}>
+          <Text style={s.secTitle}>{"L'impact fiscal de vos versements"}</Text>
+          <View style={s.secLine} />
+          <View style={{ borderWidth: 0.5, borderColor: SOFT, borderRadius: 2, overflow: "hidden" }}>
             {/* Header */}
-            <View style={s.tblHeader}>
+            <View style={s.tblHdr}>
               <View style={[s.tblCell, { flex: 2.2 }]}>
-                <Text style={{ fontSize: 7.5, color: "#666666" }}> </Text>
+                <Text style={{ fontSize: 7, color: "#666" }}>{" "}</Text>
               </View>
               <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: "#333" }]}>
-                <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: WHITE, textAlign: "center" }}>
-                  Avant PER
+                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 7.5, color: WHITE, textAlign: "center" }}>
+                  Sans PER
                 </Text>
               </View>
               <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: "#333", backgroundColor: GOLD }]}>
-                <Text style={{ fontSize: 7.5, fontFamily: "Helvetica-Bold", color: WHITE, textAlign: "center" }}>
-                  Après PER
+                <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 7.5, color: WHITE, textAlign: "center" }}>
+                  Avec PER
                 </Text>
               </View>
             </View>
-
             {/* Rows */}
-            {[
-              {
-                label: "Impôt sur le revenu annuel",
-                avant: fmt(impotAvant),
-                apres: fmt(impotApres),
-                highlight: false,
-              },
-              {
-                label: "Prélèvement à la source mensuel",
-                avant: fmt(pasMensAvant) + "/mois",
-                apres: fmt(pasMensApres) + "/mois",
-                highlight: false,
-              },
-              {
-                label: "Économie fiscale annuelle",
-                avant: "—",
-                apres: fmt(economieAnn),
-                highlight: true,
-              },
-              {
-                label: `Coût réel du versement (${fmt(versementMensuel)}/mois)`,
-                avant: fmt(versementMensuel),
-                apres: fmt(coutReelMens),
-                highlight: true,
-              },
-            ].map((row, i) => (
-              <View
-                key={i}
-                style={[s.tblRow, { backgroundColor: i % 2 === 0 ? WHITE : CREAM_ROW }]}
-              >
+            {tableRows.map((row, i) => (
+              <View key={i} style={[s.tblRow, { backgroundColor: i % 2 === 0 ? WHITE : "#f9f5f2" }]}>
                 <View style={[s.tblCell, { flex: 2.2 }]}>
                   <Text style={{ fontSize: 8, color: DARK }}>{row.label}</Text>
                 </View>
-                <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: CREAM }]}>
+                <View style={[s.tblCell, { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: SOFT }]}>
                   <Text style={{ fontSize: 8, color: GREY, textAlign: "center" }}>{row.avant}</Text>
                 </View>
                 <View style={[
                   s.tblCell,
-                  { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: CREAM },
-                  row.highlight ? { backgroundColor: "#fdf3ec" } : {},
+                  { flex: 1.4, borderLeftWidth: 0.5, borderLeftColor: SOFT },
+                  row.hi ? { backgroundColor: "#fdf0e8" } : {},
                 ]}>
                   <Text style={{
                     fontSize: 8,
                     textAlign: "center",
-                    color: row.highlight ? GOLD : DARK,
-                    fontFamily: row.highlight ? "Helvetica-Bold" : "Helvetica",
+                    color: row.hi ? GOLD : DARK,
+                    fontFamily: row.hi ? "Helvetica-Bold" : "Helvetica",
                   }}>
                     {row.apres}
                   </Text>
@@ -299,187 +307,149 @@ export default function PdfDocument({ data, computed }: Props) {
           </View>
         </View>
 
-        {/* ── 4. GRAPHIQUE ────────────────────────────────────────────────── */}
-        <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>{"Projection selon votre profil d'investisseur"}</Text>
-          <Text style={{ fontSize: 7.5, color: GREY, marginBottom: 7 }}>
-            {computed.nAnnees} ans · {fmt(versementMensuel)}/mois
-            {versementInitial > 0 ? "  ·  Apport initial\u00a0: " + fmt(versementInitial) : ""}
-            {"  ·  Profil sélectionné en surbrillance"}
-          </Text>
+        {/* ── 4. GRAPHIQUE ANNUEL ─────────────────────────────────────────── */}
+        {canProject && (
+          <View style={{ marginBottom: 10 }}>
+            <Text style={s.secTitle}>
+              {"Projection d'épargne — " + computed.nAnnees + " ans · " + (PROFIL_LABELS[data.profil] ?? data.profil)}
+            </Text>
+            <View style={s.secLine} />
 
-          {/* Chart: value labels row */}
-          <View style={{ flexDirection: "row", gap: 14, paddingHorizontal: 2, marginBottom: 2 }}>
-            {barData.map(bd => {
-              const isSelected = data.profil === bd.profil;
-              return (
-                <View key={bd.profil} style={{ flex: 1, alignItems: "center" }}>
-                  <Text style={{
-                    fontSize: 7.5,
-                    fontFamily: isSelected ? "Helvetica-Bold" : "Helvetica",
-                    color: isSelected ? GOLD : GREY,
-                    textAlign: "center",
-                  }}>
-                    {fmtK(bd.capitalFinal + gainFiscalTotal)}
-                  </Text>
-                  <Text style={{ fontSize: 6, color: GREY_LIGHT, textAlign: "center" }}>
-                    (capital + gain fiscal)
-                  </Text>
+            {/* Capital label above last bar */}
+            <View style={{ flexDirection: "row", height: 11, marginBottom: 2 }}>
+              {bars.map((b, i) => (
+                <View key={i} style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
+                  {i === bars.length - 1 && (
+                    <Text style={{ fontSize: 5.5, color: GOLD, fontFamily: "Helvetica-Bold" }}>
+                      {fmtK(b.totalVisual)}
+                    </Text>
+                  )}
                 </View>
-              );
-            })}
-          </View>
+              ))}
+            </View>
 
-          {/* Bar chart */}
-          <View style={{ flexDirection: "row", alignItems: "flex-end", height: BAR_MAX_H, gap: 14, paddingHorizontal: 2 }}>
-            {barData.map(bd => {
-              const isSelected = data.profil === bd.profil;
-              return (
+            {/* Bars — anchored to bottom via alignItems: "flex-end" */}
+            <View style={{ flexDirection: "row", alignItems: "flex-end", height: BAR_H, gap: 1 }}>
+              {bars.map((b, i) => (
                 <View
-                  key={bd.profil}
-                  style={{
-                    flex: 1,
-                    height: bd.barH,
-                    borderWidth: isSelected ? 1.5 : 0,
-                    borderColor: GOLD,
-                    borderRadius: 1,
-                    overflow: "hidden",
-                  }}
+                  key={i}
+                  style={{ flex: 1, height: b.barH, flexDirection: "column", overflow: "hidden" }}
                 >
-                  {/* Plus-value — top */}
-                  {bd.pvH > 0.5 && (
-                    <View style={{ flex: bd.pvH, backgroundColor: GOLD }} />
-                  )}
-                  {/* Versements — middle */}
-                  {bd.versH > 0.5 && (
-                    <View style={{ flex: bd.versH, backgroundColor: BROWN }} />
-                  )}
-                  {/* Gain fiscal — bottom */}
-                  {bd.gainH > 0.5 && (
-                    <View style={{ flex: bd.gainH, backgroundColor: CREAM }} />
+                  {/* Plus-value — top (GOLD) */}
+                  <View style={{ flex: b.pvFlex, backgroundColor: GOLD }} />
+                  {/* Versements — middle (BROWN) */}
+                  <View style={{ flex: b.versFlex, backgroundColor: BROWN }} />
+                  {/* Gain fiscal — bottom (TAUPE) */}
+                  <View style={{ flex: b.gainFlex, backgroundColor: TAUPE }} />
+                </View>
+              ))}
+            </View>
+
+            {/* X-axis year labels */}
+            <View style={{ flexDirection: "row", marginTop: 3 }}>
+              {bars.map((b, i) => (
+                <View key={i} style={{ flex: 1, alignItems: "center" }}>
+                  {showYrLabel(b) && (
+                    <Text style={{ fontSize: 4.8, color: GREY, textAlign: "center" }}>
+                      {b.annee}
+                    </Text>
                   )}
                 </View>
-              );
-            })}
-          </View>
+              ))}
+            </View>
 
-          {/* Profile name labels */}
-          <View style={{ flexDirection: "row", gap: 14, paddingHorizontal: 2, marginTop: 4 }}>
-            {barData.map(bd => {
-              const isSelected = data.profil === bd.profil;
-              return (
-                <View key={bd.profil} style={{ flex: 1, alignItems: "center" }}>
-                  <Text style={{
-                    fontSize: 7.5,
-                    fontFamily: isSelected ? "Helvetica-Bold" : "Helvetica",
-                    color: isSelected ? GOLD : GREY,
-                    textAlign: "center",
-                  }}>
-                    {PROFIL_NAMES[bd.profil]}
-                  </Text>
-                  <Text style={{ fontSize: 6.5, color: GREY_LIGHT, textAlign: "center" }}>
-                    {(PROFIL_TAUX[bd.profil] * 100).toFixed(0)}%/an
-                  </Text>
+            {/* Legend */}
+            <View style={{ flexDirection: "row", gap: 14, marginTop: 6 }}>
+              {[
+                { color: TAUPE, label: "Gain fiscal cumulé (État)" },
+                { color: BROWN, label: "Versements totaux" },
+                { color: GOLD,  label: "Plus-value (intérêts composés)" },
+              ].map((item, i) => (
+                <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <View style={{ width: 8, height: 8, backgroundColor: item.color, borderRadius: 1 }} />
+                  <Text style={{ fontSize: 6.5, color: GREY }}>{item.label}</Text>
                 </View>
-              );
-            })}
+              ))}
+            </View>
           </View>
+        )}
 
-          {/* Légende */}
-          <View style={{ flexDirection: "row", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
-            {[
-              { color: CREAM, border: true,  label: "L'État contribue (gain fiscal cumulé)" },
-              { color: BROWN, border: false, label: "Votre effort (versements totaux)" },
-              { color: GOLD,  border: false, label: "Intérêts composés (plus-value)" },
-            ].map((item, i) => (
-              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <View style={{
-                  width: 8,
-                  height: 8,
-                  backgroundColor: item.color,
-                  borderWidth: item.border ? 0.75 : 0,
-                  borderColor: GOLD,
-                }} />
-                <Text style={{ fontSize: 6.5, color: GREY }}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* ── 5. POUR ALLER PLUS LOIN ─────────────────────────────────────── */}
-        <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>Pour aller plus loin</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
+        {/* ── 5. POUR ALLER PLUS LOIN + CTA (2 colonnes) ─────────────────── */}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {/* Pour aller plus loin */}
+          <View style={{ flex: 1 }}>
+            <Text style={s.secTitle}>Pour aller plus loin</Text>
+            <View style={s.secLine} />
             {[
               "La fiscalité à la sortie (rente vs capital)",
               "Les conditions de déblocage anticipé",
-              "Quel PER choisir parmi Generali, Abeille, Garance, Swiss Life selon votre profil",
-              "L'optimisation avec d'autres enveloppes (assurance-vie, FCPI…)",
+              "Quel PER — Generali, Abeille, Garance, Swiss Life",
+              "Optimisation avec assurance-vie, FCPI…",
             ].map((item, i) => (
-              <View key={i} style={{ flexDirection: "row", gap: 4, width: "48%" }}>
-                <Text style={{ fontSize: 8, color: GOLD }}>→</Text>
-                <Text style={{ fontSize: 8, color: DARK, flex: 1 }}>{item}</Text>
+              <View key={i} style={{ flexDirection: "row", gap: 4, marginBottom: 5 }}>
+                <Text style={{ fontSize: 7.5, color: GOLD }}>{"→"}</Text>
+                <Text style={{ fontSize: 7.5, color: DARK, flex: 1 }}>{item}</Text>
               </View>
             ))}
           </View>
-        </View>
 
-        {/* ── 6. CTA ──────────────────────────────────────────────────────── */}
-        <View style={{
-          borderWidth: 1,
-          borderColor: GOLD,
-          borderRadius: 4,
-          padding: 14,
-          backgroundColor: "#fdf9f6",
-        }}>
-          <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: DARK, textAlign: "center", marginBottom: 8 }}>
-            Vous avez des questions sur votre simulation ?
-          </Text>
-          <View style={{ flexDirection: "row", gap: 0, marginBottom: 10, justifyContent: "center" }}>
+          {/* CTA box */}
+          <View style={{
+            flex: 1,
+            backgroundColor: WHITE,
+            borderWidth: 0.75,
+            borderColor: GOLD,
+            borderRadius: 3,
+            padding: 12,
+            justifyContent: "center",
+          }}>
+            <Text style={{
+              fontFamily: "Times-Bold",
+              fontSize: 13,
+              color: DARK,
+              textAlign: "center",
+              marginBottom: 8,
+            }}>
+              Vous avez des questions ?
+            </Text>
             {[
               "Quelle fiscalité à la sortie ?",
               "Quel PER pour votre profil ?",
               "Peut-on faire mieux ?",
             ].map((q, i) => (
-              <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 3, marginHorizontal: 12 }}>
-                <Text style={{ fontSize: 8, color: GOLD }}>•</Text>
-                <Text style={{ fontSize: 8, color: DARK }}>{q}</Text>
+              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                <Text style={{ fontSize: 7.5, color: GOLD }}>{"·"}</Text>
+                <Text style={{ fontSize: 7.5, color: DARK }}>{q}</Text>
               </View>
             ))}
-          </View>
-
-          {/* Bouton CTA */}
-          <View style={{
-            backgroundColor: GOLD,
-            borderRadius: 50,
-            paddingVertical: 9,
-            paddingHorizontal: 28,
-            alignSelf: "center",
-            marginBottom: 8,
-          }}>
-            <Text style={{
-              fontSize: 9.5,
-              fontFamily: "Helvetica-Bold",
-              color: WHITE,
-              textAlign: "center",
-              letterSpacing: 0.5,
+            <View style={{
+              marginTop: 8,
+              backgroundColor: GOLD,
+              borderRadius: 50,
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+              alignSelf: "center",
             }}>
-              RÉSERVER MON ENTRETIEN GRATUIT  →
+              <Text style={{
+                fontSize: 8.5,
+                fontFamily: "Helvetica-Bold",
+                color: WHITE,
+                textAlign: "center",
+                letterSpacing: 0.5,
+              }}>
+                ENTRETIEN GRATUIT  →
+              </Text>
+            </View>
+            <Text style={{ fontSize: 6.5, color: GREY, textAlign: "center", marginTop: 5 }}>
+              Sans engagement · 30 min · Conseil indépendant
+            </Text>
+            <Text style={{ fontSize: 6, color: GREY, textAlign: "center", marginTop: 2 }}>
+              {CALENDLY}
             </Text>
           </View>
-
-          <Text style={{ fontSize: 7.5, color: GREY, textAlign: "center", marginBottom: 2 }}>
-            Sans engagement · 30 minutes · Gratuit
-          </Text>
-          <Text style={{ fontSize: 7.5, color: GREY, textAlign: "center" }}>
-            Conseil indépendant — accès à Generali, Abeille, Garance, Swiss Life
-          </Text>
-          <Text style={{ fontSize: 7, color: GREY_LIGHT, textAlign: "center", marginTop: 4 }}>
-            {CALENDLY}
-          </Text>
         </View>
 
-        {/* ── 7. PIED DE PAGE ─────────────────────────────────────────────── */}
+        {/* ── FOOTER ─────────────────────────────────────────────────────── */}
         <Text style={s.footer}>
           Cervus Patrimoine — ORIAS n° 25006770 — Simulation indicative, non contractuelle
         </Text>

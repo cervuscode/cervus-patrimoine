@@ -29,16 +29,14 @@ export default function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           {/* Col 1 — Brand */}
           <div className="col-span-2 lg:col-span-1 flex flex-col gap-4">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/">
               <Image
                 src="/cervus_logo.svg"
                 alt="Cervus Patrimoine"
-                width={36}
-                height={36}
+                width={120}
+                height={120}
+                className="h-14 w-auto brightness-0 invert"
               />
-              <span className="font-cormorant text-xl font-semibold tracking-wide text-white">
-                Cervus Patrimoine
-              </span>
             </Link>
             <p className="font-inter text-sm text-white/45 leading-relaxed max-w-[220px]">
               Cabinet de gestion de patrimoine indépendant

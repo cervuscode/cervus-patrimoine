@@ -53,21 +53,16 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
+          <Link href="/" className="flex items-center group shrink-0">
             <Image
               src="/cervus_logo.svg"
               alt="Cervus Patrimoine"
-              width={40}
-              height={40}
-              className="transition-transform duration-200 group-hover:scale-105"
-            />
-            <span
-              className={`font-cormorant text-xl font-semibold tracking-wide transition-colors duration-300 ${
-                transparent ? "text-white" : "text-[#0f0f0f]"
+              width={120}
+              height={120}
+              className={`h-14 w-auto transition-all duration-300 group-hover:scale-105 ${
+                transparent ? "brightness-0 invert" : ""
               }`}
-            >
-              Cervus Patrimoine
-            </span>
+            />
           </Link>
 
           {/* Desktop nav links */}

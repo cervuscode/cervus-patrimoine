@@ -168,6 +168,7 @@ export default function PdfDocument({ data, computed }: Props) {
         {/* ── 1. EN-TÊTE ─────────────────────────────────────────────────── */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={LOGO_PATH} style={{ width: 44, height: 44 }} />
             <View>
               <Text style={{ fontSize: 13, fontFamily: "Helvetica-Bold", color: DARK }}>
@@ -221,7 +222,7 @@ export default function PdfDocument({ data, computed }: Props) {
 
         {/* ── 3. IMPACT DES VERSEMENTS ────────────────────────────────────── */}
         <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>L'impact de vos versements PER</Text>
+          <Text style={s.sectionLabel}>{"L'impact de vos versements PER"}</Text>
 
           {/* Table */}
           <View style={{ borderWidth: 0.5, borderColor: "#e0d8d0", borderRadius: 2, overflow: "hidden" }}>
@@ -300,7 +301,7 @@ export default function PdfDocument({ data, computed }: Props) {
 
         {/* ── 4. GRAPHIQUE ────────────────────────────────────────────────── */}
         <View style={{ marginBottom: 9 }}>
-          <Text style={s.sectionLabel}>Projection selon votre profil d'investisseur</Text>
+          <Text style={s.sectionLabel}>{"Projection selon votre profil d'investisseur"}</Text>
           <Text style={{ fontSize: 7.5, color: GREY, marginBottom: 7 }}>
             {computed.nAnnees} ans · {fmt(versementMensuel)}/mois
             {versementInitial > 0 ? "  ·  Apport initial\u00a0: " + fmt(versementInitial) : ""}

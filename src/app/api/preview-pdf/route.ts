@@ -9,6 +9,7 @@ import {
   calculerTMI,
   projectionPER,
   economieFiscaleAnnuelle,
+  impotReel,
 } from "@/lib/fiscal-engine";
 
 const MOCK: SimulateurData = {
@@ -56,7 +57,15 @@ function buildComputed(): ComputedResults {
   const { capitalFinal, courbe } = projectionPER(
     versementMensuel, tauxAnnuel, nAnnees, versementInitial
   );
-  const economieFiscale = economieFiscaleAnnuelle(versementMensuel, tmi);
+  const economieFiscale   = economieFiscaleAnnuelle(versementMensuel, tmi);
+  const versementAnnuel   = versementMensuel * 12;
+  const impotAvant        = Math.round(impotReel(revenuImposable, partsBase, partsTotal));
+  const revApres          = Math.max(0, revenuImposable - versementAnnuel);
+  const impotApres        = Math.round(impotReel(revApres, partsBase, partsTotal));
+  const economieAnn       = impotAvant - impotApres;
+  const pasMensAvant      = Math.round(impotAvant / 12);
+  const pasMensApres      = Math.round(impotApres / 12);
+  const economieMensuelle = Math.max(0, Math.round(versementMensuel - economieAnn / 12));
   return {
     partsBase,
     partsTotal,
@@ -68,7 +77,12 @@ function buildComputed(): ComputedResults {
     capitalFinal,
     courbe,
     economieFiscale,
-    versementAnnuel: versementMensuel * 12,
+    versementAnnuel,
+    impotAvant,
+    impotApres,
+    pasMensAvant,
+    pasMensApres,
+    economieMensuelle,
   };
 }
 

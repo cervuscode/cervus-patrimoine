@@ -56,6 +56,12 @@ export interface ComputedResults {
   courbe: Array<{ annee: number; capital: number }>;
   economieFiscale: number;
   versementAnnuel: number;
+  // Fiscalité PER détaillée
+  impotAvant: number;      // impôt IR annuel avant PER
+  impotApres: number;      // impôt IR annuel après déduction PER
+  pasMensAvant: number;    // prélèvement à la source mensuel avant PER
+  pasMensApres: number;    // prélèvement à la source mensuel après PER
+  economieMensuelle: number; // coût réel mensuel du versement (versement - économie/12)
 }
 
 export const INITIAL_DATA: SimulateurData = {

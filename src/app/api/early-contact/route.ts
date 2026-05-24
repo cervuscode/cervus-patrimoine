@@ -44,10 +44,13 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
     // @ts-expect-error — react-pdf types differ from React's generic ReactElement
     React.createElement(PdfDocument, { data, computed })
   );
-  const pdfBase64 = pdfBuffer.toString("base64");
+  // Buffer.toString("base64") produces pure base64 — strip prefix defensively just in case
+  const rawBase64 = pdfBuffer.toString("base64");
+  const pdfBase64 = rawBase64.replace(/^data:[^;]+;base64,/, "");
+  console.log(`[early-contact] PDF généré — ${pdfBuffer.byteLength} octets, base64 ${pdfBase64.length} chars, préfixe data: ${rawBase64 !== pdfBase64 ? "retiré" : "absent (OK)"}, début: ${pdfBase64.slice(0, 20)}`);
 
   try {
-    console.log("[Make] Envoi fetch vers Make (sans_otp_30min)...");
+    console.log(`[Make] Envoi fetch vers Make (sans_otp_30min) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

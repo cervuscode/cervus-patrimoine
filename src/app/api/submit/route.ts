@@ -62,7 +62,7 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
   };
 
   try {
-    console.log("[Make] Envoi fetch vers Make (otp_valide)...");
+    console.log(`[Make] Envoi fetch vers Make (otp_valide) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -207,7 +207,11 @@ export async function POST(req: NextRequest) {
       // @ts-expect-error — react-pdf types differ from React's generic ReactElement
       React.createElement(PdfDocument, { data, computed })
     );
-    const pdfBase64 = pdfBuffer.toString("base64");
+    // Buffer.toString("base64") produces pure base64 — strip prefix defensively just in case
+    const rawBase64 = pdfBuffer.toString("base64");
+    const pdfBase64 = rawBase64.replace(/^data:[^;]+;base64,/, "");
+    console.log(`[submit] PDF généré — ${pdfBuffer.byteLength} octets, base64 ${pdfBase64.length} chars, préfixe data: ${rawBase64 !== pdfBase64 ? "retiré" : "absent (OK)"}, début: ${pdfBase64.slice(0, 20)}`);
+
 
     // Run CRM + Make webhook in parallel — non-blocking on partial failure
     const results = await Promise.allSettled([

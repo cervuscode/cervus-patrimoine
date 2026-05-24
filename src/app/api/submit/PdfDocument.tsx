@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
   Image,
+  Link,
 } from "@react-pdf/renderer";
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 import { impotReel } from "@/lib/fiscal-engine";
@@ -19,8 +20,9 @@ const GREY   = "#888888";
 const SOFT   = "#D4C9BE";
 const TAUPE  = "#C4B8B0"; // gain fiscal segment — darker than CREAM for visibility on cream bg
 
-const LOGO_PATH = process.cwd() + "/public/cervus_logo.png";
-const CALENDLY  = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "cervuspatrimoine.fr/rendez-vous";
+const LOGO_PATH    = process.cwd() + "/public/cervus_logo.png";
+const CALENDLY_RAW = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "cervuspatrimoine.fr/rendez-vous";
+const CALENDLY     = CALENDLY_RAW.startsWith("http") ? CALENDLY_RAW : "https://" + CALENDLY_RAW;
 
 // ── Number formatting ─────────────────────────────────────────────────────────
 // toLocaleString("fr-FR") uses \u00a0 as thousands sep → renders as "/" in PDF fonts.
@@ -410,29 +412,26 @@ export default function PdfDocument({ data, computed }: Props) {
                 <Text style={{ fontSize: 7.5, color: DARK }}>{q}</Text>
               </View>
             ))}
-            <View style={{
-              marginTop: 8,
-              backgroundColor: GOLD,
-              borderRadius: 50,
-              paddingVertical: 8,
-              paddingHorizontal: 14,
-              alignSelf: "center",
-            }}>
-              <Text style={{
-                fontSize: 8.5,
-                fontFamily: "Helvetica-Bold",
-                color: WHITE,
-                textAlign: "center",
-                letterSpacing: 0.5,
+            <Link src={CALENDLY} style={{ alignSelf: "center", marginTop: 8, textDecoration: "none" }}>
+              <View style={{
+                backgroundColor: GOLD,
+                borderRadius: 50,
+                paddingVertical: 8,
+                paddingHorizontal: 14,
               }}>
-                ENTRETIEN GRATUIT  →
-              </Text>
-            </View>
+                <Text style={{
+                  fontSize: 8.5,
+                  fontFamily: "Helvetica-Bold",
+                  color: WHITE,
+                  textAlign: "center",
+                  letterSpacing: 0.5,
+                }}>
+                  ENTRETIEN GRATUIT  →
+                </Text>
+              </View>
+            </Link>
             <Text style={{ fontSize: 6.5, color: GREY, textAlign: "center", marginTop: 5 }}>
               Sans engagement · 30 min · Conseil indépendant
-            </Text>
-            <Text style={{ fontSize: 6, color: GREY, textAlign: "center", marginTop: 2 }}>
-              {CALENDLY}
             </Text>
           </View>
         </View>

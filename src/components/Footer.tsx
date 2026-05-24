@@ -31,10 +31,10 @@ export default function Footer() {
           <div className="col-span-2 lg:col-span-1 flex flex-col gap-4">
             <Link href="/">
               <Image
-                src="/cervus_logo.svg"
+                src="/cervus_logo.png"
                 alt="Cervus Patrimoine"
-                width={120}
-                height={120}
+                width={500}
+                height={500}
                 className="h-14 w-auto brightness-0 invert"
               />
             </Link>

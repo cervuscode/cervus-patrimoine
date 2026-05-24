@@ -55,10 +55,10 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center group shrink-0">
             <Image
-              src="/cervus_logo.svg"
+              src="/cervus_logo.png"
               alt="Cervus Patrimoine"
-              width={120}
-              height={120}
+              width={500}
+              height={500}
               className={`h-14 w-auto transition-all duration-300 group-hover:scale-105 ${
                 transparent ? "brightness-0 invert" : ""
               }`}

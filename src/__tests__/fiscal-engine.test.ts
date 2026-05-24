@@ -14,31 +14,31 @@ describe("impotBrut", () => {
     expect(impotBrut(10000, 1)).toBe(0);
   });
 
-  it("Célibataire 30 000 € → ~2 165 €", () => {
-    // 11497×0 + (29315-11497)×11% + (30000-29315)×30% ≈ 2165
+  it("Célibataire 30 000 € → ~2 104 €", () => {
+    // 11600×0 + (29579-11600)×11% + (30000-29579)×30% ≈ 2104
     const impot = impotBrut(30000, 1);
-    expect(impot).toBeCloseTo(2165, 0);
+    expect(impot).toBeCloseTo(2104, 0);
   });
 });
 
 // ── impotReel — valeurs de référence vérifiées sur le barème IR 2025 ──────────
 describe("impotReel", () => {
-  it("Célibataire 30k€ → ~2 165 €", () => {
+  it("Célibataire 30k€ → ~2 104 €", () => {
     const { partsBase, partsTotal } = calculerParts("celibataire", 0);
-    expect(impotReel(30000, partsBase, partsTotal)).toBeCloseTo(2165, 0);
+    expect(impotReel(30000, partsBase, partsTotal)).toBeCloseTo(2104, 0);
   });
 
-  it("Couple sans enfant 70k€ → ~7 331 € (barème 2025)", () => {
-    // (70000/2 = 35000 par part) : 11497×0 + (29315-11497)×11% + (35000-29315)×30% ≈ 3665 × 2
+  it("Couple sans enfant 70k€ → ~7 208 € (barème 2025)", () => {
+    // (70000/2 = 35000 par part) : 11600×0 + (29579-11600)×11% + (35000-29579)×30% ≈ 3604 × 2
     const { partsBase, partsTotal } = calculerParts("marie", 0);
-    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(7331, 0);
+    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(7208, 0);
   });
 
-  it("Couple + 1 enfant 70k€ → ~5 540 € (plafonnement QF actif)", () => {
-    // Sans enfants: 7331 | Avec 2.5 parts: 4538 | Économie: 2792 > plafond 1791
-    // → impôt réel = 7331 - 1791 = 5540
+  it("Couple + 1 enfant 70k€ → ~5 417 € (plafonnement QF actif)", () => {
+    // Sans enfants: 7208 | Avec 2.5 parts: 4510 | Économie: 2698 > plafond 1791
+    // → impôt réel = 7208 - 1791 = 5417
     const { partsBase, partsTotal } = calculerParts("marie", 1);
-    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(5540, 0);
+    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(5417, 0);
   });
 
   it("Célibataire 90k€ → ~21 100 €", () => {
@@ -48,9 +48,9 @@ describe("impotReel", () => {
     expect(impot).toBeLessThan(22000);
   });
 
-  it("Célibataire 200k€ → ~66 733 € (barème 2025)", () => {
+  it("Célibataire 200k€ → ~66 524 € (barème 2025)", () => {
     const { partsBase, partsTotal } = calculerParts("celibataire", 0);
-    expect(impotReel(200000, partsBase, partsTotal)).toBeCloseTo(66733, 0);
+    expect(impotReel(200000, partsBase, partsTotal)).toBeCloseTo(66524, 0);
   });
 
   it("Couple sans enfant 60k€ → plafonnement QF non atteint", () => {

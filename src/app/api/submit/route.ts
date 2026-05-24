@@ -92,60 +92,6 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
   }
 }
 
-async function sendEmail(data: SimulateurData, computed: ComputedResults, pdfBase64: string) {
-  const profilLabels: Record<string, string> = {
-    prudent:   "Prudent",
-    equilibre: "Équilibré",
-    dynamique: "Dynamique",
-  };
-  const objectifLabels: Record<string, string> = {
-    reduire_impots:    "Réduire mes impôts",
-    preparer_retraite: "Préparer ma retraite",
-    dynamiser_epargne: "Dynamiser mon épargne",
-  };
-  const statutProLabels: Record<string, string> = {
-    salarie:       "Salarié",
-    fonctionnaire: "Fonctionnaire",
-    independant:   "Indépendant",
-    liberal:       "Profession libérale",
-  };
-
-  const body = {
-    sender: { name: "Auguste — Cervus Patrimoine", email: "auguste@cervuspatrimoine.fr" },
-    to: [{ email: data.email, name: data.prenom }],
-    templateId: 1,
-    params: {
-      PRENOM:              data.prenom,
-      CAPITAL_PROJETE:     computed.capitalFinal,
-      ECONOMIE_FISCALE:    computed.economieFiscale,
-      TMI:                 computed.tmi,
-      VERSEMENT_MENSUEL:   Math.round(computed.versementAnnuel / 12),
-      PROFIL_INVESTISSEUR: profilLabels[data.profil] ?? data.profil,
-      OBJECTIF:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
-      STATUT_PRO:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
-    },
-    attachment: [
-      {
-        name:    "simulation-per-cervus.pdf",
-        content: pdfBase64,
-      },
-    ],
-  };
-
-  const res = await fetch(`${BREVO_API}/smtp/email`, {
-    method: "POST",
-    headers: {
-      "api-key": process.env.BREVO_API_KEY!,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    console.error(`[submit] Brevo email error: ${res.status}`);
-  }
-}
-
 async function createBrevoContact(data: SimulateurData, computed: ComputedResults) {
   const statut =
     data.statut === "marie" || data.statut === "pacse"
@@ -252,14 +198,13 @@ export async function POST(req: NextRequest) {
     );
     const pdfBase64 = pdfBuffer.toString("base64");
 
-    // Run email + CRM + Make webhook in parallel — non-blocking on partial failure
+    // Run CRM + Make webhook in parallel — non-blocking on partial failure
     const results = await Promise.allSettled([
-      sendEmail(data, computed, pdfBase64),
       createBrevoContact(data, computed),
       sendMakeWebhook(data, computed, pdfBase64),
     ]);
     results.forEach((r, i) => {
-      const label = ["sendEmail", "createBrevoContact", "sendMakeWebhook"][i];
+      const label = ["createBrevoContact", "sendMakeWebhook"][i];
       if (r.status === "rejected") {
         console.error(`[submit] ${label} rejeté:`, r.reason instanceof Error ? r.reason.message : r.reason);
       }

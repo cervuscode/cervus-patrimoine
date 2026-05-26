@@ -28,12 +28,12 @@ function isRateLimited(ip: string): boolean {
 }
 
 async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedResults) {
-  console.log("[Make] Début sendMakeWebhookSansOtp, type: sans_otp_30min");
+  console.log("[Make] Début sendMakeWebhookSansOtp, type: sans_otp");
   console.log("[Make] URL présente:", !!process.env.MAKE_WEBHOOK_URL);
 
   const webhookUrl = process.env.MAKE_WEBHOOK_URL;
   if (!webhookUrl) {
-    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL absent des variables d'env (type: sans_otp_30min)");
+    console.error("[Make] Webhook non envoyé : MAKE_WEBHOOK_URL absent des variables d'env (type: sans_otp)");
     return;
   }
 
@@ -66,12 +66,12 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
   console.log(`[early-contact] PDF généré — ${byteSize} octets, magic %PDF: ${magicOk ? "OK" : "INVALIDE"}, base64 ${pdfBase64.length} chars, début: ${pdfBase64.slice(0, 20)}`);
 
   try {
-    console.log(`[Make] Envoi fetch vers Make (sans_otp_30min) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
+    console.log(`[Make] Envoi fetch vers Make (sans_otp) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type:             "sans_otp_30min",
+        type:             "sans_otp",
         email:            data.email,
         prenom:           data.prenom,
         pdf:              pdfBase64,
@@ -89,12 +89,12 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "(unreadable)");
-      console.error(`[Make] Webhook sans_otp_30min HTTP error: ${res.status} — ${body}`);
+      console.error(`[Make] Webhook sans_otp HTTP error: ${res.status} — ${body}`);
     } else {
-      console.log("[Make] Webhook sans_otp_30min envoyé avec succès, status:", res.status);
+      console.log("[Make] Webhook sans_otp envoyé avec succès, status:", res.status);
     }
   } catch (err: unknown) {
-    console.error("[Make] Webhook sans_otp_30min exception réseau:", err instanceof Error ? err.message : err);
+    console.error("[Make] Webhook sans_otp exception réseau:", err instanceof Error ? err.message : err);
   }
 }
 

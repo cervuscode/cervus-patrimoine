@@ -15,7 +15,7 @@ export default function QRevenusConjoint({ data, onChange, onNext, onPrev }: Pro
     <div className="flex flex-col gap-8 pt-8">
       <div>
         <h2 className="font-cormorant text-[2.5rem] font-light text-[#0f0f0f] mb-1 leading-tight">
-          Revenu net mensuel de votre conjoint(e) ?
+          Revenu net <span className="font-bold">MENSUEL</span> de votre conjoint(e) ?
         </h2>
         <p className="font-inter text-sm text-[#555555]">
           Optionnel — permet d&apos;affiner le calcul du foyer fiscal. Laissez vide si non applicable.

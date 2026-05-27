@@ -116,8 +116,13 @@ function partsEnfantsParentIsole(n: number): number {
   return 1.5 + (n - 2) * 1.0;
 }
 
+// Garde partagée : +0,25 part par enfant (demi-part divisée par deux)
+function partsEnfantsGardePartagee(n: number): number {
+  return n * 0.25;
+}
+
 export function calculerParts(
-  statut: 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole',
+  statut: 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole' | 'garde_partagee',
   nbEnfants: number
 ): { partsBase: number; partsTotal: number } {
   if (statut === 'marie' || statut === 'pacse') {
@@ -126,8 +131,11 @@ export function calculerParts(
   } else if (statut === 'parent_isole') {
     const partsBase = 1;
     return { partsBase, partsTotal: partsBase + partsEnfantsParentIsole(nbEnfants) };
+  } else if (statut === 'garde_partagee') {
+    const partsBase = 1;
+    return { partsBase, partsTotal: partsBase + partsEnfantsGardePartagee(nbEnfants) };
   } else {
-    // celibataire ou divorce
+    // celibataire, divorce, garde_principale
     const partsBase = 1;
     return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) };
   }

@@ -13,8 +13,8 @@ export default function QSalaires({ data, onChange, onNext, onPrev }: Props) {
   const isIndep = data.statutPro === "independant" || data.statutPro === "liberal";
 
   const titre = isIndep
-    ? "Votre bénéfice net mensuel ?"
-    : "Quel est votre salaire net mensuel ?";
+    ? <>Votre bénéfice net <span className="font-bold">MENSUEL</span> ?</>
+    : <>Quel est votre salaire net <span className="font-bold">MENSUEL</span> ?</>;
   const sous_titre = isIndep
     ? "BIC/BNC après abattement ou charges déduites. On l'annualise automatiquement (× 12)."
     : "Montant net avant impôt, hors primes exceptionnelles. On l'annualise automatiquement (× 12).";

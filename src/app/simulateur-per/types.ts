@@ -9,7 +9,7 @@ export interface SimulateurData {
   // Étape 1 — Situation
   statut: Statut | '';
   nbEnfants: number;
-  gardeParentale: boolean | null; // true = parent isolé (case T), null = non applicable
+  gardeParentale: 'garde_principale' | 'parent_isole' | 'garde_partagee' | null; // null = non applicable
 
   // Étape 2 — Revenus
   salaireMensuel: string;          // mensuel saisi, × 12 dans compute()

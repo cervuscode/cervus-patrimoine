@@ -94,19 +94,19 @@ export default function QAutresRevenus({ data, onChange, onNext, onPrev }: Props
       {data.autresRevenus === true && (
         <div className="flex flex-col gap-5 p-5 border border-[#D4C9BE] rounded-xl">
           <NumberInput
-            label="BNC — Bénéfice net"
+            label="BNC — Bénéfice net annuel"
             hint="Après abattement micro-BNC ou bénéfice net réel"
             value={data.bnc}
             onChange={(v) => onChange({ bnc: v })}
           />
           <NumberInput
-            label="BIC — Bénéfice net"
+            label="BIC — Bénéfice net annuel"
             hint="Après abattement micro-BIC ou bénéfice net réel"
             value={data.bic}
             onChange={(v) => onChange({ bic: v })}
           />
           <NumberInput
-            label="Foncier — Revenu net"
+            label="Foncier — Revenu net annuel"
             hint="Après abattement micro-foncier ou charges déduites"
             value={data.foncier}
             onChange={(v) => onChange({ foncier: v })}

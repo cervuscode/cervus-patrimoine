@@ -63,7 +63,7 @@ function displayStatut(data: SimulateurData): string {
   if (
     (data.statut === "celibataire" || data.statut === "divorce") &&
     data.nbEnfants > 0 &&
-    data.gardeParentale === true
+    data.gardeParentale === "parent_isole"
   ) return "Parent isolé";
   return STATUT_LABELS[data.statut] ?? data.statut;
 }

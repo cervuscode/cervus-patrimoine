@@ -50,7 +50,7 @@ export default function QVersements({ data, computed, onChange, onNext, onPrev }
       {/* Versement mensuel */}
       <div className="flex flex-col gap-2">
         <label className="font-inter text-xs text-[#795D48] uppercase tracking-[0.08em]">
-          Versement mensuel
+          Versement <span className="font-bold">mensuel</span>
         </label>
         <div className="relative">
           <input

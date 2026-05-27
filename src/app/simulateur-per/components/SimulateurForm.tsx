@@ -56,12 +56,10 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 // Détermine le statut fiscal effectif (intègre la garde parentale)
 function effectiveStatut(data: SimulateurData) {
-  if (
-    (data.statut === "celibataire" || data.statut === "divorce") &&
-    data.nbEnfants > 0 &&
-    data.gardeParentale === true
-  ) {
-    return "parent_isole" as const;
+  if ((data.statut === "celibataire" || data.statut === "divorce") && data.nbEnfants > 0) {
+    if (data.gardeParentale === "parent_isole")  return "parent_isole"  as const;
+    if (data.gardeParentale === "garde_partagee") return "garde_partagee" as const;
+    // garde_principale → statut standard (celibataire/divorce avec enfants, sans case T)
   }
   return data.statut as Exclude<typeof data.statut, "">;
 }

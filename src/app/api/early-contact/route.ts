@@ -27,6 +27,21 @@ function isRateLimited(ip: string): boolean {
   return false;
 }
 
+const profilLabels: Record<string, string> = {
+  prudent: "Prudent", equilibre: "Équilibré", dynamique: "Dynamique",
+};
+const objectifLabels: Record<string, string> = {
+  reduire_impots:    "Réduire mes impôts",
+  preparer_retraite: "Préparer ma retraite",
+  dynamiser_epargne: "Dynamiser mon épargne",
+};
+const statutProLabels: Record<string, string> = {
+  salarie:       "Salarié",
+  fonctionnaire: "Fonctionnaire",
+  independant:   "Indépendant",
+  liberal:       "Profession libérale",
+};
+
 async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedResults) {
   console.log("[Make] Début sendMakeWebhookSansOtp, type: sans_otp");
   console.log("[Make] URL présente:", !!process.env.MAKE_WEBHOOK_URL);
@@ -66,26 +81,35 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
   console.log(`[early-contact] PDF généré — ${byteSize} octets, magic %PDF: ${magicOk ? "OK" : "INVALIDE"}, base64 ${pdfBase64.length} chars, début: ${pdfBase64.slice(0, 20)}`);
 
   try {
+    const payload = {
+      type:                "sans_otp",
+      email:               data.email,
+      prenom:              data.prenom,
+      pdf:                 pdfBase64,
+      nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+      capital_projete:     computed.capitalFinal,
+      economie_fiscale:    computed.economieFiscale,
+      tmi:                 computed.tmi,
+      versement_mensuel:   Math.round(computed.versementAnnuel / 12),
+      salaire_mensuel:     parseFloat(data.salaireMensuel) || 0,
+      profil_investisseur: profilLabels[data.profil] ?? data.profil,
+      objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
+      statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
+      impot_avant_per:     computed.impotAvant,
+      impot_apres_per:     computed.impotApres,
+      pas_avant_per:       computed.pasMensAvant,
+      pas_apres_per:       computed.pasMensApres,
+      economie_mensuelle:  computed.economieMensuelle,
+      revenu_conjoint:     data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
+    };
+    // Log payload sans le PDF (trop volumineux)
+    const { pdf: _pdf, ...payloadSansPdf } = payload;
+    console.log("[Make] Payload sans_otp (hors PDF):", JSON.stringify(payloadSansPdf));
     console.log(`[Make] Envoi fetch vers Make (sans_otp) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type:             "sans_otp",
-        email:            data.email,
-        prenom:           data.prenom,
-        pdf:              pdfBase64,
-        nom_fichier:      `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
-        capital_projete:    computed.capitalFinal,
-        economie_fiscale:   computed.economieFiscale,
-        tmi:                computed.tmi,
-        impot_avant_per:    computed.impotAvant,
-        impot_apres_per:    computed.impotApres,
-        pas_avant_per:      computed.pasMensAvant,
-        pas_apres_per:      computed.pasMensApres,
-        economie_mensuelle: computed.economieMensuelle,
-        revenu_conjoint:    data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "(unreadable)");
@@ -126,42 +150,47 @@ export async function POST(req: NextRequest) {
         ? "Parent isolé"
         : "Célibataire";
 
-    const profil = { prudent: "Prudent", equilibre: "Équilibré", dynamique: "Dynamique" }[data.profil] ?? "";
+    const profil = profilLabels[data.profil] ?? "";
 
     const today = new Date();
     const dateSimulation = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 
+    const brevoAttributes = {
+      PRENOM:              data.prenom,
+      NOM:                 data.nom,
+      SOURCE:              "Simu-PER",
+      STATUT_MARITAL:      statut,
+      TMI:                 computed.tmi,
+      REVENU_IMPOSABLE:    computed.revenuImposable,
+      SALAIRE_MENSUEL:     parseFloat(data.salaireMensuel) || 0,
+      ANNEE_NAISSANCE:     parseInt(data.anneeNaissance) || 0,
+      NB_ENFANT:           data.nbEnfants,
+      AUTRE_REVENU:        data.autresRevenus ?? false,
+      VERSEMENT_INITIAL:   parseFloat(data.versementInitial) || 0,
+      VERSEMENT_MENSUEL:   parseFloat(data.versementMensuel) || 0,
+      VERSEMENT_PER:       computed.versementAnnuel,
+      PROFIL_INVESTISSEUR: profil,
+      CAPITAL_PROJETE:     computed.capitalFinal,
+      ECONOMIE_FISCALE:    computed.economieFiscale,
+      AGE_RETRAITE:        computed.ageRetraiteNum,
+      DATE_SIMULATION:     dateSimulation,
+      IMPOT_AVANT_PER:     computed.impotAvant,
+      IMPOT_APRES_PER:     computed.impotApres,
+      PAS_AVANT_PER:       computed.pasMensAvant,
+      PAS_APRES_PER:       computed.pasMensApres,
+      ECONOMIE_MENSUELLE:  computed.economieMensuelle,
+      ...(data.objectif  ? { OBJECTIF:   objectifLabels[data.objectif]   ?? data.objectif  } : {}),
+      ...(data.statutPro ? { STATUT_PRO: statutProLabels[data.statutPro] ?? data.statutPro } : {}),
+      ...(data.revenusConjoint ? { REVENU_CONJOINT: (parseFloat(data.revenusConjoint) || 0) * 12 } : {}),
+      OTP_VERIFIE:           false,
+      SIMULATION_EN_ATTENTE: false,
+    };
+    console.log("[Brevo early-contact] Attributs clés — SALAIRE_MENSUEL:", brevoAttributes.SALAIRE_MENSUEL, "STATUT_PRO:", brevoAttributes.STATUT_PRO, "OBJECTIF:", brevoAttributes.OBJECTIF);
     const brevoBody = {
-      email: data.email,
+      email:         data.email,
       updateEnabled: true,
-      attributes: {
-        PRENOM:              data.prenom,
-        NOM:                 data.nom,
-        SOURCE:              "Simu-PER",
-        STATUT_MARITAL:      statut,
-        TMI:                 computed.tmi,
-        REVENU_IMPOSABLE:    computed.revenuImposable,
-        ANNEE_NAISSANCE:     parseInt(data.anneeNaissance) || 0,
-        NB_ENFANT:           data.nbEnfants,
-        AUTRE_REVENU:        data.autresRevenus ?? false,
-        VERSEMENT_INITIAL:   parseFloat(data.versementInitial) || 0,
-        VERSEMENT_MENSUEL:   parseFloat(data.versementMensuel) || 0,
-        VERSEMENT_PER:       computed.versementAnnuel,
-        PROFIL_INVESTISSEUR: profil,
-        CAPITAL_PROJETE:     computed.capitalFinal,
-        ECONOMIE_FISCALE:    computed.economieFiscale,
-        AGE_RETRAITE:        computed.ageRetraiteNum,
-        DATE_SIMULATION:     dateSimulation,
-        IMPOT_AVANT_PER:     computed.impotAvant,
-        IMPOT_APRES_PER:     computed.impotApres,
-        PAS_AVANT_PER:       computed.pasMensAvant,
-        PAS_APRES_PER:       computed.pasMensApres,
-        ECONOMIE_MENSUELLE:  computed.economieMensuelle,
-        ...(data.revenusConjoint ? { REVENU_CONJOINT: (parseFloat(data.revenusConjoint) || 0) * 12 } : {}),
-        OTP_VERIFIE:         false,
-        SIMULATION_EN_ATTENTE: false,
-      },
-      listIds: [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP
+      attributes:    brevoAttributes,
+      listIds:       [6], // Liste "Leads sans OTP" — migré vers #5 à la validation OTP
     };
 
     const results = await Promise.allSettled([

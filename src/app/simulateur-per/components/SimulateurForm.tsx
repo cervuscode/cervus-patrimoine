@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   SimulateurData,
@@ -140,6 +140,17 @@ export default function SimulateurForm() {
   const [submitting, setSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const earlyContactFired = useRef(false);
+
+  // Déclenche early-contact dès que l'utilisateur atteint Q15 (téléphone).
+  // À ce stade, tous les champs sont garantis à jour dans le state React :
+  // statut_pro (Q3), versement_mensuel (Q9), objectif (Q11), nom (Q13), email (Q14).
+  useEffect(() => {
+    if (qIndex === 15 && !earlyContactFired.current && data.email) {
+      earlyContactFired.current = true;
+      triggerEarlyContact(data);
+    }
+  }, [qIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const computed = compute(data);
 
@@ -308,10 +319,7 @@ export default function SimulateurForm() {
           <QEmail
             data={data}
             onChange={patch}
-            onNext={(d) => {
-              triggerEarlyContact(d ?? data);
-              goTo(15);
-            }}
+            onNext={() => goTo(15)}
             onPrev={() => goTo(13)}
           />
         )}

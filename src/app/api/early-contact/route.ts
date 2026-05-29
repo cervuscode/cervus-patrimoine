@@ -85,6 +85,7 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
       type:                "sans_otp",
       email:               data.email,
       prenom:              data.prenom,
+      nom:                 data.nom,
       pdf:                 pdfBase64,
       nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
       capital_projete:     computed.capitalFinal,

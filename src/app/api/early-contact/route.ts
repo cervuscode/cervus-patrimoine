@@ -103,6 +103,7 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
       revenu_conjoint:     data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
     };
     // Log payload sans le PDF (trop volumineux)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { pdf: _pdf, ...payloadSansPdf } = payload;
     console.log("[Make] Payload sans_otp (hors PDF):", JSON.stringify(payloadSansPdf));
     console.log(`[Make] Envoi fetch vers Make (sans_otp) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { ComputedResults, SimulateurData, Profil } from "../types";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -72,26 +72,32 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
       </div>
 
       {/* Key figures */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-6 bg-cervus-dark rounded-xl flex flex-col gap-2">
-          <span className="font-inter text-xs text-white/40 uppercase tracking-widest">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="flex flex-col gap-2 p-8 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.25)]">
+          <span className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest">
             Capital estimé à {computed.ageRetraiteNum} ans
           </span>
-          <span className="font-cormorant text-5xl font-light" style={{ color: "#795D48" }}>
+          <span
+            className="font-cormorant text-6xl sm:text-[4.25rem] font-semibold leading-[1.05] tracking-tight"
+            style={{ color: "#5D4738" }}
+          >
             {fmt(computed.capitalFinal)} €
           </span>
-          <span className="font-inter text-xs text-white/30">
+          <span className="font-inter text-xs text-cervus-dark/45">
             sur {computed.nAnnees} an{computed.nAnnees > 1 ? "s" : ""} · hypothèse {(computed.tauxAnnuel * 100).toFixed(0)} %/an
           </span>
         </div>
-        <div className="p-6 bg-cervus-dark rounded-xl flex flex-col gap-2">
-          <span className="font-inter text-xs text-white/40 uppercase tracking-widest">
+        <div className="flex flex-col gap-2 p-8 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.25)]">
+          <span className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest">
             Économie fiscale annuelle estimée
           </span>
-          <span className="font-cormorant text-5xl font-light" style={{ color: "#795D48" }}>
+          <span
+            className="font-cormorant text-6xl sm:text-[4.25rem] font-semibold leading-[1.05] tracking-tight"
+            style={{ color: "#5D4738" }}
+          >
             {fmt(computed.economieFiscale)} €
           </span>
-          <span className="font-inter text-xs text-white/30">
+          <span className="font-inter text-xs text-cervus-dark/45">
             Versement {fmt(computed.versementAnnuel)} €/an · TMI {computed.tmi} %
           </span>
         </div>
@@ -128,10 +134,16 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
           <p className="font-inter text-xs text-cervus-dark/40 uppercase tracking-widest">
             Progression du capital & cumul d&apos;économie fiscale
           </p>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.2)] p-5 pl-2">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece8" />
+              <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="capitalFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#795D48" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#795D48" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece8" vertical={false} />
                 <XAxis
                   dataKey="annee"
                   tick={{ fontSize: 10, fontFamily: "var(--font-inter)", fill: "#b0a090" }}
@@ -161,35 +173,37 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
                   }}
                 />
                 <Legend
-                  wrapperStyle={{ fontFamily: "var(--font-inter)", fontSize: 11 }}
-                  formatter={(value) =>
-                    value === "capital" ? "Capital" : "Économie fiscale cumulée"
-                  }
+                  iconType="plainline"
+                  wrapperStyle={{ fontFamily: "var(--font-inter)", fontSize: 11, paddingTop: 8 }}
+                  formatter={(value) => (
+                    <span style={{ color: "#5D4738" }}>
+                      {value === "capital" ? "Capital projeté" : "Économie fiscale cumulée"}
+                    </span>
+                  )}
                 />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="capital"
-                  stroke="#795D48"
-                  strokeWidth={2}
+                  stroke="#5D4738"
+                  strokeWidth={2.5}
+                  fill="url(#capitalFill)"
                   dot={false}
-                  activeDot={{ r: 4, fill: "#795D48" }}
+                  activeDot={{ r: 4, fill: "#5D4738" }}
                 />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="economieCumulee"
                   stroke="#795D48"
                   strokeWidth={1.5}
                   strokeDasharray="4 3"
+                  fill="none"
                   dot={false}
-                  strokeOpacity={0.45}
+                  strokeOpacity={0.55}
                   activeDot={{ r: 3, fill: "#795D48" }}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
-          <p className="font-inter text-[10px] text-cervus-dark/30 text-right">
-            — Capital &nbsp;&nbsp; - - Économie fiscale cumulée
-          </p>
         </div>
       )}
 
@@ -221,18 +235,31 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
         </p>
       </div>
 
-      {/* CTAs */}
-      <div className="flex flex-col gap-3">
+      {/* CTA fort — focal point */}
+      <div className="flex flex-col items-center text-center gap-5 p-8 sm:p-10 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_10px_40px_-14px_rgba(93,71,56,0.35)]">
+        <div className="flex flex-col gap-2">
+          <h3 className="font-cormorant text-3xl sm:text-4xl font-semibold" style={{ color: "#5D4738" }}>
+            Affinez votre stratégie avec un expert
+          </h3>
+          <p className="font-inter text-sm text-cervus-dark/55">
+            30 minutes · gratuit · sans engagement · conseil indépendant
+          </p>
+        </div>
         <a
           href={calendlyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 px-6 py-4 bg-cervus-gold text-white font-inter text-sm font-medium rounded-xl hover:bg-cervus-gold-light transition-colors text-center"
+          className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-cervus-gold text-white font-inter text-base font-medium tracking-[0.02em] rounded-[50px] hover:bg-cervus-gold-light transition-colors duration-200 shadow-lg shadow-[#5D4738]/25"
         >
-          Prendre RDV avec un conseiller
+          Réserver mon entretien gratuit
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M3 9h11M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </a>
+      </div>
 
-        {/* Re-send email */}
+      {/* Re-send email */}
+      <div className="flex flex-col gap-3">
         {!showAltEmail ? (
           <button
             onClick={() => setShowAltEmail(true)}

@@ -120,7 +120,7 @@ export default function SimulateurPERLandingPage() {
         {/* header minimal */}
         <header className="relative z-10 w-full px-6 py-5 flex items-center justify-between max-w-6xl mx-auto">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/cervus_deer.svg" alt="Cervus Patrimoine" width={28} height={36} className="h-9 w-auto" priority />
+            <Image src="/cervus_logo.png" alt="Cervus Patrimoine" width={40} height={40} className="h-10 w-auto" priority />
             <span className="font-cormorant text-xl font-semibold text-white tracking-wide">
               Cervus Patrimoine
             </span>

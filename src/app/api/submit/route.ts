@@ -3,8 +3,23 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import PdfDocument from "./PdfDocument";
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
+import { syncToPipedrive } from "@/lib/pipedrive";
 
 const BREVO_API = "https://api.brevo.com/v3";
+
+// Pipedrive — appel non bloquant : si la config est absente ou si l'appel échoue,
+// la génération du PDF et l'envoi Brevo se font quand même.
+async function syncPipedriveSafe(data: SimulateurData, computed: ComputedResults, otpVerifie: boolean) {
+  if (!process.env.PIPEDRIVE_API_TOKEN || !process.env.PIPEDRIVE_DOMAIN) {
+    console.warn("[submit] Pipedrive non configuré (PIPEDRIVE_API_TOKEN/PIPEDRIVE_DOMAIN absents), sync ignorée");
+    return;
+  }
+  try {
+    await syncToPipedrive(data, computed, otpVerifie);
+  } catch (err: unknown) {
+    console.error("[submit] Pipedrive sync échouée:", err instanceof Error ? err.message : err);
+  }
+}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
@@ -234,9 +249,10 @@ export async function POST(req: NextRequest) {
     const results = await Promise.allSettled([
       createBrevoContact(data, computed),
       sendMakeWebhook(data, computed, pdfBase64),
+      syncPipedriveSafe(data, computed, true), // OTP validé → pipeline "Leads" / étape "Tel Validé"
     ]);
     results.forEach((r, i) => {
-      const label = ["createBrevoContact", "sendMakeWebhook"][i];
+      const label = ["createBrevoContact", "sendMakeWebhook", "syncPipedriveSafe"][i];
       if (r.status === "rejected") {
         console.error(`[submit] ${label} rejeté:`, r.reason instanceof Error ? r.reason.message : r.reason);
       }

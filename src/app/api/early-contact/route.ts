@@ -3,8 +3,23 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import PdfDocument from "@/app/api/submit/PdfDocument";
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
+import { syncToPipedrive } from "@/lib/pipedrive";
 
 const BREVO_API = "https://api.brevo.com/v3";
+
+// Pipedrive — appel non bloquant : si la config est absente ou si l'appel échoue,
+// l'envoi Brevo et le webhook Make se font quand même.
+async function syncPipedriveSafe(data: SimulateurData, computed: ComputedResults, otpVerifie: boolean) {
+  if (!process.env.PIPEDRIVE_API_TOKEN || !process.env.PIPEDRIVE_DOMAIN) {
+    console.warn("[early-contact] Pipedrive non configuré (PIPEDRIVE_API_TOKEN/PIPEDRIVE_DOMAIN absents), sync ignorée");
+    return;
+  }
+  try {
+    await syncToPipedrive(data, computed, otpVerifie);
+  } catch (err: unknown) {
+    console.error("[early-contact] Pipedrive sync échouée:", err instanceof Error ? err.message : err);
+  }
+}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
@@ -207,9 +222,10 @@ export async function POST(req: NextRequest) {
         if (!res.ok) console.error(`[early-contact] Brevo error: ${res.status}`);
       }),
       sendMakeWebhookSansOtp(data, computed),
+      syncPipedriveSafe(data, computed, false), // pas d'OTP → pipeline "Leads sans OTP" / étape "Simulation effectuée"
     ]);
     results.forEach((r, i) => {
-      const label = ["brevoContact", "sendMakeWebhookSansOtp"][i];
+      const label = ["brevoContact", "sendMakeWebhookSansOtp", "syncPipedriveSafe"][i];
       if (r.status === "rejected") {
         console.error(`[early-contact] ${label} rejeté:`, r.reason instanceof Error ? r.reason.message : r.reason);
       }

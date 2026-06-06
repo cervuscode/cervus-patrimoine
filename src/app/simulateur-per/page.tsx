@@ -119,8 +119,8 @@ export default function SimulateurPERLandingPage() {
 
         {/* header minimal */}
         <header className="relative z-10 w-full px-6 py-5 flex items-center justify-between max-w-6xl mx-auto">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/cervus_logo.svg" alt="Cervus Patrimoine" width={32} height={32} className="h-8 w-auto" priority />
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/cervus_deer.svg" alt="Cervus Patrimoine" width={28} height={36} className="h-9 w-auto" priority />
             <span className="font-cormorant text-xl font-semibold text-white tracking-wide">
               Cervus Patrimoine
             </span>
@@ -157,14 +157,25 @@ export default function SimulateurPERLandingPage() {
           <p className="font-inter text-xs text-white/45 mt-5 tracking-wide">
             Gratuit · 2 minutes · Sans engagement
           </p>
-        </div>
 
-        {/* fondu vers la section crème */}
-        <div
-          className="absolute bottom-0 left-0 right-0 pointer-events-none"
-          style={{ height: 100, background: "linear-gradient(to bottom, transparent, #F2EDE8)" }}
-          aria-hidden="true"
-        />
+          {/* mini-stats — touche légère */}
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-y-5 sm:gap-y-0 max-w-lg mx-auto sm:divide-x divide-white/10">
+            {[
+              { stat: "Jusqu'à 45 %", label: "d'économie d'impôt" },
+              { stat: "2 minutes", label: "pour votre résultat" },
+              { stat: "100 % en ligne", label: "simple et sécurisé" },
+            ].map((m) => (
+              <div key={m.label} className="flex flex-col items-center px-4">
+                <span className="font-cormorant text-2xl font-semibold text-cervus-gold-light leading-tight">
+                  {m.stat}
+                </span>
+                <span className="font-inter text-[0.7rem] text-white/40 tracking-wide mt-0.5">
+                  {m.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ─── CE QUE VOUS ALLEZ OBTENIR ─────────────────────────────────── */}

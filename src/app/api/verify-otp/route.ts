@@ -15,7 +15,7 @@ function formatPhone(phone: string): string {
 const BREVO_API = "https://api.brevo.com/v3";
 
 // Numéros whitelistés : tout code à 6 chiffres est accepté, Twilio non appelé
-const PHONE_WHITELIST = new Set(["0781196794", "+33781196794"]);
+const PHONE_WHITELIST = new Set(["0781196794", "+33781196794", "0658558903", "+33658558903"]);
 
 async function markOtpVerifiedInBrevo(email: string, telephone: string) {
   if (!email) return;

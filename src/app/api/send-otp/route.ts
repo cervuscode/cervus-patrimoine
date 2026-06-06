@@ -18,7 +18,7 @@ function isValidFrenchMobile(phone: string): boolean {
 }
 
 // Numéros whitelistés : bypass rate limiting + Twilio (pas de coût)
-const PHONE_WHITELIST = new Set(["0781196794", "+33781196794"]);
+const PHONE_WHITELIST = new Set(["0781196794", "+33781196794", "0658558903", "+33658558903"]);
 
 // Rate limiting en mémoire : max 3 tentatives par IP sur 10 minutes
 const rateLimitMap = new Map<string, { count: number; firstAt: number }>();

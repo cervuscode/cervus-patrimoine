@@ -8,7 +8,6 @@ import {
   Link,
 } from "@react-pdf/renderer";
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
-import { impotReel } from "@/lib/fiscal-engine";
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const CREAM  = "#F2EDE8";
@@ -129,16 +128,14 @@ interface Props {
 export default function PdfDocument({ data, computed }: Props) {
   const vMens = parseFloat(data.versementMensuel) || 0;
   const vInit = parseFloat(data.versementInitial) || 0;
-  const vAnn  = computed.versementAnnuel;
 
-  // Fiscal calculations
-  const impotAvant   = Math.round(impotReel(computed.revenuImposable, computed.partsBase, computed.partsTotal));
-  const revApres     = Math.max(0, computed.revenuImposable - vAnn);
-  const impotApres   = Math.round(impotReel(revApres, computed.partsBase, computed.partsTotal));
+  // Fiscal calculations — use pre-computed values from compute()
+  const impotAvant   = computed.impotAvant;
+  const impotApres   = computed.impotApres;
   const economieAnn  = impotAvant - impotApres;
-  const coutReel     = Math.max(0, Math.round(vMens - economieAnn / 12));
-  const pasMensAvant = Math.round(impotAvant / 12);
-  const pasMensApres = Math.round(impotApres / 12);
+  const coutReel     = computed.economieMensuelle;
+  const pasMensAvant = computed.pasMensAvant;
+  const pasMensApres = computed.pasMensApres;
 
   const dateStr = new Date().toLocaleDateString("fr-FR", {
     day: "2-digit", month: "long", year: "numeric",

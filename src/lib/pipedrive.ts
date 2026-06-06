@@ -213,6 +213,16 @@ async function findPersonByEmail(email: string): Promise<number | null> {
   return typeof id === "number" ? id : null;
 }
 
+// Cherche un deal OUVERT déjà rattaché à la Person (créé par early-contact en amont).
+// Évite de créer un doublon lors de la validation OTP.
+async function findOpenDealForPerson(personId: number): Promise<number | null> {
+  const res = await pdGet<{ data?: Array<{ id?: number }> | null }>(
+    `/persons/${personId}/deals?status=open&limit=1&sort=add_time DESC`
+  );
+  const id = res.data?.[0]?.id;
+  return typeof id === "number" ? id : null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sync principal
 // ─────────────────────────────────────────────────────────────────────────────
@@ -291,17 +301,47 @@ export async function syncToPipedrive(
     "Deal"
   );
 
-  const dealPayload: Record<string, unknown> = {
-    title: `PER - ${fullName || data.email}`,
-    person_id: personId,
-    pipeline_id: pipelineId,
-    stage_id: stageId,
-    ...dealCustom,
-  };
+  const title = `PER - ${fullName || data.email}`;
 
-  const deal = await pdPost<{ data: { id: number } }>("/deals", dealPayload);
-  const dealId = deal.data.id;
-  console.log(`[Pipedrive] Deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+  let dealId: number;
+
+  // OTP validé : réutiliser le deal créé par early-contact plutôt que d'en créer un 2e.
+  // On le met à jour et on le déplace vers "Leads" / "Tel Validé". Si aucun deal ouvert
+  // n'existe (OTP validé avant qu'early-contact ait tourné), on en crée un directement.
+  if (otpVerifie) {
+    const existingDealId = await findOpenDealForPerson(personId);
+    if (existingDealId) {
+      await pdPut(`/deals/${existingDealId}`, {
+        title,
+        pipeline_id: pipelineId,
+        stage_id: stageId,
+        ...dealCustom,
+      });
+      dealId = existingDealId;
+      console.log(`[Pipedrive] Deal existant mis à jour et déplacé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+    } else {
+      const deal = await pdPost<{ data: { id: number } }>("/deals", {
+        title,
+        person_id: personId,
+        pipeline_id: pipelineId,
+        stage_id: stageId,
+        ...dealCustom,
+      });
+      dealId = deal.data.id;
+      console.log(`[Pipedrive] Aucun deal ouvert trouvé, deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+    }
+  } else {
+    // early-contact (sans OTP) : création du deal en "Leads sans OTP" / "Simulation effectuée".
+    const deal = await pdPost<{ data: { id: number } }>("/deals", {
+      title,
+      person_id: personId,
+      pipeline_id: pipelineId,
+      stage_id: stageId,
+      ...dealCustom,
+    });
+    dealId = deal.data.id;
+    console.log(`[Pipedrive] Deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+  }
 
   return { personId, dealId };
 }

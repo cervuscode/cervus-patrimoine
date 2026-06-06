@@ -331,16 +331,24 @@ export async function syncToPipedrive(
       console.log(`[Pipedrive] Aucun deal ouvert trouvé, deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
     }
   } else {
-    // early-contact (sans OTP) : création du deal en "Leads sans OTP" / "Simulation effectuée".
-    const deal = await pdPost<{ data: { id: number } }>("/deals", {
-      title,
-      person_id: personId,
-      pipeline_id: pipelineId,
-      stage_id: stageId,
-      ...dealCustom,
-    });
-    dealId = deal.data.id;
-    console.log(`[Pipedrive] Deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+    // early-contact (sans OTP) : si un deal ouvert existe déjà (ex. un submit OTP a tourné
+    // avant), on NE crée rien et on NE rétrograde pas — un OTP validé ne doit jamais
+    // redescendre vers "Leads sans OTP". Sinon, création en "Leads sans OTP" / "Simulation effectuée".
+    const existingDealId = await findOpenDealForPerson(personId);
+    if (existingDealId) {
+      dealId = existingDealId;
+      console.log(`[Pipedrive] Deal ouvert déjà présent (${dealId}), early-contact ne crée rien et ne rétrograde pas`);
+    } else {
+      const deal = await pdPost<{ data: { id: number } }>("/deals", {
+        title,
+        person_id: personId,
+        pipeline_id: pipelineId,
+        stage_id: stageId,
+        ...dealCustom,
+      });
+      dealId = deal.data.id;
+      console.log(`[Pipedrive] Deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
+    }
   }
 
   return { personId, dealId };

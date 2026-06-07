@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import AnimatedSection from "@/components/AnimatedSection";
 
 export const metadata: Metadata = {
-  title: "Cervus Patrimoine — Cabinet de gestion de patrimoine haut de gamme",
+  title: "Cervus Patrimoine — Cabinet de gestion de patrimoine indépendant",
   description:
     "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, succession. Prenez rendez-vous.",
 };

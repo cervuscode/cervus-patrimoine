@@ -16,9 +16,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cervus Patrimoine — Cabinet de gestion de patrimoine",
+  title: "Cervus Patrimoine — Cabinet de gestion de patrimoine indépendant",
   description:
-    "Cervus Patrimoine, cabinet indépendant de gestion de patrimoine haut de gamme. PER, assurance-vie, succession, stratégie patrimoniale sur mesure.",
+    "Cervus Patrimoine, cabinet indépendant de gestion de patrimoine. PER, assurance-vie, succession, stratégie patrimoniale sur mesure.",
   keywords: ["gestion de patrimoine", "PER", "assurance-vie", "conseil financier", "Cervus Patrimoine"],
   robots: "noindex, nofollow",
 };

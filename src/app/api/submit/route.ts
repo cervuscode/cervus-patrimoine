@@ -83,7 +83,7 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type:                "otp_valide",
-        email:               data.email,
+        email:               data.email.trim().toLowerCase(),
         prenom:              data.prenom,
         pdf:                 pdfBase64,
         nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,

@@ -98,7 +98,7 @@ async function sendMakeWebhookSansOtp(data: SimulateurData, computed: ComputedRe
   try {
     const payload = {
       type:                "sans_otp",
-      email:               data.email,
+      email:               data.email.trim().toLowerCase(),
       prenom:              data.prenom,
       nom:                 data.nom,
       pdf:                 pdfBase64,

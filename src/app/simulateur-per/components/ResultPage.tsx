@@ -78,8 +78,8 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
             Capital estimé à {computed.ageRetraiteNum} ans
           </span>
           <span
-            className="font-cormorant text-6xl sm:text-[4.25rem] font-semibold leading-[1.05] tracking-tight"
-            style={{ color: "#5D4738" }}
+            className="font-cormorant font-semibold leading-[1.05] tracking-tight whitespace-nowrap"
+            style={{ color: "#5D4738", fontSize: "clamp(2rem, 6.5vw, 3rem)" }}
           >
             {fmt(computed.capitalFinal)} €
           </span>
@@ -92,8 +92,8 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
             Économie fiscale annuelle estimée
           </span>
           <span
-            className="font-cormorant text-6xl sm:text-[4.25rem] font-semibold leading-[1.05] tracking-tight"
-            style={{ color: "#5D4738" }}
+            className="font-cormorant font-semibold leading-[1.05] tracking-tight whitespace-nowrap"
+            style={{ color: "#5D4738", fontSize: "clamp(2rem, 6.5vw, 3rem)" }}
           >
             {fmt(computed.economieFiscale)} €
           </span>
@@ -207,6 +207,29 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
         </div>
       )}
 
+      {/* CTA fort — focal point */}
+      <div className="flex flex-col items-center text-center gap-5 p-8 sm:p-10 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_10px_40px_-14px_rgba(93,71,56,0.35)]">
+        <div className="flex flex-col items-center gap-2">
+          <h3 className="font-cormorant text-3xl sm:text-4xl font-semibold" style={{ color: "#5D4738" }}>
+            Affinez votre stratégie avec un expert
+          </h3>
+          <p className="font-inter text-sm text-cervus-dark/55">
+            30 minutes · gratuit · sans engagement · conseil indépendant
+          </p>
+        </div>
+        <a
+          href={calendlyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-cervus-gold text-white font-inter text-base font-medium tracking-[0.02em] rounded-[50px] hover:bg-cervus-gold-light transition-colors duration-200 shadow-lg shadow-[#5D4738]/25"
+        >
+          Réserver mon entretien gratuit
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M3 9h11M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+      </div>
+
       {/* Confirmation email */}
       <div className="p-5 bg-cervus-cream/60 border border-cervus-cream rounded-xl flex flex-col gap-2">
         <div className="flex items-start gap-2">
@@ -233,29 +256,6 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
           la sortie — qu&apos;il est essentiel d&apos;évaluer avec un conseiller avant toute
           souscription.
         </p>
-      </div>
-
-      {/* CTA fort — focal point */}
-      <div className="flex flex-col items-center text-center gap-5 p-8 sm:p-10 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_10px_40px_-14px_rgba(93,71,56,0.35)]">
-        <div className="flex flex-col gap-2">
-          <h3 className="font-cormorant text-3xl sm:text-4xl font-semibold" style={{ color: "#5D4738" }}>
-            Affinez votre stratégie avec un expert
-          </h3>
-          <p className="font-inter text-sm text-cervus-dark/55">
-            30 minutes · gratuit · sans engagement · conseil indépendant
-          </p>
-        </div>
-        <a
-          href={calendlyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-cervus-gold text-white font-inter text-base font-medium tracking-[0.02em] rounded-[50px] hover:bg-cervus-gold-light transition-colors duration-200 shadow-lg shadow-[#5D4738]/25"
-        >
-          Réserver mon entretien gratuit
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-            <path d="M3 9h11M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </a>
       </div>
 
       {/* Re-send email */}

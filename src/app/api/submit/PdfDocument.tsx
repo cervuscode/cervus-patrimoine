@@ -20,8 +20,11 @@ const SOFT   = "#D4C9BE";
 const TAUPE  = "#C4B8B0"; // gain fiscal segment — darker than CREAM for visibility on cream bg
 
 const LOGO_PATH    = process.cwd() + "/public/cervus_logo.png";
-const CALENDLY_RAW = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "cervuspatrimoine.fr/rendez-vous";
-const CALENDLY     = CALENDLY_RAW.startsWith("http") ? CALENDLY_RAW : "https://" + CALENDLY_RAW;
+// Bascule RDV : Calendly → page /reserver (Pipedrive Scheduler).
+// URL absolue car le PDF est consulté hors site.
+// const CALENDLY_RAW = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "cervuspatrimoine.fr/rendez-vous";
+// const CALENDLY     = CALENDLY_RAW.startsWith("http") ? CALENDLY_RAW : "https://" + CALENDLY_RAW;
+const CALENDLY     = "https://cervuspatrimoine.fr/reserver";
 
 // ── Number formatting ─────────────────────────────────────────────────────────
 // toLocaleString("fr-FR") uses \u00a0 as thousands sep → renders as "/" in PDF fonts.

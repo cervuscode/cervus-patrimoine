@@ -90,7 +90,7 @@ export default function Footer() {
               +33 (0)7 81 19 67 94
             </p>
             <a
-              href={process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#"}
+              href="/reserver"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-2 font-inter text-sm text-[#795D48] hover:text-[#a07d62] transition-colors"

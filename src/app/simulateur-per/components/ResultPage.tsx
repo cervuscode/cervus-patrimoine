@@ -38,7 +38,10 @@ function maskEmail(email: string) {
 }
 
 export default function ResultPage({ data, computed, onSendEmail, emailSent, emailLoading }: Props) {
-  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
+  // Bascule RDV : Calendly → page /reserver (Pipedrive Scheduler).
+  // NEXT_PUBLIC_CALENDLY_URL est conservé tant que la bascule n'est pas confirmée en prod.
+  // const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
+  const calendlyUrl = "/reserver";
   const [altEmail, setAltEmail] = useState("");
   const [showAltEmail, setShowAltEmail] = useState(false);
   const altEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(altEmail);

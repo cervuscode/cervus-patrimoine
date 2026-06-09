@@ -40,7 +40,9 @@ export default function QTelephone({ data, computed, onChange, onPrev, onSubmit,
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [showDuplicate, setShowDuplicate] = useState(false);
-  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
+  // Bascule RDV : Calendly → page /reserver (Pipedrive Scheduler).
+  // const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
+  const calendlyUrl = "/reserver";
 
   // Countdown: seconds remaining for current OTP
   const [countdown, setCountdown] = useState(0);

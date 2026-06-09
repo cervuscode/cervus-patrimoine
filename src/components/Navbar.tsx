@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
@@ -23,6 +24,11 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pathname = usePathname();
+  // Seule la page d'accueil a un hero sombre : la navbar transparente (texte/logo
+  // blancs) n'est lisible qu'au-dessus de ce fond. Partout ailleurs (fonds blancs),
+  // on garde la navbar en mode plein (fond crème, texte foncé) dès le haut de page.
+  const hasDarkHero = pathname === "/";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -41,14 +47,14 @@ export default function Navbar() {
 
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
-  const transparent = !scrolled && !menuOpen;
+  const transparent = hasDarkHero && !scrolled && !menuOpen;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "shadow-[0_1px_12px_rgba(0,0,0,0.06)]" : ""
+        !transparent ? "shadow-[0_1px_12px_rgba(0,0,0,0.06)]" : ""
       }`}
-      style={{ backgroundColor: scrolled ? "#F2EDE8" : "transparent" }}
+      style={{ backgroundColor: transparent ? "transparent" : "#F2EDE8" }}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">

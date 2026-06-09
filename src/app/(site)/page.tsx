@@ -44,10 +44,10 @@ function HeroSection() {
               Simuler mon PER
             </Link>
             <Link
-              href="/#contact"
+              href="/reserver"
               className="inline-flex items-center justify-center px-[28px] py-[12px] border-[1.5px] border-white/40 text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:border-white hover:bg-white/10 transition-colors duration-200"
             >
-              Prendre RDV
+              Prendre rendez-vous
             </Link>
           </div>
         </div>

@@ -85,14 +85,14 @@ export default function Navbar() {
           {/* Desktop CTAs */}
           <div className="hidden lg:flex items-center gap-3">
             <Link
-              href="/#contact"
+              href="/reserver"
               className={`px-[28px] py-[12px] font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] border-[1.5px] transition-colors duration-200 ${
                 transparent
                   ? "border-white/40 text-white hover:bg-white/10"
                   : "border-[#795D48] text-[#795D48] hover:bg-[#795D48] hover:text-white"
               }`}
             >
-              Prendre RDV
+              Prendre rendez-vous
             </Link>
 
             {/* Simulation — hover dropdown */}
@@ -201,11 +201,11 @@ export default function Navbar() {
 
               <div className="border-t border-[#D4C9BE]/60 pt-4 flex flex-col gap-3">
                 <Link
-                  href="/#contact"
+                  href="/reserver"
                   onClick={() => setMenuOpen(false)}
                   className="px-[28px] py-[12px] border-[1.5px] border-[#795D48] text-[#795D48] font-inter text-sm font-medium text-center rounded-[50px] hover:bg-[#795D48] hover:text-white transition-colors duration-200"
                 >
-                  Prendre RDV
+                  Prendre rendez-vous
                 </Link>
 
                 <div className="flex flex-col gap-1">

@@ -78,29 +78,35 @@ async function sendMakeWebhook(data: SimulateurData, computed: ComputedResults, 
 
   try {
     console.log(`[Make] Envoi fetch vers Make (otp_valide) — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
+    const payload = {
+      type:                "otp_valide",
+      email:               data.email.trim().toLowerCase(),
+      prenom:              data.prenom,
+      telephone:           data.telephone ? formatPhoneForBrevo(data.telephone) : "",
+      pdf:                 pdfBase64,
+      nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
+      capital_projete:     computed.capitalFinal,
+      economie_fiscale:    computed.economieFiscale,
+      tmi:                 computed.tmi,
+      versement_mensuel:   Math.round(computed.versementAnnuel / 12),
+      profil_investisseur: profilLabels[data.profil] ?? data.profil,
+      objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
+      statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
+      impot_avant_per:     computed.impotAvant,
+      impot_apres_per:     computed.impotApres,
+      pas_avant_per:       computed.pasMensAvant,
+      pas_apres_per:       computed.pasMensApres,
+      economie_mensuelle:  computed.economieMensuelle,
+      revenu_conjoint:     data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
+    };
+    // Log du payload complet hors PDF pour confirmation (Vercel)
+    const { pdf: _pdf, ...payloadSansPdf } = payload;
+    void _pdf;
+    console.log("[Make] Payload otp_valide (hors PDF):", JSON.stringify(payloadSansPdf));
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type:                "otp_valide",
-        email:               data.email.trim().toLowerCase(),
-        prenom:              data.prenom,
-        pdf:                 pdfBase64,
-        nom_fichier:         `simulation-per-${data.prenom.toLowerCase()}-${date}.pdf`,
-        capital_projete:     computed.capitalFinal,
-        economie_fiscale:    computed.economieFiscale,
-        tmi:                 computed.tmi,
-        versement_mensuel:   Math.round(computed.versementAnnuel / 12),
-        profil_investisseur: profilLabels[data.profil] ?? data.profil,
-        objectif:            data.objectif ? (objectifLabels[data.objectif] ?? data.objectif) : "",
-        statut_pro:          data.statutPro ? (statutProLabels[data.statutPro] ?? data.statutPro) : "",
-        impot_avant_per:     computed.impotAvant,
-        impot_apres_per:     computed.impotApres,
-        pas_avant_per:       computed.pasMensAvant,
-        pas_apres_per:       computed.pasMensApres,
-        economie_mensuelle:  computed.economieMensuelle,
-        revenu_conjoint:     data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "(unreadable)");

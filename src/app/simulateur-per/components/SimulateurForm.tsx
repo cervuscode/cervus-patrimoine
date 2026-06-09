@@ -263,10 +263,11 @@ export default function SimulateurForm() {
       <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={animKey}
-        initial={{ x: `${animDir * 60}px`, opacity: 0 }}
+        initial={{ x: animDir * 60, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        exit={{ x: `${animDir * -60}px`, opacity: 0 }}
-        transition={{ duration: 0.25, ease: "easeInOut" }}
+        exit={{ x: animDir * -60, opacity: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        style={{ willChange: "transform, opacity" }}
       >
         {qIndex === 0 && (
           <QStatut data={data} onChange={patch} onNext={() => goTo(1)} />

@@ -51,7 +51,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow] duration-300 ${
         !transparent ? "shadow-[0_1px_12px_rgba(0,0,0,0.06)]" : ""
       }`}
       style={{ backgroundColor: transparent ? "transparent" : "#F2EDE8" }}
@@ -65,7 +65,7 @@ export default function Navbar() {
               alt="Cervus Patrimoine"
               width={500}
               height={500}
-              className={`h-14 w-auto transition-all duration-300 group-hover:scale-105 ${
+              className={`h-14 w-auto transition-[transform,filter] duration-300 group-hover:scale-105 ${
                 transparent ? "brightness-0 invert" : ""
               }`}
             />

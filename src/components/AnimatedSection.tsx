@@ -8,11 +8,14 @@ interface Props {
   delay?: number;
 }
 
+// Easing vivant type "ease-out" avec un très léger dépassement (back doux, sans rebond marqué).
+const EASE = "cubic-bezier(0.33, 1.2, 0.5, 1)";
+
 export default function AnimatedSection({ children, className, delay = 0 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [offset, setOffset] = useState(20);
+  const [offset, setOffset] = useState(36);
 
   useEffect(() => {
     // prefers-reduced-motion → affichage statique immédiat, aucune animation.
@@ -23,30 +26,42 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       return;
     }
 
-    // Amplitude un peu plus marquée sur mobile, sans devenir voyante.
-    setOffset(window.matchMedia("(max-width: 767px)").matches ? 26 : 18);
+    // Amplitude un peu plus marquée sur mobile.
+    setOffset(window.matchMedia("(max-width: 767px)").matches ? 40 : 36);
 
     const el = ref.current;
-    if (!el) return;
-
-    // Fallback si IntersectionObserver indisponible : on affiche.
-    if (typeof IntersectionObserver === "undefined") {
+    if (!el || typeof IntersectionObserver === "undefined") {
       setVisible(true);
       return;
     }
 
+    let revealed = false;
     const io = new IntersectionObserver(
       (entries) => {
-        // Se déclenche aussi pour les blocs déjà dans le viewport au chargement.
-        if (entries[0].isIntersecting) {
-          setVisible(true);
-          io.disconnect();
-        }
+        // threshold 0 → se déclenche dès le 1er pixel visible, y compris pour les
+        // blocs déjà (partiellement) dans le viewport au chargement.
+        if (entries.some((e) => e.isIntersecting)) reveal();
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      { threshold: 0, rootMargin: "0px 0px -10% 0px" }
     );
-    io.observe(el);
-    return () => io.disconnect();
+    // rAF : garantit que l'état caché est peint avant l'observation (la transition joue).
+    const raf = requestAnimationFrame(() => io.observe(el));
+    // Sécurité : si l'observer ne se déclenche jamais, on révèle quand même.
+    const fallback = setTimeout(() => reveal(), 1200);
+
+    function reveal() {
+      if (revealed) return;
+      revealed = true;
+      setVisible(true);
+      io.disconnect();
+      clearTimeout(fallback);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(fallback);
+      io.disconnect();
+    };
   }, []);
 
   return (
@@ -58,7 +73,7 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
         transform: visible ? "none" : `translateY(${offset}px)`,
         transition: reduced
           ? "none"
-          : `opacity 0.6s ease-out ${delay}s, transform 0.6s ease-out ${delay}s`,
+          : `opacity 0.6s ${EASE} ${delay}s, transform 0.6s ${EASE} ${delay}s`,
         willChange: "opacity, transform",
       }}
     >

@@ -6,6 +6,7 @@ interface Profil {
   nom: string;
   horizon: string;
   risque: number; // 1 à 7 (échelle indicative type SRRI)
+  rendement: number; // hypothèse de rendement annuel (%)
   projection: string;
   description: string;
 }
@@ -15,6 +16,7 @@ const PROFILS: Profil[] = [
     nom: "Prudent",
     horizon: "2 à 4 ans",
     risque: 2,
+    rendement: 3,
     projection: "≈ 10 600 €",
     description:
       "Une allocation défensive, majoritairement en fonds euros, pour préserver le capital avec une volatilité réduite.",
@@ -23,6 +25,7 @@ const PROFILS: Profil[] = [
     nom: "Équilibré",
     horizon: "5 à 8 ans",
     risque: 4,
+    rendement: 4,
     projection: "≈ 12 200 €",
     description:
       "Un équilibre entre sécurité et performance, mêlant fonds euros et unités de compte diversifiées.",
@@ -31,6 +34,7 @@ const PROFILS: Profil[] = [
     nom: "Dynamique",
     horizon: "8 ans et +",
     risque: 6,
+    rendement: 5,
     projection: "≈ 14 800 €",
     description:
       "Une exposition forte aux marchés actions pour viser une performance supérieure sur le long terme.",
@@ -39,6 +43,7 @@ const PROFILS: Profil[] = [
     nom: "Responsable",
     horizon: "5 à 8 ans",
     risque: 4,
+    rendement: 4,
     projection: "≈ 12 000 €",
     description:
       "Une allocation orientée vers des supports ISR et durables, sans renoncer à la diversification.",
@@ -75,9 +80,9 @@ export default function ProfilCarousel() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full min-w-0">
       {/* Piste du carrousel */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <div
           className="overflow-hidden rounded-[20px]"
           onTouchStart={onTouchStart}
@@ -129,6 +134,19 @@ export default function ProfilCarousel() {
                           pour 10 000 € · non contractuel
                         </p>
                       </div>
+                    </div>
+
+                    {/* Hypothèse de rendement annuel */}
+                    <div className="flex items-center gap-2 rounded-[12px] px-4 py-3 border border-[#795D48]/20" style={{ backgroundColor: "#EDE5DC" }}>
+                      <span className="font-inter text-[11px] text-[#795D48] uppercase tracking-[0.1em]">
+                        Hypothèse
+                      </span>
+                      <span className="font-cormorant text-2xl font-semibold text-[#0f0f0f] leading-none">
+                        {p.rendement}&nbsp;%/an
+                      </span>
+                      <span className="font-inter text-[10px] text-[#3a3a3a]/55">
+                        rendement annuel hypothétique
+                      </span>
                     </div>
 
                     {/* Échelle de risque indicative 1-7 */}

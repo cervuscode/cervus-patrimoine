@@ -68,7 +68,7 @@ function HeroSection() {
 // ─── SECTION 2 — STATS ─────────────────────────────────────────────────────────
 const stats = [
   { headline: "Indépendant", sub: "Aucun conflit d'intérêts, aucun produit maison" },
-  { headline: "ORIAS 25006770", sub: "Mandataire d'intermédiaire en assurance certifié" },
+  { headline: "ORIAS 25006770", sub: "Mandataire d'intermédiaire en assurance, immatriculé ORIAS" },
   { headline: "RCP assurée", sub: "Responsabilité civile professionnelle Markel / Assurup" },
 ];
 
@@ -76,15 +76,16 @@ function StatsSection() {
   return (
     <section className="py-20" style={{ backgroundColor: "#F2EDE8" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-[#D4C9BE]/60">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {stats.map((s, i) => (
-            <AnimatedSection
-              key={s.headline}
-              delay={i * 0.1}
-              className="px-8 py-8 md:py-4 first:pl-0 last:pr-0 text-center md:text-left"
-            >
-              <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-2">{s.headline}</p>
-              <p className="font-inter text-sm text-[#0f0f0f]/55 leading-relaxed">{s.sub}</p>
+            <AnimatedSection key={s.headline} delay={i * 0.14}>
+              <div
+                className="h-full rounded-[20px] border border-[#D4C9BE] px-8 py-7 text-center md:text-left"
+                style={{ backgroundColor: "#EDE5DC" }}
+              >
+                <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-2">{s.headline}</p>
+                <p className="font-inter text-sm text-[#3a3a3a]/70 leading-relaxed">{s.sub}</p>
+              </div>
             </AnimatedSection>
           ))}
         </div>
@@ -200,6 +201,64 @@ function AerialSection() {
   );
 }
 
+// ─── SECTION — CHAPEAU CONSEIL EN GESTION DE PATRIMOINE ────────────────────────
+const expertises = [
+  {
+    label: "Préparer sa retraite",
+    detail: "Le PER, pour réduire vos impôts aujourd'hui et capitaliser pour demain.",
+  },
+  {
+    label: "Faire fructifier son capital",
+    detail: "L'assurance-vie, comparée sans être liés à un assureur.",
+  },
+  {
+    label: "Accompagner les dirigeants",
+    detail: "Trésorerie, prévoyance et arbitrages, en toute indépendance.",
+  },
+];
+
+function ConseilSection() {
+  return (
+    <section className="py-28" id="conseil" style={{ backgroundColor: "#EDE8E3" }}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <AnimatedSection className="max-w-3xl mb-14">
+          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.14em] mb-6">
+            Conseil en gestion de patrimoine
+          </p>
+          <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f] leading-[1.1] mb-8">
+            Un accompagnement, pas un produit
+          </h2>
+          <p className="font-inter text-lg text-[#3a3a3a]/80 leading-relaxed">
+            Notre métier n&apos;est pas de vous vendre un placement, mais de bâtir avec vous une
+            stratégie cohérente, indépendante et transparente. Une vision d&apos;ensemble, pensée
+            sur le long terme et ajustée à chaque étape de votre vie. Les expertises ci-dessous
+            sont les déclinaisons d&apos;un seul et même accompagnement.
+          </p>
+        </AnimatedSection>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {expertises.map((e, i) => (
+            <AnimatedSection key={e.label} delay={i * 0.12}>
+              <div
+                className="h-full rounded-[20px] border border-[#D4C9BE] p-7"
+                style={{ backgroundColor: "#F2EDE8" }}
+              >
+                <span className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.12em]">
+                  0{i + 1}
+                </span>
+                <h3 className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mt-2 mb-2">
+                  {e.label}
+                </h3>
+                <p className="font-inter text-sm text-[#3a3a3a]/75 leading-relaxed">{e.detail}</p>
+              </div>
+            </AnimatedSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── SECTION 5 — SIMULATEUR PREVIEW (unique rappel discret du simulateur) ───────
 function SimulateurPreviewSection() {
   return (
@@ -266,9 +325,9 @@ function SimulateurPreviewSection() {
 // ─── SECTION — ASSURANCE-VIE + CARROUSEL DE PROFILS ────────────────────────────
 function AssuranceVieSection() {
   return (
-    <section className="py-28" id="assurance-vie" style={{ backgroundColor: "#EDE8E3" }}>
+    <section className="py-28 overflow-x-hidden" id="assurance-vie" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <AnimatedSection>
             <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
               Assurance-vie
@@ -286,14 +345,14 @@ function AssuranceVieSection() {
               et ajustable dans le temps.
             </p>
             <Link
-              href="/reserver"
+              href="/simulateur-assurance-vie"
               className="inline-flex items-center justify-center gap-2 px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
             >
-              Prendre rendez-vous →
+              Simuler mon assurance-vie →
             </Link>
           </AnimatedSection>
 
-          <AnimatedSection delay={0.15}>
+          <AnimatedSection delay={0.15} className="min-w-0">
             <ProfilCarousel />
           </AnimatedSection>
         </div>
@@ -484,6 +543,7 @@ export default function HomePage() {
       <StatsSection />
       <ServicesSection />
       <AerialSection />
+      <ConseilSection />
       <SimulateurPreviewSection />
       <AssuranceVieSection />
       <DirigeantsSection />

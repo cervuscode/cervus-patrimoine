@@ -19,12 +19,6 @@ const legalLinks = [
 export default function Footer() {
   return (
     <footer className="relative bg-[#0f0f0f] text-white">
-      {/* Fondu haut — depuis section contact */}
-      <div
-        className="absolute top-0 left-0 right-0 pointer-events-none z-10"
-        style={{ height: 80, background: "linear-gradient(to bottom, #F2EDE8, transparent)" }}
-        aria-hidden="true"
-      />
       <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-8 pt-24 pb-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           {/* Col 1 — Brand */}
@@ -81,10 +75,10 @@ export default function Footer() {
               Contact
             </span>
             <a
-              href="mailto:contact@cervus-patrimoine.fr"
+              href="mailto:contact@cervuspatrimoine.fr"
               className="font-inter text-sm text-white/50 hover:text-[#a07d62] transition-colors duration-200"
             >
-              contact@cervus-patrimoine.fr
+              contact@cervuspatrimoine.fr
             </a>
             <p className="font-inter text-sm text-white/50">
               +33 (0)7 81 19 67 94

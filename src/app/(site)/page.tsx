@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import AnimatedSection from "@/components/AnimatedSection";
+import ProfilCarousel from "@/components/ProfilCarousel";
 
 export const metadata: Metadata = {
   title: "Cervus Patrimoine — Cabinet de gestion de patrimoine indépendant",
@@ -262,6 +263,126 @@ function SimulateurPreviewSection() {
   );
 }
 
+// ─── SECTION — ASSURANCE-VIE + CARROUSEL DE PROFILS ────────────────────────────
+function AssuranceVieSection() {
+  return (
+    <section className="py-28" id="assurance-vie" style={{ backgroundColor: "#EDE8E3" }}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <AnimatedSection>
+            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
+              Assurance-vie
+            </p>
+            <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-8">
+              Faites fructifier votre capital, à votre rythme
+            </h2>
+            <p className="font-inter text-base text-[#3a3a3a]/75 leading-relaxed mb-6">
+              Nous comparons les contrats du marché sans être liés à un assureur&nbsp;:
+              aucun produit maison, aucune rétrocommission cachée. Seulement l&apos;allocation
+              la plus adaptée à votre profil et à vos objectifs.
+            </p>
+            <p className="font-inter text-base text-[#3a3a3a]/75 leading-relaxed mb-10">
+              Du profil prudent au profil dynamique, votre stratégie reste transparente
+              et ajustable dans le temps.
+            </p>
+            <Link
+              href="/reserver"
+              className="inline-flex items-center justify-center gap-2 px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
+            >
+              Prendre rendez-vous →
+            </Link>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.15}>
+            <ProfilCarousel />
+          </AnimatedSection>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── SECTION — ACCOMPAGNEMENT DIRIGEANTS ───────────────────────────────────────
+const dirigeantServices = [
+  {
+    title: "Contrats de capitalisation",
+    description:
+      "Placez la trésorerie excédentaire de votre entreprise dans une enveloppe souple et fiscalement efficiente.",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect x="4" y="8" width="20" height="14" rx="2" stroke="#795D48" strokeWidth="1.5" />
+        <path d="M4 12h20M9 17h3" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Prévoyance du dirigeant",
+    description:
+      "Protégez votre revenu et vos proches face aux aléas, avec des garanties choisies en toute indépendance.",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 4l9 4v6c0 5.5-3.8 9.3-9 10.5C8.8 23.3 5 19.5 5 14V8l9-4Z" stroke="#795D48" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M10.5 14l2.5 2.5 4.5-5" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Optimisation fiscale",
+    description:
+      "Arbitrez entre rémunération et dividendes et mobilisez les enveloppes adaptées, en toute transparence.",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M9 19L19 9M10.5 10.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM20.5 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
+
+function DirigeantsSection() {
+  return (
+    <section className="py-28" id="dirigeants" style={{ backgroundColor: "#F2EDE8" }}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <AnimatedSection className="mb-16 max-w-2xl">
+          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
+            Dirigeants & professions libérales
+          </p>
+          <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f] leading-tight">
+            Un accompagnement dédié aux dirigeants
+          </h2>
+        </AnimatedSection>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-14">
+          {dirigeantServices.map((s, i) => (
+            <AnimatedSection key={s.title} delay={i * 0.12}>
+              <div
+                className="flex flex-col gap-6 p-8 rounded-[20px] border border-[#D4C9BE] h-full"
+                style={{ backgroundColor: "#F2EDE8" }}
+              >
+                <div className="w-12 h-12 flex items-center justify-center border border-[#795D48]/20 rounded-xl">
+                  {s.icon}
+                </div>
+                <div>
+                  <h3 className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-3">{s.title}</h3>
+                  <p className="font-inter text-sm text-[#3a3a3a]/75 leading-relaxed">{s.description}</p>
+                </div>
+              </div>
+            </AnimatedSection>
+          ))}
+        </div>
+
+        <AnimatedSection>
+          <Link
+            href="/reserver"
+            className="inline-flex items-center justify-center gap-2 px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
+          >
+            Prendre rendez-vous →
+          </Link>
+        </AnimatedSection>
+      </div>
+    </section>
+  );
+}
+
 // ─── SECTION 6 — QUI SOMMES-NOUS ───────────────────────────────────────────────
 function AboutSection() {
   return (
@@ -364,6 +485,8 @@ export default function HomePage() {
       <ServicesSection />
       <AerialSection />
       <SimulateurPreviewSection />
+      <AssuranceVieSection />
+      <DirigeantsSection />
       <AboutSection />
       <FinalCtaSection />
     </>

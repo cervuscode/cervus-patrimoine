@@ -38,16 +38,16 @@ function HeroSection() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              href="/simulateur-per"
+              href="/reserver"
               className="inline-flex items-center justify-center px-[28px] py-[12px] bg-[#795D48] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:bg-[#6a5040] transition-colors duration-200"
             >
-              Simuler mon PER
+              Prendre rendez-vous
             </Link>
             <Link
-              href="/reserver"
+              href="/services"
               className="inline-flex items-center justify-center px-[28px] py-[12px] border-[1.5px] border-white/40 text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] hover:border-white hover:bg-white/10 transition-colors duration-200"
             >
-              Prendre rendez-vous
+              Découvrir nos services
             </Link>
           </div>
         </div>
@@ -60,12 +60,6 @@ function HeroSection() {
           <rect x="5.5" y="5" width="3" height="5" rx="1.5" fill="white" />
         </svg>
       </div>
-      {/* Fondu bas → section stats */}
-      <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
-        style={{ height: 140, background: "linear-gradient(to bottom, transparent, #F2EDE8)", zIndex: 15 }}
-        aria-hidden="true"
-      />
     </section>
   );
 }
@@ -103,8 +97,8 @@ const services = [
   {
     title: "PER & Retraite",
     description: "Optimisez votre fiscalité aujourd'hui tout en préparant votre retraite de demain.",
-    cta: "Simuler",
-    href: "/simulateur-per",
+    cta: "En savoir plus",
+    href: "/services",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="11" stroke="#795D48" strokeWidth="1.5" />
@@ -127,8 +121,8 @@ const services = [
   {
     title: "Transmission & Succession",
     description: "Anticipez la transmission de votre patrimoine pour protéger vos proches.",
-    cta: "Simuler",
-    href: "/simulateur-succession",
+    cta: "En savoir plus",
+    href: "/services",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <circle cx="10" cy="10" r="4.5" stroke="#795D48" strokeWidth="1.5" />
@@ -141,7 +135,7 @@ const services = [
 
 function ServicesSection() {
   return (
-    <section className="relative py-28" id="services" style={{ backgroundColor: "#EDE8E3" }}>
+    <section className="py-28" id="services" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <AnimatedSection className="mb-16">
           <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f]">
@@ -154,14 +148,15 @@ function ServicesSection() {
             <AnimatedSection key={service.title} delay={i * 0.12}>
               <Link
                 href={service.href}
-                className="group flex flex-col gap-6 p-8 bg-[#0f0f0f] rounded-[20px] border border-transparent hover:border-[#795D48] hover:scale-[1.02] transition-all duration-300 h-full"
+                className="group flex flex-col gap-6 p-8 rounded-[20px] border border-[#D4C9BE] hover:border-[#795D48] hover:scale-[1.02] transition-all duration-300 h-full"
+                style={{ backgroundColor: "#F2EDE8" }}
               >
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 rounded-xl">
+                <div className="w-12 h-12 flex items-center justify-center border border-[#795D48]/20 rounded-xl">
                   {service.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-cormorant text-2xl font-semibold text-white mb-3">{service.title}</h3>
-                  <p className="font-inter text-sm text-white/55 leading-relaxed">{service.description}</p>
+                  <h3 className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-3">{service.title}</h3>
+                  <p className="font-inter text-sm text-[#3a3a3a]/75 leading-relaxed">{service.description}</p>
                 </div>
                 <div className="font-inter text-sm text-[#795D48] font-medium">
                   {service.cta} →
@@ -171,12 +166,6 @@ function ServicesSection() {
           ))}
         </div>
       </div>
-      {/* Fondu bas → section aérienne sombre */}
-      <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
-        style={{ height: 100, background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.35))" }}
-        aria-hidden="true"
-      />
     </section>
   );
 }
@@ -191,18 +180,6 @@ function AerialSection() {
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
-      {/* Fondu haut — depuis section services */}
-      <div
-        className="absolute top-0 left-0 right-0 pointer-events-none z-10"
-        style={{ height: 100, background: "linear-gradient(to bottom, #EDE8E3, transparent)" }}
-        aria-hidden="true"
-      />
-      {/* Fondu bas — vers section simulateur */}
-      <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none z-10"
-        style={{ height: 140, background: "linear-gradient(to bottom, transparent, #F2EDE8)" }}
-        aria-hidden="true"
-      />
 
       <div className="relative z-20 h-full flex flex-col items-center justify-center px-6 text-center">
         <AnimatedSection>
@@ -222,7 +199,7 @@ function AerialSection() {
   );
 }
 
-// ─── SECTION 5 — SIMULATEUR PREVIEW ────────────────────────────────────────────
+// ─── SECTION 5 — SIMULATEUR PREVIEW (unique rappel discret du simulateur) ───────
 function SimulateurPreviewSection() {
   return (
     <section className="py-28" id="simulateur" style={{ backgroundColor: "#F2EDE8" }}>
@@ -344,28 +321,34 @@ function AboutSection() {
   );
 }
 
-// ─── SECTION CONTACT ───────────────────────────────────────────────────────────
-function ContactSection() {
+// ─── SECTION FINALE — CTA PRISE DE RENDEZ-VOUS ─────────────────────────────────
+function FinalCtaSection() {
   return (
-    <section className="py-28" id="contact" style={{ backgroundColor: "#F2EDE8" }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <AnimatedSection className="max-w-2xl">
-          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-4">Contact</p>
-          <h2 className="font-cormorant text-5xl font-light text-[#0f0f0f] mb-8">
-            Parlons de votre projet
-          </h2>
-          <p className="font-inter text-base text-[#0f0f0f]/55 leading-relaxed mb-10">
-            Chaque situation patrimoniale est unique. Prenez rendez-vous pour un
-            premier entretien confidentiel et sans engagement.
+    <section className="py-28 px-6" id="contact" style={{ backgroundColor: "#5D4738" }}>
+      <div className="max-w-3xl mx-auto text-center">
+        <AnimatedSection>
+          <p className="font-inter text-[0.7rem] text-[#EAD9C7] uppercase tracking-[0.18em] mb-6">
+            Premier entretien offert
           </p>
-          <div
-            className="rounded-[20px] p-10 border border-dashed border-[#795D48]/30 text-center"
-            style={{ backgroundColor: "#EDE8E3" }}
+          <h2 className="font-cormorant text-4xl sm:text-5xl lg:text-[3.5rem] font-light text-[#F2EDE8] leading-tight mb-6">
+            Parlons de votre projet patrimonial
+          </h2>
+          <p className="font-inter text-base text-[#F2EDE8]/70 leading-relaxed mb-10 max-w-xl mx-auto">
+            Chaque situation est unique. Réservez un premier entretien confidentiel
+            et sans engagement avec un conseiller indépendant.
+          </p>
+          <Link
+            href="/reserver"
+            className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-[#F2EDE8] text-[#5D4738] font-inter text-base font-medium tracking-[0.02em] rounded-[50px] hover:bg-white transition-colors duration-200 shadow-lg shadow-black/20"
           >
-            <p className="font-inter text-sm text-[#0f0f0f]/40">
-              Formulaire de prise de rendez-vous (Calendly)
-            </p>
-          </div>
+            Prendre rendez-vous
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 9h11M10 5l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+          <p className="font-inter text-xs text-[#F2EDE8]/45 mt-6">
+            30 minutes · gratuit · sans engagement
+          </p>
         </AnimatedSection>
       </div>
     </section>
@@ -382,7 +365,7 @@ export default function HomePage() {
       <AerialSection />
       <SimulateurPreviewSection />
       <AboutSection />
-      <ContactSection />
+      <FinalCtaSection />
     </>
   );
 }

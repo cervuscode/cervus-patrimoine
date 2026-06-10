@@ -14,9 +14,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
   const [checking, setChecking] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
-  // Bascule RDV : Calendly → page /reserver (Pipedrive Scheduler).
-  // const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
-  const calendlyUrl = "/reserver";
+  const reserverUrl = "/reserver";
 
   async function handleNext() {
     if (!emailValid) return;
@@ -52,7 +50,7 @@ export default function QEmail({ data, onChange, onNext, onPrev }: Props) {
           </p>
         </div>
         <a
-          href={calendlyUrl}
+          href={reserverUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors text-center"

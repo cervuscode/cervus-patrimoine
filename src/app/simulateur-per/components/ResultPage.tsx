@@ -38,10 +38,7 @@ function maskEmail(email: string) {
 }
 
 export default function ResultPage({ data, computed, onSendEmail, emailSent, emailLoading }: Props) {
-  // Bascule RDV : Calendly → page /reserver (Pipedrive Scheduler).
-  // NEXT_PUBLIC_CALENDLY_URL est conservé tant que la bascule n'est pas confirmée en prod.
-  // const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "#";
-  const calendlyUrl = "/reserver";
+  const reserverUrl = "/reserver";
   const [altEmail, setAltEmail] = useState("");
   const [showAltEmail, setShowAltEmail] = useState(false);
   const altEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(altEmail);
@@ -121,7 +118,7 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
             </p>
           </div>
           <a
-            href={calendlyUrl}
+            href={reserverUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="self-start font-inter text-sm font-medium text-cervus-dark/70 underline underline-offset-2 hover:text-cervus-gold transition-colors"
@@ -221,7 +218,7 @@ export default function ResultPage({ data, computed, onSendEmail, emailSent, ema
           </p>
         </div>
         <a
-          href={calendlyUrl}
+          href={reserverUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-cervus-gold text-white font-inter text-base font-medium tracking-[0.02em] rounded-[50px] hover:bg-cervus-gold-light transition-colors duration-200 shadow-lg shadow-[#5D4738]/25"

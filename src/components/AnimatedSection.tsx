@@ -8,14 +8,15 @@ interface Props {
   delay?: number;
 }
 
-// Easing vivant type "ease-out" avec un très léger dépassement (back doux, sans rebond marqué).
-const EASE = "cubic-bezier(0.33, 1.2, 0.5, 1)";
+// Easing vivant type ressort léger (overshoot doux, sans rebond grotesque).
+const EASE = "cubic-bezier(0.34, 1.28, 0.5, 1)";
+const DURATION = "0.72s";
 
 export default function AnimatedSection({ children, className, delay = 0 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [offset, setOffset] = useState(36);
+  const [offset, setOffset] = useState(56);
 
   useEffect(() => {
     // prefers-reduced-motion → affichage statique immédiat, aucune animation.
@@ -26,8 +27,8 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       return;
     }
 
-    // Amplitude un peu plus marquée sur mobile.
-    setOffset(window.matchMedia("(max-width: 767px)").matches ? 40 : 36);
+    // Amplitude marquée, légèrement réduite sur mobile pour rester fluide.
+    setOffset(window.matchMedia("(max-width: 767px)").matches ? 48 : 56);
 
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") {
@@ -70,10 +71,10 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "none" : `translateY(${offset}px)`,
+        transform: visible ? "none" : `translateY(${offset}px) scale(0.96)`,
         transition: reduced
           ? "none"
-          : `opacity 0.6s ${EASE} ${delay}s, transform 0.6s ${EASE} ${delay}s`,
+          : `opacity ${DURATION} ${EASE} ${delay}s, transform ${DURATION} ${EASE} ${delay}s`,
         willChange: "opacity, transform",
       }}
     >

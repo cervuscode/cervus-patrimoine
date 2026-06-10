@@ -15,11 +15,13 @@ function HeroSection() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <video
         className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: "center" }}
         src="/videos/hero-video.mp4"
         autoPlay
         muted
         loop
         playsInline
+        preload="auto"
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-[#0f0f0f]" style={{ zIndex: -1 }} aria-hidden="true" />
@@ -205,15 +207,18 @@ function AerialSection() {
 const expertises = [
   {
     label: "Préparer sa retraite",
-    detail: "Le PER, pour réduire vos impôts aujourd'hui et capitaliser pour demain.",
+    detail:
+      "La baisse de revenus à la retraite se prépare des années à l'avance. Le PER réduit vos impôts aujourd'hui tout en la lissant.",
   },
   {
     label: "Faire fructifier son capital",
-    detail: "L'assurance-vie, comparée sans être liés à un assureur.",
+    detail:
+      "Études des enfants, résidence, projets intermédiaires : l'assurance-vie, comparée en toute indépendance, sans lien avec un assureur.",
   },
   {
     label: "Accompagner les dirigeants",
-    detail: "Trésorerie, prévoyance et arbitrages, en toute indépendance.",
+    detail:
+      "Cession, transmission, protection des proches : trésorerie, prévoyance et arbitrages anticipés, en toute transparence.",
   },
 ];
 
@@ -225,14 +230,20 @@ function ConseilSection() {
           <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.14em] mb-6">
             Conseil en gestion de patrimoine
           </p>
-          <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f] leading-[1.1] mb-8">
+          <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f] leading-[1.1] mb-5">
             Un accompagnement, pas un produit
           </h2>
+          <p className="font-inter text-xl text-[#795D48] leading-snug mb-8">
+            Majorité des enfants, études, achat de la résidence, transmission, baisse de
+            revenus à la retraite… autant d&apos;échéances qui se préparent bien avant qu&apos;elles
+            n&apos;arrivent.
+          </p>
           <p className="font-inter text-lg text-[#3a3a3a]/80 leading-relaxed">
-            Notre métier n&apos;est pas de vous vendre un placement, mais de bâtir avec vous une
-            stratégie cohérente, indépendante et transparente. Une vision d&apos;ensemble, pensée
-            sur le long terme et ajustée à chaque étape de votre vie. Les expertises ci-dessous
-            sont les déclinaisons d&apos;un seul et même accompagnement.
+            Notre rôle n&apos;est pas de vous vendre un placement, mais de regarder votre vie
+            quelques années plus loin que le quotidien&nbsp;: identifier ensemble les besoins
+            financiers à venir, puis y répondre par une stratégie cohérente, indépendante et
+            transparente. Les expertises ci-dessous sont les déclinaisons d&apos;un seul et même
+            accompagnement.
           </p>
         </AnimatedSection>
 
@@ -508,13 +519,13 @@ function FinalCtaSection() {
       <div className="max-w-3xl mx-auto text-center">
         <AnimatedSection>
           <p className="font-inter text-[0.7rem] text-[#EAD9C7] uppercase tracking-[0.18em] mb-6">
-            Premier entretien offert
+            Entretien gratuit
           </p>
           <h2 className="font-cormorant text-4xl sm:text-5xl lg:text-[3.5rem] font-light text-[#F2EDE8] leading-tight mb-6">
             Parlons de votre projet patrimonial
           </h2>
           <p className="font-inter text-base text-[#F2EDE8]/70 leading-relaxed mb-10 max-w-xl mx-auto">
-            Chaque situation est unique. Réservez un premier entretien confidentiel
+            Chaque situation est unique. Réservez un entretien confidentiel
             et sans engagement avec un conseiller indépendant.
           </p>
           <Link

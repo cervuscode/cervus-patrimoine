@@ -55,32 +55,53 @@ const RISK_SCALE = [1, 2, 3, 4, 5, 6, 7];
 export default function ProfilCarousel() {
   const [index, setIndex] = useState(0);
   const [reduced, setReduced] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  // L'utilisateur a pris la main (clic flèche/dot ou swipe) → l'auto-play ne reprend plus.
+  const [userTook, setUserTook] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  const count = PROFILS.length;
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  const count = PROFILS.length;
+  // Auto-play : avance toutes les 3,5 s. Pas d'auto-play si reduced-motion, si survol,
+  // ou si l'utilisateur a déjà pris le contrôle. (L'avance auto n'appelle pas takeControl.)
+  useEffect(() => {
+    if (reduced || userTook || hovering) return;
+    const id = setInterval(() => setIndex((i) => (i + 1) % count), 3500);
+    return () => clearInterval(id);
+  }, [reduced, userTook, hovering, count]);
+
   const goTo = (i: number) => setIndex(((i % count) + count) % count);
-  const prev = () => goTo(index - 1);
-  const next = () => goTo(index + 1);
+  const userGoTo = (i: number) => {
+    setUserTook(true);
+    goTo(i);
+  };
+  const prev = () => userGoTo(index - 1);
+  const next = () => userGoTo(index + 1);
 
   const onTouchStart = (e: React.TouchEvent) => {
+    setUserTook(true); // toucher = prise de contrôle, l'auto-play ne reprend pas
     touchStartX.current = e.touches[0].clientX;
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const delta = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(delta) > 40) {
-      if (delta < 0) next();
-      else prev();
+      if (delta < 0) userGoTo(index + 1);
+      else userGoTo(index - 1);
     }
     touchStartX.current = null;
   };
 
   return (
-    <div className="w-full max-w-full min-w-0">
+    <div
+      className="w-full max-w-full min-w-0"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
       {/* Piste du carrousel */}
       <div className="relative min-w-0">
         <div
@@ -216,7 +237,7 @@ export default function ProfilCarousel() {
           <button
             key={p.nom}
             type="button"
-            onClick={() => goTo(i)}
+            onClick={() => userGoTo(i)}
             aria-label={`Aller au profil ${p.nom}`}
             aria-current={i === index}
             className="h-2 rounded-full transition-all duration-200"

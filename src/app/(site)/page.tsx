@@ -125,7 +125,7 @@ const services = [
   {
     title: "Conseil patrimonial global",
     description:
-      "Pour les salariés, dirigeants et indépendants : optimisation fiscale, stratégie d'investissement, transmission — une vision d'ensemble de votre situation.",
+      "Pour les salariés, dirigeants, indépendants et professions libérales : optimisation fiscale, stratégie d'investissement, transmission — une vision d'ensemble de votre situation.",
     cta: "En savoir plus",
     href: "/services",
     icon: (
@@ -204,7 +204,7 @@ function AerialSection() {
   return (
     <section className="relative h-[70vh] overflow-hidden">
       <Image
-        src="/images/aerial-view.png"
+        src="/images/section-vision-echiquier.png"
         alt=""
         fill
         sizes="100vw"
@@ -236,19 +236,19 @@ function AerialSection() {
 // ─── SECTION — CHAPEAU CONSEIL EN GESTION DE PATRIMOINE ────────────────────────
 const expertises = [
   {
-    label: "Préparer sa retraite",
+    label: "Comprendre vos enjeux",
     detail:
-      "La baisse de revenus à la retraite se prépare des années à l'avance. Le PER réduit vos impôts aujourd'hui tout en la lissant.",
+      "Votre statut, votre rémunération, vos objectifs : tout commence par une vraie phase de découverte de votre situation.",
   },
   {
-    label: "Faire fructifier son capital",
+    label: "Identifier la bonne enveloppe",
     detail:
-      "Études des enfants, résidence, projets intermédiaires : l'assurance-vie, comparée en toute indépendance, sans lien avec un assureur.",
+      "Nous vous présentons clairement chaque solution et mettons en place celle qui correspond réellement à votre profil.",
   },
   {
-    label: "Accompagner les dirigeants",
+    label: "Vous suivre dans le temps",
     detail:
-      "Cession, transmission, protection des proches : trésorerie, prévoyance et arbitrages anticipés, en toute transparence.",
+      "Votre interlocuteur reste le même : nous ajustons votre stratégie à chaque étape de votre vie.",
   },
 ];
 
@@ -408,9 +408,20 @@ function AssuranceVieSection() {
 // ─── SECTION — ACCOMPAGNEMENT DIRIGEANTS ───────────────────────────────────────
 const dirigeantServices = [
   {
-    title: "Contrats de capitalisation",
+    title: "Comprendre vos enjeux",
     description:
-      "Placez la trésorerie excédentaire de votre entreprise dans une enveloppe souple et fiscalement efficiente.",
+      "Votre statut, votre rémunération et vos arbitrages personnels analysés ensemble, en toute indépendance.",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="12" cy="12" r="7" stroke="#795D48" strokeWidth="1.5" />
+        <path d="M17 17l5 5" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Gérer l'excédent de trésorerie",
+    description:
+      "Contrat de capitalisation et solutions adaptées pour faire travailler la trésorerie de votre entreprise.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <rect x="4" y="8" width="20" height="14" rx="2" stroke="#795D48" strokeWidth="1.5" />
@@ -419,23 +430,13 @@ const dirigeantServices = [
     ),
   },
   {
-    title: "Prévoyance du dirigeant",
+    title: "Assurer vos revenus",
     description:
-      "Protégez votre revenu et vos proches face aux aléas, avec des garanties choisies en toute indépendance.",
+      "Prévoyance du dirigeant : protéger votre revenu et vos proches face aux aléas.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <path d="M14 4l9 4v6c0 5.5-3.8 9.3-9 10.5C8.8 23.3 5 19.5 5 14V8l9-4Z" stroke="#795D48" strokeWidth="1.5" strokeLinejoin="round" />
         <path d="M10.5 14l2.5 2.5 4.5-5" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "Optimisation fiscale",
-    description:
-      "Arbitrez entre rémunération et dividendes et mobilisez les enveloppes adaptées, en toute transparence.",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <path d="M9 19L19 9M10.5 10.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM20.5 17.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -483,50 +484,29 @@ function DirigeantsSection() {
   );
 }
 
-// ─── SECTION 6 — QUI SOMMES-NOUS ───────────────────────────────────────────────
-function AboutSection() {
+// ─── SECTION — NOTRE APPROCHE ──────────────────────────────────────────────────
+function ApprocheSection() {
   return (
-    <section className="py-28" id="equipe" style={{ backgroundColor: "#EDE8E3" }}>
+    <section className="py-28" id="approche" style={{ backgroundColor: "#EDE8E3" }}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <AnimatedSection>
-            <div className="relative">
-              <div
-                className="aspect-[4/5] rounded-[20px] flex items-center justify-center border border-[#D4C9BE] overflow-hidden"
-                style={{ backgroundColor: "#F2EDE8" }}
-              >
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-label="Photo Auguste Dechery à venir">
-                  <circle cx="32" cy="24" r="14" stroke="#795D48" strokeWidth="1.5" />
-                  <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="absolute -bottom-4 -right-4 flex flex-col gap-2">
-                <div className="rounded-[16px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#F2EDE8" }}>
-                  <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">ORIAS</p>
-                  <p className="font-inter text-xs font-semibold text-[#0f0f0f]">n° 25006770</p>
-                </div>
-                <div className="rounded-[16px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#F2EDE8" }}>
-                  <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">CNCEF</p>
-                  <p className="font-inter text-xs font-semibold text-[#0f0f0f]">Assurance</p>
-                </div>
-              </div>
-            </div>
-          </AnimatedSection>
-
-          <AnimatedSection delay={0.15}>
-            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">Notre équipe</p>
-            <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-6">
-              Une approche indépendante et rigoureuse
-            </h2>
-            <h3 className="font-cormorant text-xl font-semibold text-[#0f0f0f] mb-1">Auguste Dechery</h3>
-            <p className="font-inter text-sm text-[#795D48] mb-5">
-              Fondateur & Conseiller en Gestion de Patrimoine
+            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.14em] mb-6">
+              Notre approche
             </p>
-            <p className="font-inter text-sm text-[#0f0f0f]/60 leading-relaxed mb-8">
-              Fort d&apos;une expérience acquise en banque privée et en cabinet de gestion de patrimoine
-              indépendant, Auguste Dechery accompagne ses clients avec rigueur et transparence dans la
-              construction et l&apos;optimisation de leur stratégie patrimoniale. Aucun produit maison,
-              aucune rétrocommission cachée — seulement votre intérêt.
+            <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-8">
+              Faire les choses autrement
+            </h2>
+            <p className="font-inter text-base text-[#3a3a3a]/80 leading-relaxed mb-6">
+              Trop souvent, les clients souscrivent des produits choisis dans l&apos;intérêt du
+              conseiller, pas dans le leur&nbsp;: un gestionnaire imposé par l&apos;assureur partenaire,
+              des produits structurés vendus sur un nom, des frais sur versement excessifs. Nous avons
+              fondé Cervus Patrimoine pour rompre avec ces pratiques.
+            </p>
+            <p className="font-inter text-base text-[#3a3a3a]/80 leading-relaxed mb-10">
+              Pas de produit maison. Pas de rétrocommission cachée. Pas de solution imposée par un
+              partenaire. Nous comparons le marché en toute indépendance et ne retenons qu&apos;une
+              chose&nbsp;: la solution la plus adaptée à votre situation.
             </p>
             <Link
               href="/qui-sommes-nous"
@@ -535,6 +515,39 @@ function AboutSection() {
             >
               En savoir plus →
             </Link>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.15}>
+            <div className="rounded-[20px] border border-[#D4C9BE] p-8" style={{ backgroundColor: "#F2EDE8" }}>
+              <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.14em] mb-6">
+                Nos engagements
+              </p>
+              <ul className="flex flex-col gap-4 mb-8">
+                {[
+                  "Indépendance totale, aucun produit maison",
+                  "Aucune rétrocommission cachée",
+                  "Comparaison du marché, solution sur mesure",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mt-0.5 shrink-0" aria-hidden="true">
+                      <circle cx="10" cy="10" r="9" stroke="#795D48" strokeWidth="1.3" />
+                      <path d="M6 10.5l2.5 2.5L14 7.5" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="font-inter text-sm text-[#3a3a3a]/85 leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-3 pt-6 border-t border-[#D4C9BE]/70">
+                <div className="rounded-[14px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#EDE5DC" }}>
+                  <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">ORIAS</p>
+                  <p className="font-inter text-xs font-semibold text-[#0f0f0f]">n° 25006770</p>
+                </div>
+                <div className="rounded-[14px] px-4 py-2 border border-[#D4C9BE]" style={{ backgroundColor: "#EDE5DC" }}>
+                  <p className="font-inter text-[9px] text-[#795D48] uppercase tracking-wider">CNCEF</p>
+                  <p className="font-inter text-xs font-semibold text-[#0f0f0f]">Assurance</p>
+                </div>
+              </div>
+            </div>
           </AnimatedSection>
         </div>
       </div>
@@ -587,7 +600,7 @@ export default function HomePage() {
       <SimulateurPreviewSection />
       <AssuranceVieSection />
       <DirigeantsSection />
-      <AboutSection />
+      <ApprocheSection />
       <FinalCtaSection />
     </>
   );

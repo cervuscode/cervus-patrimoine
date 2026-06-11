@@ -36,17 +36,20 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       },
       // rootMargin bas négatif : le reveal ne part que lorsque le bloc est franchement
       // entré (son haut a dépassé ~80% de la hauteur d'écran), pas dès qu'il pointe en bas.
+      // L'observer est la SEULE source de déclenchement au scroll (pas de timeout global).
       { threshold: 0, rootMargin: "0px 0px -20% 0px" }
     );
-    // Sécurité : révèle quand même si l'observer ne se déclenche jamais.
-    const fallback = setTimeout(() => reveal(), 1200);
     io.observe(el);
+
+    // Sécurité ciblée : ne révèle au mount QUE si l'élément est réellement dans le
+    // viewport (au-dessus de la ligne de flottaison). Jamais un reveal inconditionnel.
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.8 && rect.bottom > 0) reveal();
 
     function reveal() {
       if (revealed) return;
       revealed = true;
       io.disconnect();
-      clearTimeout(fallback);
       // Double rAF : garantit que l'état caché (opacity 0 + translate + scale) est
       // peint sur une frame AVANT de passer à l'état visible, sinon la transition
       // — notamment sur transform — est sautée et l'élément apparaît d'un coup.
@@ -54,7 +57,6 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
     }
 
     return () => {
-      clearTimeout(fallback);
       io.disconnect();
     };
   }, []);

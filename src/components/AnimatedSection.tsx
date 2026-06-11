@@ -34,7 +34,9 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) reveal();
       },
-      { threshold: 0, rootMargin: "0px 0px -10% 0px" }
+      // rootMargin bas négatif : le reveal ne part que lorsque le bloc est franchement
+      // entré (son haut a dépassé ~80% de la hauteur d'écran), pas dès qu'il pointe en bas.
+      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
     );
     // Sécurité : révèle quand même si l'observer ne se déclenche jamais.
     const fallback = setTimeout(() => reveal(), 1200);

@@ -37,14 +37,14 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       // rootMargin bas négatif : le reveal ne part que lorsque le bloc est franchement
       // entré (son haut a dépassé ~80% de la hauteur d'écran), pas dès qu'il pointe en bas.
       // L'observer est la SEULE source de déclenchement au scroll (pas de timeout global).
-      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+      { threshold: 0, rootMargin: "0px 0px -12% 0px" }
     );
     io.observe(el);
 
     // Sécurité ciblée : ne révèle au mount QUE si l'élément est réellement dans le
     // viewport (au-dessus de la ligne de flottaison). Jamais un reveal inconditionnel.
     const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.8 && rect.bottom > 0) reveal();
+    if (rect.top < window.innerHeight * 0.88 && rect.bottom > 0) reveal();
 
     function reveal() {
       if (revealed) return;

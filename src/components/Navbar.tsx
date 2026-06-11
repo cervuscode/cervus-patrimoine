@@ -15,8 +15,7 @@ const navLinks = [
 
 const simulatorOptions = [
   { label: "Simulateur PER", href: "/simulateur-per" },
-  { label: "Simulateur Succession", href: "/simulateur-succession" },
-  { label: "Simulateur Assurance-vie", href: "/simulateur-av" },
+  { label: "Simulateur Assurance-vie", href: "/simulateur-assurance-vie" },
 ];
 
 export default function Navbar() {

@@ -69,6 +69,7 @@ function HeroSection() {
         className="absolute inset-0 w-full h-full object-cover"
         style={{ objectPosition: "center" }}
         src="/videos/hero-15s.mp4"
+        poster="/images/hero-poster.png"
         autoPlay
         muted
         loop
@@ -119,37 +120,22 @@ function HeroSection() {
   );
 }
 
-// ─── SECTION 2 — STATS ─────────────────────────────────────────────────────────
-const stats = [
-  { headline: "Indépendant", sub: "Aucun conflit d'intérêts, aucun produit maison" },
-  { headline: "ORIAS 25006770", sub: "Mandataire d'intermédiaire en assurance, immatriculé ORIAS" },
-  { headline: "RCP assurée", sub: "Responsabilité civile professionnelle Markel / Assurup" },
-];
-
-function StatsSection() {
-  return (
-    <section className="py-20" style={{ backgroundColor: "#F2EDE8" }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {stats.map((s, i) => (
-            <AnimatedSection key={s.headline} delay={i * 0.14}>
-              <div
-                className="h-full rounded-[20px] border border-[#D4C9BE] px-8 py-7 text-center md:text-left"
-                style={{ backgroundColor: "#EDE5DC" }}
-              >
-                <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f] mb-2">{s.headline}</p>
-                <p className="font-inter text-sm text-[#3a3a3a]/70 leading-relaxed">{s.sub}</p>
-              </div>
-            </AnimatedSection>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── SECTION 3 — SERVICES ──────────────────────────────────────────────────────
 const services = [
+  {
+    title: "Conseil patrimonial global",
+    description:
+      "Pour les salariés, dirigeants et indépendants : optimisation fiscale, stratégie d'investissement, transmission — une vision d'ensemble de votre situation.",
+    cta: "En savoir plus",
+    href: "/services",
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="11" stroke="#795D48" strokeWidth="1.5" />
+        <circle cx="14" cy="14" r="6" stroke="#795D48" strokeWidth="1.5" />
+        <circle cx="14" cy="14" r="1.5" fill="#795D48" />
+      </svg>
+    ),
+  },
   {
     title: "PER & Retraite",
     description: "Optimisez votre fiscalité aujourd'hui tout en préparant votre retraite de demain.",
@@ -171,19 +157,6 @@ const services = [
       <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
         <path d="M14 5C14 5 5 9.5 5 17a9 9 0 0 0 18 0C23 9.5 14 5 14 5Z" stroke="#795D48" strokeWidth="1.5" strokeLinejoin="round" />
         <path d="M14 12v5M11.5 14.5h5" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "Transmission & Succession",
-    description: "Anticipez la transmission de votre patrimoine pour protéger vos proches.",
-    cta: "En savoir plus",
-    href: "/services",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <circle cx="10" cy="10" r="4.5" stroke="#795D48" strokeWidth="1.5" />
-        <circle cx="20" cy="19" r="4.5" stroke="#795D48" strokeWidth="1.5" />
-        <path d="M14 10h3a3 3 0 0 1 3 3v2" stroke="#795D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -608,7 +581,6 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <StatsSection />
       <ServicesSection />
       <AerialSection />
       <ConseilSection />

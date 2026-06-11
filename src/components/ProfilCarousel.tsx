@@ -51,48 +51,163 @@ const PROFILS: Profil[] = [
 ];
 
 const RISK_SCALE = [1, 2, 3, 4, 5, 6, 7];
+const COUNT = PROFILS.length;
+
+// Boucle infinie : clone du dernier au début + clone du premier à la fin.
+// Index de piste : 0 = clone(dernier), 1..COUNT = profils réels, COUNT+1 = clone(premier).
+const SLIDES: Profil[] = [PROFILS[COUNT - 1], ...PROFILS, PROFILS[0]];
+
+function ProfilCard({ p, active, displayNum }: { p: Profil; active: boolean; displayNum: number }) {
+  return (
+    <div className="w-full shrink-0 px-1">
+      <div
+        className={`flex flex-col gap-6 p-8 rounded-[20px] border transition-colors duration-300 ${
+          active ? "border-[#795D48]" : "border-[#D4C9BE]"
+        }`}
+        style={{ backgroundColor: "#F2EDE8" }}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-cormorant text-3xl font-semibold text-[#0f0f0f]">{p.nom}</h3>
+          <span className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.14em] border border-[#795D48]/30 rounded-[50px] px-3 py-1">
+            Profil {displayNum}/{COUNT}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-[14px] p-4" style={{ backgroundColor: "#EDE5DC" }}>
+            <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.1em] mb-1">
+              Horizon conseillé
+            </p>
+            <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">{p.horizon}</p>
+          </div>
+          <div className="rounded-[14px] p-4" style={{ backgroundColor: "#EDE5DC" }}>
+            <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.1em] mb-1">
+              Projection illustrative
+            </p>
+            <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">{p.projection}</p>
+            <p className="font-inter text-[9px] text-[#3a3a3a]/55 mt-1">
+              pour 10 000 € · non contractuel
+            </p>
+          </div>
+        </div>
+
+        {/* Hypothèse de rendement annuel */}
+        <div
+          className="flex items-center gap-2 rounded-[12px] px-4 py-3 border border-[#795D48]/20"
+          style={{ backgroundColor: "#EDE5DC" }}
+        >
+          <span className="font-inter text-[11px] text-[#795D48] uppercase tracking-[0.1em]">
+            Hypothèse
+          </span>
+          <span className="font-cormorant text-2xl font-semibold text-[#0f0f0f] leading-none">
+            {p.rendement}&nbsp;%/an
+          </span>
+          <span className="font-inter text-[10px] text-[#3a3a3a]/55">
+            rendement annuel hypothétique
+          </span>
+        </div>
+
+        {/* Échelle de risque indicative 1-7 */}
+        <div>
+          <div className="flex items-end gap-1.5 mb-2">
+            {RISK_SCALE.map((lvl) => (
+              <div
+                key={lvl}
+                className="flex-1 rounded-[3px]"
+                style={{
+                  height: 8 + lvl * 3,
+                  backgroundColor: lvl === p.risque ? "#795D48" : "#D4C9BE",
+                }}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-inter text-[10px] text-[#3a3a3a]/55">Risque plus faible</span>
+            <span className="font-inter text-[10px] text-[#3a3a3a]/55">Risque plus élevé</span>
+          </div>
+          <p className="font-inter text-xs text-[#3a3a3a] mt-1">
+            Niveau de risque indicatif&nbsp;: {p.risque}/7
+          </p>
+        </div>
+
+        <p className="font-inter text-sm text-[#3a3a3a]/80 leading-relaxed">{p.description}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilCarousel() {
-  const [index, setIndex] = useState(0);
+  const [pos, setPos] = useState(1); // position dans SLIDES (1 = premier profil réel)
+  const [anim, setAnim] = useState(true); // transition slide active
   const [reduced, setReduced] = useState(false);
   const [hovering, setHovering] = useState(false);
-  // L'utilisateur a pris la main (clic flèche/dot ou swipe) → l'auto-play ne reprend plus.
+  // L'utilisateur a pris la main (flèche / dot / swipe) → l'auto-play ne reprend plus.
   const [userTook, setUserTook] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  const count = PROFILS.length;
+  // current = profil réel affiché (0..COUNT-1), pour les dots et le highlight.
+  const current = ((pos - 1) % COUNT + COUNT) % COUNT;
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  // Auto-play : avance toutes les 3,5 s. Pas d'auto-play si reduced-motion, si survol,
-  // ou si l'utilisateur a déjà pris le contrôle. (L'avance auto n'appelle pas takeControl.)
+  // Avance d'un cran (sens unique pour l'auto-play → boucle continue via les clones).
+  const step = (dir: 1 | -1) => {
+    if (reduced) {
+      // Pas de transition : on reste dans la plage réelle [1..COUNT] avec wrap instantané.
+      setAnim(false);
+      setPos((p) => {
+        const n = p + dir;
+        if (n > COUNT) return 1;
+        if (n < 1) return COUNT;
+        return n;
+      });
+      return;
+    }
+    setAnim(true);
+    setPos((p) => p + dir);
+  };
+
+  // Auto-play 3,5 s. Désactivé si reduced-motion, survol, ou prise de contrôle.
   useEffect(() => {
     if (reduced || userTook || hovering) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % count), 3500);
+    const id = setInterval(() => step(1), 3500);
     return () => clearInterval(id);
-  }, [reduced, userTook, hovering, count]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduced, userTook, hovering]);
 
-  const goTo = (i: number) => setIndex(((i % count) + count) % count);
-  const userGoTo = (i: number) => {
-    setUserTook(true);
-    goTo(i);
+  // Fin de slide : si on est sur un clone, on saute sans transition vers le réel équivalent.
+  const onTransitionEnd = (e: React.TransitionEvent) => {
+    if (e.propertyName !== "transform") return;
+    if (pos === COUNT + 1) {
+      setAnim(false);
+      setPos(1);
+    } else if (pos === 0) {
+      setAnim(false);
+      setPos(COUNT);
+    }
   };
-  const prev = () => userGoTo(index - 1);
-  const next = () => userGoTo(index + 1);
+
+  const userStep = (dir: 1 | -1) => {
+    setUserTook(true);
+    step(dir);
+  };
+  const goToReal = (i: number) => {
+    setUserTook(true);
+    setAnim(!reduced);
+    setPos(i + 1);
+  };
 
   const onTouchStart = (e: React.TouchEvent) => {
-    setUserTook(true); // toucher = prise de contrôle, l'auto-play ne reprend pas
+    setUserTook(true); // toucher = prise de contrôle
     touchStartX.current = e.touches[0].clientX;
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 40) {
-      if (delta < 0) userGoTo(index + 1);
-      else userGoTo(index - 1);
-    }
+    if (Math.abs(delta) > 40) step(delta < 0 ? 1 : -1);
     touchStartX.current = null;
   };
 
@@ -112,106 +227,26 @@ export default function ProfilCarousel() {
           <div
             className="flex"
             style={{
-              transform: `translateX(-${index * 100}%)`,
-              transition: reduced ? "none" : "transform 380ms ease-out",
+              transform: `translateX(-${pos * 100}%)`,
+              transition: anim && !reduced ? "transform 400ms cubic-bezier(0.34, 1.2, 0.5, 1)" : "none",
             }}
+            onTransitionEnd={onTransitionEnd}
           >
-            {PROFILS.map((p, i) => {
-              const active = i === index;
-              return (
-                <div key={p.nom} className="w-full shrink-0 px-1">
-                  <div
-                    className={`flex flex-col gap-6 p-8 rounded-[20px] border transition-colors duration-300 ${
-                      active ? "border-[#795D48]" : "border-[#D4C9BE]"
-                    }`}
-                    style={{ backgroundColor: "#F2EDE8" }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-cormorant text-3xl font-semibold text-[#0f0f0f]">
-                        {p.nom}
-                      </h3>
-                      <span className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.14em] border border-[#795D48]/30 rounded-[50px] px-3 py-1">
-                        Profil {i + 1}/{count}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="rounded-[14px] p-4" style={{ backgroundColor: "#EDE5DC" }}>
-                        <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.1em] mb-1">
-                          Horizon conseillé
-                        </p>
-                        <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">
-                          {p.horizon}
-                        </p>
-                      </div>
-                      <div className="rounded-[14px] p-4" style={{ backgroundColor: "#EDE5DC" }}>
-                        <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.1em] mb-1">
-                          Projection illustrative
-                        </p>
-                        <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">
-                          {p.projection}
-                        </p>
-                        <p className="font-inter text-[9px] text-[#3a3a3a]/55 mt-1">
-                          pour 10 000 € · non contractuel
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Hypothèse de rendement annuel */}
-                    <div className="flex items-center gap-2 rounded-[12px] px-4 py-3 border border-[#795D48]/20" style={{ backgroundColor: "#EDE5DC" }}>
-                      <span className="font-inter text-[11px] text-[#795D48] uppercase tracking-[0.1em]">
-                        Hypothèse
-                      </span>
-                      <span className="font-cormorant text-2xl font-semibold text-[#0f0f0f] leading-none">
-                        {p.rendement}&nbsp;%/an
-                      </span>
-                      <span className="font-inter text-[10px] text-[#3a3a3a]/55">
-                        rendement annuel hypothétique
-                      </span>
-                    </div>
-
-                    {/* Échelle de risque indicative 1-7 */}
-                    <div>
-                      <div className="flex items-end gap-1.5 mb-2">
-                        {RISK_SCALE.map((lvl) => (
-                          <div
-                            key={lvl}
-                            className="flex-1 rounded-[3px]"
-                            style={{
-                              height: 8 + lvl * 3,
-                              backgroundColor: lvl === p.risque ? "#795D48" : "#D4C9BE",
-                            }}
-                            aria-hidden="true"
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-inter text-[10px] text-[#3a3a3a]/55">
-                          Risque plus faible
-                        </span>
-                        <span className="font-inter text-[10px] text-[#3a3a3a]/55">
-                          Risque plus élevé
-                        </span>
-                      </div>
-                      <p className="font-inter text-xs text-[#3a3a3a] mt-1">
-                        Niveau de risque indicatif&nbsp;: {p.risque}/7
-                      </p>
-                    </div>
-
-                    <p className="font-inter text-sm text-[#3a3a3a]/80 leading-relaxed">
-                      {p.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+            {SLIDES.map((p, i) => (
+              <ProfilCard
+                key={i}
+                p={p}
+                active={i === pos}
+                displayNum={(((i - 1) % COUNT) + COUNT) % COUNT + 1}
+              />
+            ))}
           </div>
         </div>
 
         {/* Flèches (desktop) */}
         <button
           type="button"
-          onClick={prev}
+          onClick={() => userStep(-1)}
           aria-label="Profil précédent"
           className="hidden md:flex absolute top-1/2 -left-4 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full border border-[#795D48]/30 bg-[#F2EDE8] text-[#795D48] hover:bg-[#795D48] hover:text-white transition-colors duration-200 shadow-sm"
         >
@@ -221,7 +256,7 @@ export default function ProfilCarousel() {
         </button>
         <button
           type="button"
-          onClick={next}
+          onClick={() => userStep(1)}
           aria-label="Profil suivant"
           className="hidden md:flex absolute top-1/2 -right-4 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full border border-[#795D48]/30 bg-[#F2EDE8] text-[#795D48] hover:bg-[#795D48] hover:text-white transition-colors duration-200 shadow-sm"
         >
@@ -237,13 +272,13 @@ export default function ProfilCarousel() {
           <button
             key={p.nom}
             type="button"
-            onClick={() => userGoTo(i)}
+            onClick={() => goToReal(i)}
             aria-label={`Aller au profil ${p.nom}`}
-            aria-current={i === index}
+            aria-current={i === current}
             className="h-2 rounded-full transition-all duration-200"
             style={{
-              width: i === index ? 24 : 8,
-              backgroundColor: i === index ? "#795D48" : "#D4C9BE",
+              width: i === current ? 24 : 8,
+              backgroundColor: i === current ? "#795D48" : "#D4C9BE",
             }}
           />
         ))}

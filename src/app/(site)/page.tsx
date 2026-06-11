@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import AnimatedSection from "@/components/AnimatedSection";
 import ProfilCarousel from "@/components/ProfilCarousel";
@@ -178,9 +179,14 @@ function ServicesSection() {
 function AerialSection() {
   return (
     <section className="relative h-[70vh] overflow-hidden">
-      <div
-        className="absolute inset-0 bg-center bg-cover"
-        style={{ backgroundImage: "url('/images/aerial-view.png')", backgroundAttachment: "fixed" }}
+      <Image
+        src="/images/aerial-view.png"
+        alt=""
+        fill
+        sizes="100vw"
+        quality={85}
+        className="object-cover"
+        style={{ objectPosition: "center" }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-black/40" aria-hidden="true" />

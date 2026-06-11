@@ -5,30 +5,23 @@ import { useEffect, useRef, useState, ReactNode } from "react";
 interface Props {
   children: ReactNode;
   className?: string;
+  /** Délai en secondes (stagger). Ex. index * 0.12 = 120 ms par élément. */
   delay?: number;
 }
 
-// Easing vivant type ressort léger (overshoot doux, sans rebond grotesque).
-const EASE = "cubic-bezier(0.34, 1.28, 0.5, 1)";
-const DURATION = "0.72s";
+const EASE = "cubic-bezier(0.34, 1.2, 0.5, 1)";
+const DURATION = "650ms";
+
+const HIDDEN = "translateY(48px) scale(0.94)";
+const SHOWN = "translateY(0px) scale(1)";
 
 export default function AnimatedSection({ children, className, delay = 0 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [offset, setOffset] = useState(56);
 
   useEffect(() => {
-    // prefers-reduced-motion → affichage statique immédiat, aucune animation.
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) {
-      setReduced(true);
-      setVisible(true);
-      return;
-    }
-
-    // Amplitude marquée, légèrement réduite sur mobile pour rester fluide.
-    setOffset(window.matchMedia("(max-width: 767px)").matches ? 48 : 56);
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") {
@@ -39,31 +32,35 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
     let revealed = false;
     const io = new IntersectionObserver(
       (entries) => {
-        // threshold 0 → se déclenche dès le 1er pixel visible, y compris pour les
-        // blocs déjà (partiellement) dans le viewport au chargement.
         if (entries.some((e) => e.isIntersecting)) reveal();
       },
       { threshold: 0, rootMargin: "0px 0px -10% 0px" }
     );
-    // rAF : garantit que l'état caché est peint avant l'observation (la transition joue).
-    const raf = requestAnimationFrame(() => io.observe(el));
-    // Sécurité : si l'observer ne se déclenche jamais, on révèle quand même.
+    // Sécurité : révèle quand même si l'observer ne se déclenche jamais.
     const fallback = setTimeout(() => reveal(), 1200);
+    io.observe(el);
 
     function reveal() {
       if (revealed) return;
       revealed = true;
-      setVisible(true);
       io.disconnect();
       clearTimeout(fallback);
+      // Double rAF : garantit que l'état caché (opacity 0 + translate + scale) est
+      // peint sur une frame AVANT de passer à l'état visible, sinon la transition
+      // — notamment sur transform — est sautée et l'élément apparaît d'un coup.
+      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     }
 
     return () => {
-      cancelAnimationFrame(raf);
       clearTimeout(fallback);
       io.disconnect();
     };
   }, []);
+
+  // reduced-motion : fade simple (opacity uniquement), sans translate/scale.
+  const transition = reduced
+    ? `opacity ${DURATION} ${EASE} ${delay}s`
+    : `opacity ${DURATION} ${EASE} ${delay}s, transform ${DURATION} ${EASE} ${delay}s`;
 
   return (
     <div
@@ -71,10 +68,8 @@ export default function AnimatedSection({ children, className, delay = 0 }: Prop
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "none" : `translateY(${offset}px) scale(0.96)`,
-        transition: reduced
-          ? "none"
-          : `opacity ${DURATION} ${EASE} ${delay}s, transform ${DURATION} ${EASE} ${delay}s`,
+        transform: reduced ? "none" : visible ? SHOWN : HIDDEN,
+        transition,
         willChange: "opacity, transform",
       }}
     >

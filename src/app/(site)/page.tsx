@@ -10,6 +10,57 @@ export const metadata: Metadata = {
     "Cervus Patrimoine, cabinet indépendant de conseil en gestion de patrimoine. Stratégies personnalisées : PER, assurance-vie, succession. Prenez rendez-vous.",
 };
 
+// ─── BANDEAU IMAGE DE TITRE DE SECTION ─────────────────────────────────────────
+// Image plein-largeur + overlay sombre pour la lisibilité + titre clair par-dessus.
+// Coupe nette avec le contenu crème qui suit (le dégradé reste dans le bandeau).
+function SectionBanner({
+  src,
+  alt,
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  src: string;
+  alt: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="relative h-[220px] sm:h-[300px] lg:h-[340px] overflow-hidden">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="100vw"
+        quality={85}
+        className="object-cover"
+        style={{ objectPosition: "center" }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(to top, rgba(15,15,15,0.55), rgba(15,15,15,0.25))" }}
+        aria-hidden="true"
+      />
+      <div className="relative z-10 h-full max-w-7xl mx-auto px-6 lg:px-8 flex flex-col justify-end pb-8 sm:pb-10">
+        {eyebrow && (
+          <p className="font-inter text-[0.7rem] text-[#F2EDE8]/85 uppercase tracking-[0.14em] mb-3">
+            {eyebrow}
+          </p>
+        )}
+        <h2 className="font-cormorant text-4xl sm:text-5xl lg:text-6xl font-light text-[#F2EDE8] leading-tight max-w-3xl"
+          style={{ textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
+        >
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="font-inter text-base text-[#F2EDE8]/85 mt-3 max-w-xl">{subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── SECTION 1 — HERO ──────────────────────────────────────────────────────────
 function HeroSection() {
   return (
@@ -17,7 +68,7 @@ function HeroSection() {
       <video
         className="absolute inset-0 w-full h-full object-cover"
         style={{ objectPosition: "center" }}
-        src="/videos/hero-video.mp4"
+        src="/videos/hero-15s.mp4"
         autoPlay
         muted
         loop
@@ -279,16 +330,19 @@ function ConseilSection() {
 // ─── SECTION 5 — SIMULATEUR PREVIEW (unique rappel discret du simulateur) ───────
 function SimulateurPreviewSection() {
   return (
-    <section className="py-28" id="simulateur" style={{ backgroundColor: "#F2EDE8" }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="simulateur" style={{ backgroundColor: "#F2EDE8" }}>
+      <SectionBanner
+        src="/images/section-per-sablier.png"
+        alt="PER et préparation de la retraite"
+        eyebrow="PER & Retraite"
+        title="Combien pouvez-vous économiser avec un PER ?"
+      />
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <AnimatedSection>
             <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
               Outil interactif
             </p>
-            <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-8">
-              Combien pouvez-vous économiser avec un PER ?
-            </h2>
             <p className="font-inter text-base text-[#0f0f0f]/55 leading-relaxed mb-10">
               Notre simulateur calcule en temps réel votre économie d&apos;impôt
               selon votre situation personnelle et votre tranche marginale d&apos;imposition.
@@ -342,16 +396,16 @@ function SimulateurPreviewSection() {
 // ─── SECTION — ASSURANCE-VIE + CARROUSEL DE PROFILS ────────────────────────────
 function AssuranceVieSection() {
   return (
-    <section className="py-28 overflow-x-hidden" id="assurance-vie" style={{ backgroundColor: "#EDE8E3" }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section className="overflow-x-hidden" id="assurance-vie" style={{ backgroundColor: "#EDE8E3" }}>
+      <SectionBanner
+        src="/images/section-av-piece.png"
+        alt="Assurance-vie et valorisation du capital"
+        eyebrow="Assurance-vie"
+        title="Faites fructifier votre capital, à votre rythme"
+      />
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <AnimatedSection>
-            <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
-              Assurance-vie
-            </p>
-            <h2 className="font-cormorant text-5xl lg:text-[3.2rem] font-light text-[#0f0f0f] leading-tight mb-8">
-              Faites fructifier votre capital, à votre rythme
-            </h2>
             <p className="font-inter text-base text-[#3a3a3a]/75 leading-relaxed mb-6">
               Nous comparons les contrats du marché sans être liés à un assureur&nbsp;:
               aucun produit maison, aucune rétrocommission cachée. Seulement l&apos;allocation
@@ -416,17 +470,14 @@ const dirigeantServices = [
 
 function DirigeantsSection() {
   return (
-    <section className="py-28" id="dirigeants" style={{ backgroundColor: "#F2EDE8" }}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <AnimatedSection className="mb-16 max-w-2xl">
-          <p className="font-inter text-[0.7rem] text-[#795D48] uppercase tracking-[0.12em] mb-6">
-            Dirigeants & professions libérales
-          </p>
-          <h2 className="font-cormorant text-5xl lg:text-6xl font-light text-[#0f0f0f] leading-tight">
-            Un accompagnement dédié aux dirigeants
-          </h2>
-        </AnimatedSection>
-
+    <section id="dirigeants" style={{ backgroundColor: "#F2EDE8" }}>
+      <SectionBanner
+        src="/images/section-dirigeants-abstrait.png"
+        alt="Accompagnement des dirigeants"
+        eyebrow="Dirigeants & professions libérales"
+        title="Un accompagnement dédié aux dirigeants"
+      />
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-24">
         <div className="grid md:grid-cols-3 gap-6 mb-14">
           {dirigeantServices.map((s, i) => (
             <AnimatedSection key={s.title} delay={i * 0.12}>

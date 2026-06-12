@@ -35,6 +35,8 @@ export interface AVComputed {
   purgeUtile: boolean; // false si purge non déclenchée OU gain net non significatif (< 250 €)
   messagePurge: string;
   purges: AVPurge[]; // détail année par année des purges déclenchées
+  // Trajectoires de la valeur du contrat (brut) année par année, pour le graphique.
+  courbe: { annee: number; capitalSans: number; capitalAvec: number }[];
 }
 
 // Marge de pertinence sur la décision de purge : on ne purge que si la PV latente
@@ -75,6 +77,7 @@ interface SimState {
   totalVersements: number; // cumul brut des versements (pour le seuil 150k)
   psPayesPendant: number; // PS payés pendant la phase (purges)
   purges: AVPurge[];
+  courbe: { annee: number; valeur: number }[]; // valeur brute en fin de chaque année
 }
 
 // Simulation mois par mois. Si `avecCervus`, purge optimisée des plus-values.
@@ -89,6 +92,7 @@ function simuler(input: AVInput, avecCervus: boolean): SimState {
   let totalVersements = input.versementInitial;
   let psPayesPendant = 0;
   const purges: AVPurge[] = [];
+  const courbe: { annee: number; valeur: number }[] = [{ annee: 0, valeur: input.versementInitial }];
 
   for (let i = 1; i <= mois; i++) {
     // Croissance du mois puis versement de fin de mois (annuité ordinaire).
@@ -99,51 +103,47 @@ function simuler(input: AVInput, avecCervus: boolean): SimState {
       totalVersements += input.versementMensuel;
     }
 
-    if (!avecCervus || i % 12 !== 0) continue;
-
+    // Fin d'année : décision de purge (scénario avec Cervus) puis relevé de la courbe.
+    if (i % 12 !== 0) continue;
     const annee = i / 12;
+
     // Purge possible à partir de l'année 8 et jusqu'à l'avant-dernière année
     // (la dernière année correspond à la sortie/rachat total).
-    if (annee < 8 || annee >= input.dureeAnnees) continue;
+    if (avecCervus && annee >= 8 && annee < input.dureeAnnees) {
+      const pv = valeur - base; // plus-value latente actuelle
+      // Projection de la PV latente actuelle jusqu'au terme : on ne purge que si
+      // elle dépasse l'abattement de sortie d'au moins 10 % (marge de pertinence).
+      // Aucun garde-fou sur les "N dernières années" : une purge reste légitime en
+      // année 18 ou 19 si la PV la justifie.
+      const remaining = input.dureeAnnees - annee;
+      const pvProjetee = pv * Math.pow(1 + r, remaining);
+      if (pv > 0 && pvProjetee > abat * MARGE_PURGE) {
+        // Purge calibrée : part de gain rachetée = abattement annuel (IR = 0).
+        // Si la PV courante est inférieure à l'abattement, on purge toute la PV.
+        const partGain = Math.min(abat, pv);
+        const rachat = (partGain * valeur) / pv; // formule AV : part de gain = rachat × PV/valeur
+        const ps = PS * partGain;
+        psPayesPendant += ps;
 
-    const pv = valeur - base; // plus-value latente actuelle
-    if (pv <= 0) continue;
+        // Application du rachat partiel (prorata capital / gain).
+        const partCapital = rachat - partGain;
+        valeur -= rachat;
+        base -= partCapital;
 
-    // Projection de la PV latente actuelle jusqu'au terme : on ne purge que si
-    // elle dépasse l'abattement de sortie d'au moins 10 % (marge de pertinence).
-    // Aucun garde-fou sur les "N dernières années" : une purge reste légitime en
-    // année 18 ou 19 si la PV la justifie.
-    const remaining = input.dureeAnnees - annee;
-    const pvProjetee = pv * Math.pow(1 + r, remaining);
-    if (pvProjetee <= abat * MARGE_PURGE) continue;
+        // Réinvestissement immédiat du montant racheté NET DE PS (mêmes rendement et contrat).
+        const reinvesti = rachat - ps;
+        valeur += reinvesti;
+        base += reinvesti;
+        totalVersements += reinvesti;
 
-    // Purge calibrée : part de gain rachetée = abattement annuel (IR = 0).
-    // Si la PV courante est inférieure à l'abattement, on purge toute la PV.
-    const partGain = Math.min(abat, pv);
-    const rachat = (partGain * valeur) / pv; // formule AV : part de gain = rachat × PV/valeur
-    const ps = PS * partGain;
-    psPayesPendant += ps;
+        purges.push({ annee, montantRachete: rachat, partGain, psPayes: ps });
+      }
+    }
 
-    // Application du rachat partiel (prorata capital / gain).
-    const partCapital = rachat - partGain;
-    valeur -= rachat;
-    base -= partCapital;
-
-    // Réinvestissement immédiat du montant racheté NET DE PS (mêmes rendement et contrat).
-    const reinvesti = rachat - ps;
-    valeur += reinvesti;
-    base += reinvesti;
-    totalVersements += reinvesti;
-
-    purges.push({
-      annee,
-      montantRachete: rachat,
-      partGain,
-      psPayes: ps,
-    });
+    courbe.push({ annee, valeur });
   }
 
-  return { valeur, base, totalVersements, psPayesPendant, purges };
+  return { valeur, base, totalVersements, psPayesPendant, purges, courbe };
 }
 
 // Fiscalité de sortie : rachat total au terme. PS sur toute la PV résiduelle,
@@ -190,6 +190,13 @@ export function calculerAV(input: AVInput): AVComputed {
     ? `La purge optimisée des plus-values vous fait gagner environ ${eur(gainNetCervus)} € nets.`
     : "Dans votre cas, la stratégie de purge n'apporte pas de gain significatif : conservez votre contrat jusqu'au terme.";
 
+  // Trajectoires brutes alignées année par année (les deux courbes ont la même longueur).
+  const courbe = sans.courbe.map((pt, i) => ({
+    annee: pt.annee,
+    capitalSans: eur(pt.valeur),
+    capitalAvec: eur(avec.courbe[i]?.valeur ?? pt.valeur),
+  }));
+
   return {
     capitalFinalBrut: eur(sans.valeur),
     capitalNetSansCervus: eur(sortieSans.net),
@@ -210,5 +217,6 @@ export function calculerAV(input: AVInput): AVComputed {
       partGain: eur(p.partGain),
       psPayes: eur(p.psPayes),
     })),
+    courbe,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AVFormData, AV_INITIAL } from "../types";
 import { calculerAV, AVComputed, AVInput } from "@/lib/av-engine";
@@ -19,6 +19,7 @@ export default function SimulateurFormAV() {
   const [data, setData] = useState<AVFormData>(AV_INITIAL);
   const [showResult, setShowResult] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const earlyContactFired = useRef(false);
 
   // Calcul live via le moteur validé, dès que les paramètres sont suffisants.
   const computed: AVComputed | null = useMemo(() => {
@@ -37,6 +38,22 @@ export default function SimulateurFormAV() {
     return calculerAV(input);
   }, [data]);
 
+  // Fiche Brevo anticipée (avant OTP) dès l'arrivée sur l'écran téléphone (step 3),
+  // si email saisi et calcul disponible. Mirroir du PER (early-contact).
+  useEffect(() => {
+    if (step === 3 && !earlyContactFired.current && data.email && computed) {
+      earlyContactFired.current = true;
+      fetch("/api/early-contact-av", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: { ...data, consentementRdv: true, consentementRgpd: true },
+          computed,
+        }),
+      }).catch(() => {});
+    }
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function patch(update: Partial<AVFormData>) {
     setData((prev) => ({ ...prev, ...update }));
   }
@@ -47,16 +64,23 @@ export default function SimulateurFormAV() {
     setAnimKey((k) => k + 1);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setSubmitting(true);
-    // TODO (étape 3) : POST /api/submit-av (ou /api/submit avec produit="AV")
-    //   → Brevo (attributs AV dédiés), webhook Make (produit=AV), syncPipedrive(..., "AV").
-    //   + early-contact AV à l'arrivée sur l'écran téléphone.
-    // Pour l'instant : on affiche directement les résultats (front complet, sans CRM).
-    setTimeout(() => {
+    try {
+      await fetch("/api/submit-av", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: { ...data, consentementRdv: true, consentementRgpd: true },
+          computed,
+        }),
+      });
+    } catch {
+      // Non bloquant : on affiche les résultats quoi qu'il arrive.
+    } finally {
       setSubmitting(false);
       setShowResult(true);
-    }, 350);
+    }
   }
 
   if (showResult && computed) {

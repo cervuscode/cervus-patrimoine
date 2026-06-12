@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AVFormData } from "../types";
 
 interface Props {
@@ -11,13 +12,55 @@ interface Props {
 
 export default function QEmailAV({ data, onChange, onNext, onPrev }: Props) {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
+  const [checking, setChecking] = useState(false);
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const reserverUrl = "/reserver";
 
-  function handleNext() {
+  async function handleNext() {
     if (!emailValid) return;
-    // TODO (étape 3) : appeler POST /api/check-contact { email } PAR PRODUIT (AV)
-    // pour détecter un doublon de simulation AV (sans bloquer une simu PER existante),
-    // et afficher l'écran "déjà effectué" si nécessaire.
+    setChecking(true);
+    try {
+      // Détection de doublon PAR PRODUIT : ne bloque que si une simulation AV existe
+      // déjà pour cet email (un client PER peut faire une simu AV).
+      const res = await fetch("/api/check-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, produit: "AV" }),
+      });
+      const json = await res.json();
+      if (json.exists) {
+        setShowDuplicate(true);
+        return;
+      }
+    } catch {
+      // Non bloquant : en cas d'erreur réseau, on laisse passer.
+    } finally {
+      setChecking(false);
+    }
     onNext();
+  }
+
+  if (showDuplicate) {
+    return (
+      <div className="flex flex-col gap-8 pt-8">
+        <div>
+          <h2 className="font-cormorant text-[2.5rem] font-light text-[#0f0f0f] mb-2 leading-tight">
+            Vous avez déjà effectué une simulation assurance-vie.
+          </h2>
+          <p className="font-inter text-sm text-[#555555] leading-relaxed">
+            Pour explorer d&apos;autres scénarios personnalisés, échangez directement avec un expert.
+          </p>
+        </div>
+        <a
+          href={reserverUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center px-8 py-4 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors text-center"
+        >
+          Parler à un expert →
+        </a>
+      </div>
+    );
   }
 
   return (
@@ -32,7 +75,7 @@ export default function QEmailAV({ data, onChange, onNext, onPrev }: Props) {
           Votre adresse email
         </h2>
         <p className="font-inter text-sm text-[#555555]">
-          Votre rapport d&apos;assurance-vie vous y sera envoyé.
+          Votre récapitulatif d&apos;assurance-vie vous y sera envoyé par email.
         </p>
       </div>
 
@@ -41,7 +84,7 @@ export default function QEmailAV({ data, onChange, onNext, onPrev }: Props) {
           type="email"
           value={data.email}
           onChange={(e) => onChange({ email: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && emailValid && handleNext()}
+          onKeyDown={(e) => e.key === "Enter" && emailValid && !checking && handleNext()}
           placeholder="votre@email.fr"
           autoFocus
           className="w-full h-12 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
@@ -57,13 +100,15 @@ export default function QEmailAV({ data, onChange, onNext, onPrev }: Props) {
         </button>
         <button
           onClick={handleNext}
-          disabled={!emailValid}
+          disabled={!emailValid || checking}
           className="px-8 py-3 bg-[#795D48] text-white font-inter text-sm font-semibold rounded-[50px] hover:bg-[#6a5040] transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          Suivant
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {checking ? "Vérification…" : "Suivant"}
+          {!checking && (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
+import type { AVComputed } from "@/lib/av-engine";
 
 /**
  * Pipedrive sync — server-side only.
@@ -19,6 +20,13 @@ import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 const profilLabels: Record<string, string> = {
   prudent: "Prudent",
   equilibre: "Équilibré",
+  dynamique: "Dynamique",
+};
+// Profils Assurance-vie (inclut "responsable", absent du PER)
+const avProfilLabels: Record<string, string> = {
+  prudent: "Prudent",
+  equilibre: "Équilibré",
+  responsable: "Responsable",
   dynamique: "Dynamique",
 };
 const objectifLabels: Record<string, string> = {
@@ -215,12 +223,46 @@ async function findPersonByEmail(email: string): Promise<number | null> {
 
 // Cherche un deal OUVERT déjà rattaché à la Person (créé par early-contact en amont).
 // Évite de créer un doublon lors de la validation OTP.
-async function findOpenDealForPerson(personId: number): Promise<number | null> {
-  const res = await pdGet<{ data?: Array<{ id?: number }> | null }>(
-    `/persons/${personId}/deals?status=open&limit=1&sort=add_time DESC`
+//
+// - Sans `produitValue` : comportement historique (PER) — le deal ouvert le plus
+//   récent, tous produits confondus.
+// - Avec `produitValue` : on ne retient que le deal ouvert le plus récent dont le
+//   champ personnalisé `Produit` correspond (comparaison insensible à la casse/espaces).
+//   Permet d'isoler les produits (une simu AV ne « vole » pas le deal PER ouvert).
+export async function findOpenDealForPerson(
+  personId: number,
+  produitValue?: string
+): Promise<number | null> {
+  if (!produitValue) {
+    const res = await pdGet<{ data?: Array<{ id?: number }> | null }>(
+      `/persons/${personId}/deals?status=open&limit=1&sort=add_time DESC`
+    );
+    const id = res.data?.[0]?.id;
+    return typeof id === "number" ? id : null;
+  }
+
+  const meta = await getMeta();
+  const produitKey = meta.dealFields["Produit"];
+  if (!produitKey) {
+    // Champ Produit introuvable : on ne peut pas filtrer de façon fiable.
+    // On préfère NE PAS matcher (un nouveau deal sera créé) plutôt que d'écraser
+    // un deal d'un autre produit.
+    console.warn('[Pipedrive] Champ Deal "Produit" introuvable — findOpenDealForPerson ne peut pas filtrer par produit');
+    return null;
+  }
+
+  const res = await pdGet<{ data?: Array<Record<string, unknown>> | null }>(
+    `/persons/${personId}/deals?status=open&limit=50&sort=add_time DESC`
   );
-  const id = res.data?.[0]?.id;
-  return typeof id === "number" ? id : null;
+  const target = produitValue.trim().toLowerCase();
+  for (const deal of res.data ?? []) {
+    const raw = deal[produitKey];
+    if (raw != null && String(raw).trim().toLowerCase() === target) {
+      const id = deal.id;
+      return typeof id === "number" ? id : null;
+    }
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -231,43 +273,47 @@ export interface PipedriveSyncResult {
   dealId: number;
 }
 
-export async function syncToPipedrive(
-  data: SimulateurData,
-  computed: ComputedResults,
-  otpVerifie: boolean
-): Promise<PipedriveSyncResult> {
+/**
+ * Cœur générique « par produit ».
+ *
+ * Reçoit des mappings {nomLisible: valeur} déjà spécifiques au produit (construits
+ * par les adaptateurs PER/AV), et orchestre : upsert Person par email, puis logique
+ * Deal (réutilisation/déplacement vs création) selon le statut OTP.
+ *
+ * - `personValues` / `dealValues` : champs personnalisés par nom lisible (mappés en
+ *   clés hash via la meta). `dealValues` inclut Produit/Source.
+ * - `filterProduit` : si fourni, `findOpenDealForPerson` ne réutilise qu'un deal du
+ *   MÊME produit (isolation). Laissé à `undefined` pour le PER → comportement
+ *   historique strictement identique.
+ */
+export interface ProductSyncParams {
+  email: string;
+  fullName: string;
+  phone?: string;
+  personValues: Record<string, string | number | null | undefined>;
+  dealValues: Record<string, string | number | null | undefined>;
+  title: string;
+  otpVerifie: boolean;
+  filterProduit?: string;
+}
+
+export async function syncProductToPipedrive(params: ProductSyncParams): Promise<PipedriveSyncResult> {
+  const { email, fullName, phone, personValues, dealValues, title, otpVerifie, filterProduit } = params;
+
   const meta = await getMeta();
   const { pipelineId, stageId } = resolveRouting(meta, otpVerifie);
 
-  const fullName = `${data.prenom ?? ""} ${data.nom ?? ""}`.trim();
-  const phone = formatPhone(data.telephone);
-
   // ── Person ───────────────────────────────────────────────────────────────
-  const personCustom = buildCustomFields(
-    meta.personFields,
-    {
-      LinkedIn: (data as unknown as { linkedin?: string }).linkedin ?? "",
-      "Statut professionnel": data.statutPro ? statutProLabels[data.statutPro] ?? data.statutPro : "",
-      "Statut marital": statutMaritalLabel(data.statut),
-      "Nombre d'enfants": data.nbEnfants,
-      "Année de naissance": parseInt(data.anneeNaissance) || 0,
-      "Salaire mensuel": parseFloat(data.salaireMensuel) || 0,
-      "Revenu imposable": computed.revenuImposable,
-      "Revenu conjoint": data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
-      TMI: computed.tmi,
-      "Âge retraite": computed.ageRetraiteNum,
-    },
-    "Person"
-  );
+  const personCustom = buildCustomFields(meta.personFields, personValues, "Person");
 
   const personPayload: Record<string, unknown> = {
-    name: fullName || data.email,
-    email: [{ value: data.email, primary: true, label: "work" }],
+    name: fullName || email,
+    email: [{ value: email, primary: true, label: "work" }],
     ...(phone ? { phone: [{ value: phone, primary: true, label: "mobile" }] } : {}),
     ...personCustom,
   };
 
-  const existingId = await findPersonByEmail(data.email);
+  const existingId = await findPersonByEmail(email);
   let personId: number;
   if (existingId) {
     const updated = await pdPut<{ data: { id: number } }>(`/persons/${existingId}`, personPayload);
@@ -280,28 +326,7 @@ export async function syncToPipedrive(
   }
 
   // ── Deal ─────────────────────────────────────────────────────────────────
-  const dealCustom = buildCustomFields(
-    meta.dealFields,
-    {
-      "Versement initial": parseFloat(data.versementInitial) || 0,
-      "Versement mensuel": parseFloat(data.versementMensuel) || 0,
-      "Capital projeté": computed.capitalFinal,
-      "Économie fiscale": computed.economieFiscale,
-      "Économie mensuelle": computed.economieMensuelle,
-      "Impôt avant PER": computed.impotAvant,
-      "Impôt après PER": computed.impotApres,
-      "PAS avant PER": computed.pasMensAvant,
-      "PAS après PER": computed.pasMensApres,
-      "Profil investisseur": profilLabels[data.profil] ?? data.profil,
-      Produit: "PER",
-      Objectif: data.objectif ? objectifLabels[data.objectif] ?? data.objectif : "",
-      Source: "Simu-PER",
-      "OTP vérifié": otpVerifie ? "Oui" : "Non",
-    },
-    "Deal"
-  );
-
-  const title = `PER - ${fullName || data.email}`;
+  const dealCustom = buildCustomFields(meta.dealFields, dealValues, "Deal");
 
   let dealId: number;
 
@@ -309,7 +334,7 @@ export async function syncToPipedrive(
   // On le met à jour et on le déplace vers "Leads" / "Tel Validé". Si aucun deal ouvert
   // n'existe (OTP validé avant qu'early-contact ait tourné), on en crée un directement.
   if (otpVerifie) {
-    const existingDealId = await findOpenDealForPerson(personId);
+    const existingDealId = await findOpenDealForPerson(personId, filterProduit);
     if (existingDealId) {
       await pdPut(`/deals/${existingDealId}`, {
         title,
@@ -334,7 +359,7 @@ export async function syncToPipedrive(
     // early-contact (sans OTP) : si un deal ouvert existe déjà (ex. un submit OTP a tourné
     // avant), on NE crée rien et on NE rétrograde pas — un OTP validé ne doit jamais
     // redescendre vers "Leads sans OTP". Sinon, création en "Leads sans OTP" / "Simulation effectuée".
-    const existingDealId = await findOpenDealForPerson(personId);
+    const existingDealId = await findOpenDealForPerson(personId, filterProduit);
     if (existingDealId) {
       dealId = existingDealId;
       console.log(`[Pipedrive] Deal ouvert déjà présent (${dealId}), early-contact ne crée rien et ne rétrograde pas`);
@@ -352,4 +377,108 @@ export async function syncToPipedrive(
   }
 
   return { personId, dealId };
+}
+
+/**
+ * Adaptateur PER — comportement IDENTIQUE à l'historique :
+ *   Produit "PER", Source "Simu-PER", titre "PER - …", pas de filtre produit sur la
+ *   réutilisation de deal (régression PER = zéro).
+ */
+export async function syncToPipedrive(
+  data: SimulateurData,
+  computed: ComputedResults,
+  otpVerifie: boolean
+): Promise<PipedriveSyncResult> {
+  const fullName = `${data.prenom ?? ""} ${data.nom ?? ""}`.trim();
+  const phone = formatPhone(data.telephone);
+
+  return syncProductToPipedrive({
+    email: data.email,
+    fullName,
+    phone: phone || undefined,
+    personValues: {
+      LinkedIn: (data as unknown as { linkedin?: string }).linkedin ?? "",
+      "Statut professionnel": data.statutPro ? statutProLabels[data.statutPro] ?? data.statutPro : "",
+      "Statut marital": statutMaritalLabel(data.statut),
+      "Nombre d'enfants": data.nbEnfants,
+      "Année de naissance": parseInt(data.anneeNaissance) || 0,
+      "Salaire mensuel": parseFloat(data.salaireMensuel) || 0,
+      "Revenu imposable": computed.revenuImposable,
+      "Revenu conjoint": data.revenusConjoint ? (parseFloat(data.revenusConjoint) || 0) * 12 : 0,
+      TMI: computed.tmi,
+      "Âge retraite": computed.ageRetraiteNum,
+    },
+    dealValues: {
+      "Versement initial": parseFloat(data.versementInitial) || 0,
+      "Versement mensuel": parseFloat(data.versementMensuel) || 0,
+      "Capital projeté": computed.capitalFinal,
+      "Économie fiscale": computed.economieFiscale,
+      "Économie mensuelle": computed.economieMensuelle,
+      "Impôt avant PER": computed.impotAvant,
+      "Impôt après PER": computed.impotApres,
+      "PAS avant PER": computed.pasMensAvant,
+      "PAS après PER": computed.pasMensApres,
+      "Profil investisseur": profilLabels[data.profil] ?? data.profil,
+      Produit: "PER",
+      Objectif: data.objectif ? objectifLabels[data.objectif] ?? data.objectif : "",
+      Source: "Simu-PER",
+      "OTP vérifié": otpVerifie ? "Oui" : "Non",
+    },
+    title: `PER - ${fullName || data.email}`,
+    otpVerifie,
+    // Pas de filtre produit : comportement historique PER strictement préservé.
+  });
+}
+
+/**
+ * Adaptateur Assurance-vie.
+ *   Produit "AV", Source "Simu-AV", titre "AV - …", matching de deal FILTRÉ par
+ *   Produit="AV" (n'écrase jamais un deal PER ouvert).
+ *   Person = champs communs uniquement (nom/email/téléphone). Champs deal PER-spécifiques
+ *   laissés vides : on ne renseigne que les champs AV + ceux réutilisés.
+ */
+export interface AVSyncInput {
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  versementInitial: string;
+  versementMensuel: string;
+  dureeAnnees: number;
+  profil: string;
+  marie: boolean | null;
+}
+
+export async function syncAVToPipedrive(
+  data: AVSyncInput,
+  computed: AVComputed,
+  otpVerifie: boolean
+): Promise<PipedriveSyncResult> {
+  const fullName = `${data.prenom ?? ""} ${data.nom ?? ""}`.trim();
+  const phone = formatPhone(data.telephone);
+
+  return syncProductToPipedrive({
+    email: data.email,
+    fullName,
+    phone: phone || undefined,
+    // Person : champs communs uniquement. On laisse vide pour ne pas écraser des
+    // données Person plus riches issues d'un éventuel parcours PER du même contact.
+    personValues: {},
+    dealValues: {
+      "Versement initial": parseFloat(data.versementInitial) || 0,
+      "Versement mensuel": parseFloat(data.versementMensuel) || 0,
+      "Capital projeté": computed.capitalFinalBrut,
+      Horizon: data.dureeAnnees,
+      "Capital net avec": computed.capitalNetAvecCervus,
+      "Capital net sans": computed.capitalNetSansCervus,
+      "Gain net optimisé": computed.gainNetCervus,
+      "Profil investisseur": avProfilLabels[data.profil] ?? data.profil,
+      Produit: "AV",
+      Source: "Simu-AV",
+      "OTP vérifié": otpVerifie ? "Oui" : "Non",
+    },
+    title: `AV - ${fullName || data.email}`,
+    otpVerifie,
+    filterProduit: "AV",
+  });
 }

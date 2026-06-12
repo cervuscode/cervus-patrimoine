@@ -17,6 +17,8 @@ export interface AVFormData {
   otpCode: string;
   otpSent: boolean;
   otpVerified: boolean;
+  consentementRdv: boolean;
+  consentementRgpd: boolean;
 }
 
 export const AV_INITIAL: AVFormData = {
@@ -32,6 +34,8 @@ export const AV_INITIAL: AVFormData = {
   otpCode: "",
   otpSent: false,
   otpVerified: false,
+  consentementRdv: false,
+  consentementRgpd: false,
 };
 
 export const AV_PROFILS: { value: AVProfil; label: string; taux: number }[] = [

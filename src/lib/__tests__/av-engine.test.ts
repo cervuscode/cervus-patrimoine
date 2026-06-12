@@ -83,6 +83,16 @@ describe("av-engine — moteur assurance-vie", () => {
     };
     const res = calculerAV(input);
     printCas("CAS 4", input, res);
+    // Démonstration du prorata 7,5 % / 12,8 % sur les PRIMES (règle officielle).
+    const ratio = Math.max(0, res.primesVerseesTotal - 150000) / res.primesVerseesTotal;
+    /* eslint-disable no-console */
+    console.log(
+      `prorata 150k (avec)     : primes ${res.primesVerseesTotal} € → ` +
+        `${((1 - ratio) * 100).toFixed(1)} % du gain imposable à 7,5 % · ` +
+        `${(ratio * 100).toFixed(1)} % à 12,8 %`
+    );
+    console.log("prorata 150k (sans)     : primes 150 000 € → 100 % à 7,5 % (seuil non dépassé)");
+    /* eslint-enable no-console */
     // Les réinvestissements de purge doivent pousser le total de primes au-delà de 150k.
     expect(res.primesVerseesTotal).toBeGreaterThan(150000);
     expect(Number.isFinite(res.gainNetCervus)).toBe(true);

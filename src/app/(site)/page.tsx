@@ -202,7 +202,7 @@ function ServicesSection() {
 // ─── SECTION 4 — AERIAL IMAGE ──────────────────────────────────────────────────
 function AerialSection() {
   return (
-    <section className="relative h-[70vh] overflow-hidden">
+    <section className="relative h-[220px] sm:h-[300px] lg:h-[340px] overflow-hidden">
       <Image
         src="/images/section-vision-echiquier.png"
         alt=""

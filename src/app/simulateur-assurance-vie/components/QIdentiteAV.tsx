@@ -12,6 +12,10 @@ interface Props {
 export default function QIdentiteAV({ data, onChange, onNext, onPrev }: Props) {
   const valid = data.prenom.trim().length > 0 && data.nom.trim().length > 0;
 
+  function onKey(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && valid) onNext();
+  }
+
   return (
     <div className="flex flex-col gap-8 pt-8">
       <div>
@@ -29,6 +33,7 @@ export default function QIdentiteAV({ data, onChange, onNext, onPrev }: Props) {
           <input
             value={data.prenom}
             onChange={(e) => onChange({ prenom: e.target.value })}
+            onKeyDown={onKey}
             autoFocus
             className="w-full h-12 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
           />
@@ -38,6 +43,7 @@ export default function QIdentiteAV({ data, onChange, onNext, onPrev }: Props) {
           <input
             value={data.nom}
             onChange={(e) => onChange({ nom: e.target.value })}
+            onKeyDown={onKey}
             className="w-full h-12 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 font-inter text-base text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
           />
         </div>

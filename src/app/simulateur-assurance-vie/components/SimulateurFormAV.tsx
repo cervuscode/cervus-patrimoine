@@ -65,25 +65,29 @@ export default function SimulateurFormAV() {
 
   return (
     <div className="flex flex-col gap-0">
-      {/* Indicateur d'étape */}
+      {/* Indicateur d'étape — le libellé n'apparaît qu'une fois l'étape atteinte
+          (on ne dévoile pas "Téléphone" d'emblée). Étapes futures : numéro neutre. */}
       <div className="flex items-center gap-2">
-        {STEP_LABELS.map((label, i) => (
-          <div key={label} className="flex items-center gap-2 flex-1">
-            <div className="flex flex-col gap-1.5 w-full">
-              <div
-                className="h-1 rounded-full transition-colors duration-300"
-                style={{ backgroundColor: i <= step ? "#795D48" : "#D4C9BE" }}
-              />
-              <span
-                className={`font-inter text-[10px] uppercase tracking-wide ${
-                  i === step ? "text-[#795D48] font-medium" : "text-[#555555]/40"
-                }`}
-              >
-                {label}
-              </span>
+        {STEP_LABELS.map((label, i) => {
+          const reached = i <= step;
+          return (
+            <div key={label} className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col gap-1.5 w-full">
+                <div
+                  className="h-1 rounded-full transition-colors duration-300"
+                  style={{ backgroundColor: reached ? "#795D48" : "#D4C9BE" }}
+                />
+                <span
+                  className={`font-inter text-[10px] uppercase tracking-wide ${
+                    i === step ? "text-[#795D48] font-medium" : "text-[#555555]/40"
+                  }`}
+                >
+                  {reached ? label : `Étape ${i + 1}`}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="overflow-hidden">
@@ -97,7 +101,7 @@ export default function SimulateurFormAV() {
             style={{ willChange: "transform, opacity" }}
           >
             {step === 0 && (
-              <QParametresAV data={data} computed={computed} onChange={patch} onNext={() => goTo(1)} />
+              <QParametresAV data={data} onChange={patch} onNext={() => goTo(1)} />
             )}
             {step === 1 && (
               <QIdentiteAV data={data} onChange={patch} onNext={() => goTo(2)} onPrev={() => goTo(0)} />

@@ -22,34 +22,53 @@ function fmt(n: number) {
   return n.toLocaleString("fr-FR");
 }
 
-const MODES_GESTION = [
-  {
-    titre: "Gestion libre",
-    desc: "Vous choisissez et arbitrez vous-même vos supports. Autonomie maximale, mais nécessite du temps et des connaissances.",
-  },
-  {
-    titre: "Gestion pilotée",
-    desc: "L'allocation est déléguée à une équipe selon votre profil de risque. Un équilibre entre délégation et accessibilité.",
-  },
-  {
-    titre: "Gestion sous mandat",
-    desc: "Un mandat de gestion confié à un professionnel qui décide pour vous, dans un cadre défini avec vous.",
-  },
-];
+// Fiscalité de liquidation à une date donnée (miroir du moteur, pour tracer la VALEUR
+// NETTE année par année — sans modifier av-engine). PS 17,2 %, abattement 4 600/9 200,
+// 7,5 %/12,8 % au prorata des primes nettes > 150 000 €.
+function netLiquidatif(valeur: number, base: number, marie: boolean): number {
+  const pv = Math.max(0, valeur - base);
+  const ps = 0.172 * pv;
+  const abat = marie ? 9200 : 4600;
+  const gi = Math.max(0, pv - abat);
+  const ratio = base > 0 ? Math.max(0, base - 150000) / base : 0;
+  const ir = 0.075 * gi * (1 - ratio) + 0.128 * gi * ratio;
+  return valeur - ps - ir;
+}
 
 export default function ResultPageAV({ data, computed }: Props) {
   const reserverUrl = "/reserver";
   const profil = AV_PROFILS.find((p) => p.value === data.profil);
+  const utile = computed.purgeUtile;
 
-  const chartData = computed.courbe.map((pt) => ({
-    annee: pt.annee,
-    sans: pt.capitalSans,
-    avec: pt.capitalAvec,
-  }));
+  // Trajectoire de la VALEUR NETTE (ce que vous toucheriez en sortant chaque année).
+  const initial = parseFloat(data.versementInitial) || 0;
+  const mensuel = parseFloat(data.versementMensuel) || 0;
+  const marie = !!data.marie;
+  const purgeNetByYear: Record<number, number> = {};
+  for (const p of computed.purges) purgeNetByYear[p.annee] = p.partGain - p.psPayes;
+
+  let cumPurge = 0;
+  const chartData = computed.courbe.map((pt) => {
+    cumPurge += purgeNetByYear[pt.annee] ?? 0;
+    const primes = initial + mensuel * 12 * pt.annee;
+    const sans = Math.round(netLiquidatif(pt.capitalSans, primes, marie));
+    const avec = Math.round(netLiquidatif(pt.capitalAvec, primes + cumPurge, marie));
+    return { annee: pt.annee, sans, avec };
+  });
+
+  // Échelle Y resserrée sur les données (jamais à partir de 0 → l'écart reste lisible).
+  const vals = chartData.flatMap((d) => (utile ? [d.sans, d.avec] : [d.sans]));
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.08, hi * 0.02, 500);
+  const yDomain: [number, number] = [
+    Math.max(0, Math.floor((lo - pad) / 1000) * 1000),
+    Math.ceil((hi + pad) / 1000) * 1000,
+  ];
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* Header */}
+    <div className="flex flex-col gap-9">
+      {/* En-tête */}
       <div className="text-center">
         <div className="inline-flex items-center gap-2 bg-cervus-gold/10 border border-cervus-gold/20 rounded-full px-4 py-1.5 mb-6">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -70,52 +89,91 @@ export default function ResultPageAV({ data, computed }: Props) {
         )}
       </div>
 
-      {/* Chiffres clés — comparaison uniquement si la purge est pertinente */}
-      {computed.purgeUtile ? (
+      {/* HERO — chiffre clé */}
+      {utile ? (
+        <div
+          className="relative overflow-hidden rounded-[28px] px-8 py-10 sm:px-12 sm:py-12 text-center shadow-[0_20px_60px_-24px_rgba(93,71,56,0.55)]"
+          style={{ backgroundColor: "#5D4738" }}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden="true"
+            style={{ background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(160,125,98,0.35), transparent 70%)" }}
+          />
+          <div className="relative">
+            <p className="font-inter text-[0.7rem] text-[#EAD9C7] uppercase tracking-[0.2em] mb-4">
+              Gain net avec Cervus Patrimoine
+            </p>
+            <p className="font-cormorant font-semibold text-[#F8F2EA] leading-none" style={{ fontSize: "clamp(3rem, 12vw, 5rem)" }}>
+              +&nbsp;{fmt(computed.gainNetCervus)}&nbsp;€
+            </p>
+            <p className="font-inter text-sm text-[#F2EDE8]/70 mt-5 max-w-md mx-auto">
+              Soit un capital net de <strong className="text-[#F8F2EA]">{fmt(computed.capitalNetAvecCervus)} €</strong> au
+              terme, contre {fmt(computed.capitalNetSansCervus)} € sans accompagnement.
+            </p>
+            <p className="font-inter text-[11px] text-[#F2EDE8]/45 mt-3">
+              Impôt évité ~{fmt(computed.irEvite)} € · coût de la capitalisation avancée ~{fmt(computed.manqueAGagnerCapitalisation)} €
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="relative overflow-hidden rounded-[28px] px-8 py-10 sm:px-12 sm:py-12 text-center shadow-[0_20px_60px_-24px_rgba(93,71,56,0.45)]"
+          style={{ backgroundColor: "#5D4738" }}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden="true"
+            style={{ background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(160,125,98,0.35), transparent 70%)" }}
+          />
+          <div className="relative">
+            <p className="font-inter text-[0.7rem] text-[#EAD9C7] uppercase tracking-[0.2em] mb-4">
+              Votre capital net projeté
+            </p>
+            <p className="font-cormorant font-semibold text-[#F8F2EA] leading-none" style={{ fontSize: "clamp(2.6rem, 11vw, 4.5rem)" }}>
+              {fmt(computed.capitalNetSansCervus)}&nbsp;€
+            </p>
+            <p className="font-inter text-sm text-[#F2EDE8]/70 mt-5 max-w-md mx-auto">
+              au terme, après prélèvements sociaux et impôt — sur la base d&apos;un capital brut de{" "}
+              {fmt(computed.capitalFinalBrut)} €.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Cartes capital */}
+      {utile ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex flex-col gap-2 p-6 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.2)]">
-            <span className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest">
-              Capital final brut
-            </span>
-            <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.6rem, 5vw, 2.2rem)" }}>
-              {fmt(computed.capitalFinalBrut)} €
-            </span>
-            <span className="font-inter text-xs text-cervus-dark/45">avant fiscalité de sortie</span>
-          </div>
-          <div className="flex flex-col gap-2 p-6 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.2)]">
-            <span className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest">
-              Net sans optimisation
-            </span>
-            <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.6rem, 5vw, 2.2rem)" }}>
-              {fmt(computed.capitalNetSansCervus)} €
-            </span>
-            <span className="font-inter text-xs text-cervus-dark/45">après PS + IR au terme</span>
-          </div>
-          <div className="flex flex-col gap-2 p-6 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_8px_30px_-12px_rgba(93,71,56,0.3)]">
-            <span className="font-inter text-[11px] text-cervus-gold uppercase tracking-widest">
-              Net avec optimisation Cervus
-            </span>
-            <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.6rem, 5vw, 2.2rem)" }}>
-              {fmt(computed.capitalNetAvecCervus)} €
-            </span>
-            <span className="font-inter text-xs text-cervus-dark/45">purges réinvesties + fiscalité résiduelle</span>
-          </div>
+          {[
+            { label: "Capital final brut", value: computed.capitalFinalBrut, hint: "avant fiscalité de sortie", strong: false },
+            { label: "Net sans accompagnement", value: computed.capitalNetSansCervus, hint: "après PS + IR", strong: false },
+            { label: "Net avec Cervus Patrimoine", value: computed.capitalNetAvecCervus, hint: "après PS + IR", strong: true },
+          ].map((c) => (
+            <div
+              key={c.label}
+              className={`flex flex-col gap-2 p-6 rounded-3xl shadow-[0_8px_30px_-12px_rgba(93,71,56,0.25)] ${
+                c.strong ? "bg-cervus-cream border-2 border-cervus-gold/45" : "bg-white border border-[#E4DACE]"
+              }`}
+            >
+              <span className="font-inter text-[11px] uppercase tracking-widest text-cervus-gold/80">{c.label}</span>
+              <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.55rem, 5vw, 2.1rem)" }}>
+                {fmt(c.value)} €
+              </span>
+              <span className="font-inter text-xs text-cervus-dark/45">{c.hint}</span>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-2 p-6 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.2)]">
-            <span className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest">
-              Capital final brut
-            </span>
+            <span className="font-inter text-[11px] uppercase tracking-widest text-cervus-gold/80">Capital final brut</span>
             <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.8rem, 6vw, 2.6rem)" }}>
               {fmt(computed.capitalFinalBrut)} €
             </span>
             <span className="font-inter text-xs text-cervus-dark/45">avant fiscalité de sortie</span>
           </div>
-          <div className="flex flex-col gap-2 p-6 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_8px_30px_-12px_rgba(93,71,56,0.3)]">
-            <span className="font-inter text-[11px] text-cervus-gold uppercase tracking-widest">
-              Capital projeté net
-            </span>
+          <div className="flex flex-col gap-2 p-6 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/45 shadow-[0_8px_30px_-12px_rgba(93,71,56,0.3)]">
+            <span className="font-inter text-[11px] uppercase tracking-widest text-cervus-gold/80">Capital projeté net</span>
             <span className="font-cormorant font-semibold text-[#5D4738] leading-[1.05] whitespace-nowrap" style={{ fontSize: "clamp(1.8rem, 6vw, 2.6rem)" }}>
               {fmt(computed.capitalNetSansCervus)} €
             </span>
@@ -124,20 +182,8 @@ export default function ResultPageAV({ data, computed }: Props) {
         </div>
       )}
 
-      {/* Chiffre phare OU message de transparence */}
-      {computed.purgeUtile ? (
-        <div className="flex flex-col items-center text-center gap-2 p-8 rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.25)]">
-          <span className="font-inter text-[11px] text-cervus-gold uppercase tracking-widest">
-            Gain net de la stratégie de purge
-          </span>
-          <span className="font-cormorant text-5xl font-semibold text-[#5D4738] leading-none">
-            + {fmt(computed.gainNetCervus)} €
-          </span>
-          <span className="font-inter text-xs text-cervus-dark/50 mt-1">
-            Impôt évité ~{fmt(computed.irEvite)} € · coût de la capitalisation avancée ~{fmt(computed.manqueAGagnerCapitalisation)} €
-          </span>
-        </div>
-      ) : (
+      {/* Transparence quand l'accompagnement n'apporte pas de gain fiscal significatif */}
+      {!utile && (
         <div className="flex flex-col gap-3 p-6 rounded-2xl border" style={{ backgroundColor: "#EDE5DC", borderColor: "#D4C9BE" }}>
           <div className="flex items-start gap-3">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
@@ -147,51 +193,46 @@ export default function ResultPageAV({ data, computed }: Props) {
             </svg>
             <div>
               <p className="font-inter text-sm font-semibold text-[#5D4738] mb-1">En toute transparence</p>
-              <p className="font-inter text-sm text-[#3a3a3a]/80 leading-relaxed">{computed.messagePurge}</p>
+              <p className="font-inter text-sm text-[#3a3a3a]/80 leading-relaxed">
+                Votre situation ne nécessite pas d&apos;optimisation particulière — c&apos;est précisément
+                le genre de constat que nous validons avec vous, sans jamais vous vendre une stratégie inutile.
+              </p>
             </div>
           </div>
-          <p className="font-inter text-sm text-[#3a3a3a]/75 leading-relaxed ml-9">
-            Votre situation ne nécessite pas de stratégie de purge particulière — c&apos;est précisément
-            le genre de constat que nous validons avec vous, sans vous vendre une optimisation inutile.
-          </p>
         </div>
       )}
 
-      {/* Prélèvements sociaux dus — honnêteté */}
-      {computed.purgeUtile ? (
+      {/* Prélèvements sociaux dus */}
+      {utile ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl border border-[#E4DACE] bg-white">
-            <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">PS — sans optimisation</p>
+            <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">PS — sans accompagnement</p>
             <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">{fmt(computed.totalPSPayes.sansCervus)} €</p>
           </div>
           <div className="p-5 rounded-2xl border border-[#E4DACE] bg-white">
-            <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">PS — avec optimisation</p>
+            <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">PS — avec Cervus Patrimoine</p>
             <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">{fmt(computed.totalPSPayes.avecCervus)} €</p>
           </div>
         </div>
       ) : (
         <div className="p-5 rounded-2xl border border-[#E4DACE] bg-white">
-          <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">
-            Prélèvements sociaux dus au terme
-          </p>
+          <p className="font-inter text-[11px] text-cervus-gold/70 uppercase tracking-widest mb-1">Prélèvements sociaux dus au terme</p>
           <p className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">{fmt(computed.totalPSPayes.sansCervus)} €</p>
         </div>
       )}
 
-      {/* Graphique : deux trajectoires */}
+      {/* Graphique — VALEUR NETTE année par année */}
       {chartData.length > 1 && (
         <div className="flex flex-col gap-4">
           <p className="font-inter text-xs text-cervus-dark/40 uppercase tracking-widest">
-            {computed.purgeUtile
-              ? "Évolution du capital — avec vs sans optimisation"
-              : "Évolution du capital projeté"}
+            {utile ? "Capital net — avec vs sans accompagnement" : "Capital net projeté"}
           </p>
           <div className="h-72 w-full rounded-3xl bg-white border border-[#E4DACE] shadow-[0_8px_30px_-12px_rgba(93,71,56,0.2)] p-5 pl-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="avFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#795D48" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="#795D48" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#795D48" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -204,6 +245,8 @@ export default function ResultPageAV({ data, computed }: Props) {
                   interval="preserveStartEnd"
                 />
                 <YAxis
+                  domain={yDomain}
+                  allowDataOverflow
                   tickFormatter={(v) => `${Math.round(v / 1000)}k`}
                   tick={{ fontSize: 10, fontFamily: "var(--font-inter)", fill: "#b0a090" }}
                   tickLine={false}
@@ -213,11 +256,7 @@ export default function ResultPageAV({ data, computed }: Props) {
                 <Tooltip
                   formatter={(value, name) => [
                     `${fmt(Number(value))} €`,
-                    !computed.purgeUtile
-                      ? "Capital projeté"
-                      : name === "avec"
-                      ? "Avec optimisation"
-                      : "Sans optimisation",
+                    !utile ? "Capital net" : name === "avec" ? "Avec Cervus Patrimoine" : "Sans accompagnement",
                   ]}
                   labelFormatter={(label) => `Année ${label}`}
                   contentStyle={{
@@ -233,21 +272,17 @@ export default function ResultPageAV({ data, computed }: Props) {
                   wrapperStyle={{ fontFamily: "var(--font-inter)", fontSize: 11, paddingTop: 8 }}
                   formatter={(value) => (
                     <span style={{ color: "#5D4738" }}>
-                      {!computed.purgeUtile
-                        ? "Capital projeté"
-                        : value === "avec"
-                        ? "Avec optimisation Cervus"
-                        : "Sans optimisation"}
+                      {!utile ? "Capital net projeté" : value === "avec" ? "Avec Cervus Patrimoine" : "Sans accompagnement"}
                     </span>
                   )}
                 />
-                {computed.purgeUtile && (
+                {utile && (
                   <Area
                     type="monotone"
                     dataKey="sans"
                     stroke="#b0a090"
                     strokeWidth={1.5}
-                    strokeDasharray="4 3"
+                    strokeDasharray="5 4"
                     fill="none"
                     dot={false}
                     activeDot={{ r: 3, fill: "#b0a090" }}
@@ -257,7 +292,7 @@ export default function ResultPageAV({ data, computed }: Props) {
                   type="monotone"
                   dataKey="avec"
                   stroke="#5D4738"
-                  strokeWidth={2.5}
+                  strokeWidth={2.8}
                   fill="url(#avFill)"
                   dot={false}
                   activeDot={{ r: 4, fill: "#5D4738" }}
@@ -265,29 +300,14 @@ export default function ResultPageAV({ data, computed }: Props) {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+          {utile && (
+            <p className="font-inter text-[11px] text-cervus-dark/45">
+              Valeur nette si vous sortiez à chaque date (après PS et impôt). L&apos;écart se creuse
+              grâce à notre accompagnement.
+            </p>
+          )}
         </div>
       )}
-
-      {/* Encadré pédagogique : modes de gestion */}
-      <div className="flex flex-col gap-4 p-6 sm:p-8 rounded-3xl border border-[#D4C9BE]" style={{ backgroundColor: "#EDE8E3" }}>
-        <div>
-          <p className="font-inter text-[11px] text-cervus-gold uppercase tracking-widest mb-1">Le point clé</p>
-          <h3 className="font-cormorant text-2xl font-semibold text-[#0f0f0f]">Le mode de gestion est central</h3>
-          <p className="font-inter text-sm text-[#3a3a3a]/75 leading-relaxed mt-2">
-            Au-delà du contrat lui-même, c&apos;est le mode de gestion qui façonne la performance et le
-            risque réels de votre assurance-vie. Voici les trois grandes approches — sans qu&apos;aucune
-            ne soit recommandée ici : ce choix se fait avec un conseiller, selon votre situation.
-          </p>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {MODES_GESTION.map((m) => (
-            <div key={m.titre} className="rounded-2xl border border-[#D4C9BE] p-4" style={{ backgroundColor: "#F2EDE8" }}>
-              <p className="font-cormorant text-lg font-semibold text-[#0f0f0f] mb-1">{m.titre}</p>
-              <p className="font-inter text-xs text-[#3a3a3a]/70 leading-relaxed">{m.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* CTA final */}
       <div className="flex flex-col items-center text-center gap-5 p-8 sm:p-10 rounded-3xl bg-cervus-cream border-2 border-cervus-gold/40 shadow-[0_10px_40px_-14px_rgba(93,71,56,0.35)]">

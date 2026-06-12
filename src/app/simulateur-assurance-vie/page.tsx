@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Simulation Assurance-vie — Capital projeté & gestion optimisée",
     description:
-      "Estimez votre capital et l'intérêt d'une purge optimisée des plus-values, en toute transparence.",
+      "Estimez votre capital et l'intérêt d'une gestion optimisée, en toute transparence.",
     type: "website",
   },
 };
@@ -57,7 +57,7 @@ const resultats = [
   },
   {
     title: "Net avec vs sans optimisation",
-    desc: "La comparaison claire de votre capital après fiscalité, avec et sans purge optimisée des plus-values.",
+    desc: "La comparaison claire de votre capital après fiscalité, avec et sans l'accompagnement Cervus Patrimoine.",
   },
   {
     title: "Le gain réel de l'optimisation",

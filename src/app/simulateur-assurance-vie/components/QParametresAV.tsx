@@ -1,17 +1,11 @@
 "use client";
 
 import { AVFormData, AV_PROFILS } from "../types";
-import type { AVComputed } from "@/lib/av-engine";
 
 interface Props {
   data: AVFormData;
-  computed: AVComputed | null; // aperçu live (null si saisie incomplète)
   onChange: (p: Partial<AVFormData>) => void;
   onNext: () => void;
-}
-
-function fmt(n: number) {
-  return n.toLocaleString("fr-FR");
 }
 
 function NumberField({
@@ -19,11 +13,13 @@ function NumberField({
   hint,
   value,
   onChange,
+  onEnter,
 }: {
   label: string;
   hint: string;
   value: string;
   onChange: (v: string) => void;
+  onEnter: () => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -35,6 +31,7 @@ function NumberField({
           min="0"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onEnter()}
           placeholder="0"
           className="w-full h-11 border border-[#D4C9BE] rounded-xl bg-[#F2EDE8] px-4 pr-10 font-inter text-sm text-[#0f0f0f] focus:outline-none focus:border-[#795D48] transition-colors"
         />
@@ -44,12 +41,16 @@ function NumberField({
   );
 }
 
-export default function QParametresAV({ data, computed, onChange, onNext }: Props) {
+export default function QParametresAV({ data, onChange, onNext }: Props) {
   const initial = parseFloat(data.versementInitial) || 0;
   const mensuel = parseFloat(data.versementMensuel) || 0;
   const auMoinsUnVersement = initial > 0 || mensuel > 0;
   const situationOk = data.marie !== null;
   const canContinue = auMoinsUnVersement && situationOk && data.dureeAnnees > 0;
+
+  function tryContinue() {
+    if (canContinue) onNext();
+  }
 
   return (
     <div className="flex flex-col gap-8 pt-8">
@@ -69,12 +70,14 @@ export default function QParametresAV({ data, computed, onChange, onNext }: Prop
           hint="Apport de départ (optionnel)"
           value={data.versementInitial}
           onChange={(v) => onChange({ versementInitial: v })}
+          onEnter={tryContinue}
         />
         <NumberField
           label="Versement mensuel"
           hint="Épargne chaque mois (optionnel)"
           value={data.versementMensuel}
           onChange={(v) => onChange({ versementMensuel: v })}
+          onEnter={tryContinue}
         />
       </div>
       {!auMoinsUnVersement && (
@@ -96,7 +99,7 @@ export default function QParametresAV({ data, computed, onChange, onNext }: Prop
         <input
           type="range"
           min={2}
-          max={30}
+          max={40}
           step={1}
           value={data.dureeAnnees}
           onChange={(e) => onChange({ dureeAnnees: parseInt(e.target.value) })}
@@ -104,7 +107,7 @@ export default function QParametresAV({ data, computed, onChange, onNext }: Prop
         />
         <div className="flex justify-between font-inter text-[10px] text-[#555555]/40">
           <span>2 ans</span>
-          <span>30 ans</span>
+          <span>40 ans</span>
         </div>
       </div>
 
@@ -171,31 +174,6 @@ export default function QParametresAV({ data, computed, onChange, onNext }: Prop
           })}
         </div>
       </div>
-
-      {/* Aperçu live */}
-      {computed && canContinue && (
-        <div className="rounded-2xl border border-[#D4C9BE] p-5" style={{ backgroundColor: "#EDE8E3" }}>
-          <p className="font-inter text-[10px] text-[#795D48] uppercase tracking-[0.12em] mb-3">
-            Aperçu — capital projeté au terme
-          </p>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="font-cormorant text-4xl font-semibold text-[#5D4738] leading-none">
-                {fmt(computed.capitalFinalBrut)} €
-              </p>
-              <p className="font-inter text-xs text-[#3a3a3a]/55 mt-1">
-                valeur brute avant fiscalité de sortie
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-inter text-[11px] text-[#795D48] uppercase tracking-wide">Net estimé</p>
-              <p className="font-cormorant text-xl font-semibold text-[#0f0f0f] leading-none">
-                {fmt(computed.capitalNetSansCervus)} €
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* CTA */}
       <button

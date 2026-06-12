@@ -134,7 +134,7 @@ export default function ResultPageAV({ data, computed }: Props) {
             + {fmt(computed.gainNetCervus)} €
           </span>
           <span className="font-inter text-xs text-cervus-dark/50 mt-1">
-            IR évité {fmt(computed.irEvite)} € − manque à gagner de capitalisation {fmt(computed.manqueAGagnerCapitalisation)} €
+            Impôt évité ~{fmt(computed.irEvite)} € · coût de la capitalisation avancée ~{fmt(computed.manqueAGagnerCapitalisation)} €
           </span>
         </div>
       ) : (

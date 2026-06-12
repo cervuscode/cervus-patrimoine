@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { renderToBuffer } from "@react-pdf/renderer";
+import React from "react";
+import PdfDocumentAV from "./PdfDocumentAV";
 import { syncAVToPipedrive } from "@/lib/pipedrive";
 import type { AVComputed } from "@/lib/av-engine";
 
@@ -75,6 +78,33 @@ async function syncPipedriveSafe(data: AVData, computed: AVComputed, otpVerifie:
   }
 }
 
+// Génère le PDF AV et le renvoie en base64 pur. Calqué sur le PER (submit/route.ts) :
+// renderToBuffer → toString("base64") → strip défensif du préfixe data:. En cas
+// d'erreur de rendu, on renvoie "" pour ne pas bloquer l'envoi Make / CRM.
+async function renderAVPdfBase64(data: AVData, computed: AVComputed): Promise<string> {
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await renderToBuffer(
+      // @ts-expect-error — react-pdf types differ from React's generic ReactElement
+      React.createElement(PdfDocumentAV, { data, computed })
+    ) as Buffer;
+  } catch (renderErr: unknown) {
+    console.error("[submit-av] renderToBuffer ERREUR:", renderErr instanceof Error ? renderErr.message : renderErr);
+    return "";
+  }
+  const byteSize = pdfBuffer.byteLength ?? (pdfBuffer as Buffer).length;
+  const magicOk = pdfBuffer[0] === 0x25 && pdfBuffer[1] === 0x50 && pdfBuffer[2] === 0x44 && pdfBuffer[3] === 0x46;
+  if (byteSize < 5000) {
+    console.error(`[submit-av] PDF SUSPECT — taille ${byteSize} octets (< 5000), PDF probablement vide ou tronqué`);
+  }
+  if (!magicOk) {
+    console.error(`[submit-av] PDF SUSPECT — magic bytes invalides, premiers bytes: ${Array.from(pdfBuffer.slice(0, 4)).map(b => b.toString(16).padStart(2, "0")).join(" ")}`);
+  }
+  const pdfBase64 = pdfBuffer.toString("base64").replace(/^data:[^;]+;base64,/, "");
+  console.log(`[submit-av] PDF généré — ${byteSize} octets, magic %PDF: ${magicOk ? "OK" : "INVALIDE"}, base64 ${pdfBase64.length} chars`);
+  return pdfBase64;
+}
+
 async function sendMakeWebhook(data: AVData, computed: AVComputed) {
   // Scénario Make DÉDIÉ AV (isolé du PER) → MAKE_WEBHOOK_URL_AV
   const webhookUrl = process.env.MAKE_WEBHOOK_URL_AV;
@@ -83,8 +113,9 @@ async function sendMakeWebhook(data: AVData, computed: AVComputed) {
     return;
   }
   const date = new Date().toISOString().slice(0, 10);
+  // PDF AV inline base64 (comme le PER), joint au payload Make.
+  const pdfBase64 = await renderAVPdfBase64(data, computed);
   try {
-    // AV SANS pièce jointe PDF.
     const payload = {
       produit: "AV",
       type: "otp_valide",
@@ -92,6 +123,7 @@ async function sendMakeWebhook(data: AVData, computed: AVComputed) {
       prenom: data.prenom,
       nom: data.nom,
       telephone: data.telephone ? formatPhoneForBrevo(data.telephone) : "",
+      pdf: pdfBase64,
       nom_fichier: `simulation-assurance-vie-${(data.prenom || "client").toLowerCase()}-${date}.pdf`,
       capital_brut: computed.capitalFinalBrut,
       capital_net_sans: computed.capitalNetSansCervus,
@@ -103,7 +135,10 @@ async function sendMakeWebhook(data: AVData, computed: AVComputed) {
       profil_investisseur: avProfilLabels[data.profil] ?? data.profil,
       situation: situationLabel(data.marie),
     };
-    console.log("[Make] Payload AV otp_valide:", JSON.stringify(payload));
+    const { pdf: _pdf, ...payloadSansPdf } = payload;
+    void _pdf;
+    console.log("[Make] Payload AV otp_valide (hors PDF):", JSON.stringify(payloadSansPdf));
+    console.log(`[Make] Envoi AV otp_valide — PDF inclus: ${pdfBase64.length > 0}, taille base64: ${pdfBase64.length} chars`);
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

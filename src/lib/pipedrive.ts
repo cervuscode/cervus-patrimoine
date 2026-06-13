@@ -221,33 +221,26 @@ async function findPersonByEmail(email: string): Promise<number | null> {
   return typeof id === "number" ? id : null;
 }
 
-// Cherche un deal OUVERT déjà rattaché à la Person (créé par early-contact en amont).
-// Évite de créer un doublon lors de la validation OTP.
+// Cherche le deal OUVERT le plus récent rattaché à la Person ET portant le même
+// `Produit` (champ custom). Sert à réutiliser le deal créé par early-contact lors de
+// la validation OTP, sans créer de doublon.
 //
-// - Sans `produitValue` : comportement historique (PER) — le deal ouvert le plus
-//   récent, tous produits confondus.
-// - Avec `produitValue` : on ne retient que le deal ouvert le plus récent dont le
-//   champ personnalisé `Produit` correspond (comparaison insensible à la casse/espaces).
-//   Permet d'isoler les produits (une simu AV ne « vole » pas le deal PER ouvert).
-export async function findOpenDealForPerson(
+// INVARIANT « par produit » : le matching se fait TOUJOURS par personne + produit,
+// jamais par personne seule. Une personne peut avoir simultanément un deal PER ouvert
+// ET un deal AV ouvert ; on ne réutilise/déplace JAMAIS le deal d'un autre produit
+// (sinon on écraserait ses données). Comparaison insensible à la casse / aux espaces.
+//
+// Renvoie null (→ un nouveau deal sera créé) si aucun deal ouvert du produit n'existe,
+// ou si le champ `Produit` est introuvable côté Pipedrive : on préfère créer un deal
+// plutôt que risquer d'écraser celui d'un autre produit.
+export async function findOpenDealForPersonAndProduct(
   personId: number,
-  produitValue?: string
+  produitValue: string
 ): Promise<number | null> {
-  if (!produitValue) {
-    const res = await pdGet<{ data?: Array<{ id?: number }> | null }>(
-      `/persons/${personId}/deals?status=open&limit=1&sort=add_time DESC`
-    );
-    const id = res.data?.[0]?.id;
-    return typeof id === "number" ? id : null;
-  }
-
   const meta = await getMeta();
   const produitKey = meta.dealFields["Produit"];
   if (!produitKey) {
-    // Champ Produit introuvable : on ne peut pas filtrer de façon fiable.
-    // On préfère NE PAS matcher (un nouveau deal sera créé) plutôt que d'écraser
-    // un deal d'un autre produit.
-    console.warn('[Pipedrive] Champ Deal "Produit" introuvable — findOpenDealForPerson ne peut pas filtrer par produit');
+    console.warn('[Pipedrive] Champ Deal "Produit" introuvable — findOpenDealForPersonAndProduct ne peut pas filtrer par produit');
     return null;
   }
 
@@ -282,9 +275,9 @@ export interface PipedriveSyncResult {
  *
  * - `personValues` / `dealValues` : champs personnalisés par nom lisible (mappés en
  *   clés hash via la meta). `dealValues` inclut Produit/Source.
- * - `filterProduit` : si fourni, `findOpenDealForPerson` ne réutilise qu'un deal du
- *   MÊME produit (isolation). Laissé à `undefined` pour le PER → comportement
- *   historique strictement identique.
+ * - `produit` : OBLIGATOIRE. La réutilisation de deal est TOUJOURS filtrée par ce
+ *   produit (`findOpenDealForPersonAndProduct`) : on n'écrase/déplace jamais le deal
+ *   d'un autre produit. Doit correspondre à la valeur `Produit` mise dans `dealValues`.
  */
 export interface ProductSyncParams {
   email: string;
@@ -294,11 +287,11 @@ export interface ProductSyncParams {
   dealValues: Record<string, string | number | null | undefined>;
   title: string;
   otpVerifie: boolean;
-  filterProduit?: string;
+  produit: string;
 }
 
 export async function syncProductToPipedrive(params: ProductSyncParams): Promise<PipedriveSyncResult> {
-  const { email, fullName, phone, personValues, dealValues, title, otpVerifie, filterProduit } = params;
+  const { email, fullName, phone, personValues, dealValues, title, otpVerifie, produit } = params;
 
   const meta = await getMeta();
   const { pipelineId, stageId } = resolveRouting(meta, otpVerifie);
@@ -334,7 +327,7 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
   // On le met à jour et on le déplace vers "Leads" / "Tel Validé". Si aucun deal ouvert
   // n'existe (OTP validé avant qu'early-contact ait tourné), on en crée un directement.
   if (otpVerifie) {
-    const existingDealId = await findOpenDealForPerson(personId, filterProduit);
+    const existingDealId = await findOpenDealForPersonAndProduct(personId, produit);
     if (existingDealId) {
       await pdPut(`/deals/${existingDealId}`, {
         title,
@@ -359,7 +352,7 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
     // early-contact (sans OTP) : si un deal ouvert existe déjà (ex. un submit OTP a tourné
     // avant), on NE crée rien et on NE rétrograde pas — un OTP validé ne doit jamais
     // redescendre vers "Leads sans OTP". Sinon, création en "Leads sans OTP" / "Simulation effectuée".
-    const existingDealId = await findOpenDealForPerson(personId, filterProduit);
+    const existingDealId = await findOpenDealForPersonAndProduct(personId, produit);
     if (existingDealId) {
       dealId = existingDealId;
       console.log(`[Pipedrive] Deal ouvert déjà présent (${dealId}), early-contact ne crée rien et ne rétrograde pas`);
@@ -380,9 +373,9 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
 }
 
 /**
- * Adaptateur PER — comportement IDENTIQUE à l'historique :
- *   Produit "PER", Source "Simu-PER", titre "PER - …", pas de filtre produit sur la
- *   réutilisation de deal (régression PER = zéro).
+ * Adaptateur PER :
+ *   Produit "PER", Source "Simu-PER", titre "PER - …", matching de deal FILTRÉ par
+ *   Produit="PER" (n'écrase jamais un deal AV ouvert du même contact).
  */
 export async function syncToPipedrive(
   data: SimulateurData,
@@ -426,7 +419,7 @@ export async function syncToPipedrive(
     },
     title: `PER - ${fullName || data.email}`,
     otpVerifie,
-    // Pas de filtre produit : comportement historique PER strictement préservé.
+    produit: "PER",
   });
 }
 
@@ -479,6 +472,6 @@ export async function syncAVToPipedrive(
     },
     title: `AV - ${fullName || data.email}`,
     otpVerifie,
-    filterProduit: "AV",
+    produit: "AV",
   });
 }

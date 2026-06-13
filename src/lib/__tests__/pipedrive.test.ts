@@ -2,10 +2,10 @@
  * Tests de NON-RÉGRESSION pour la généralisation « par produit » de pipedrive.ts.
  *
  * On mocke `global.fetch` et on route les réponses par URL afin de vérifier :
- *  - findOpenDealForPerson sans produit = comportement historique (1er deal ouvert) ;
- *  - findOpenDealForPerson("PER") ignore un deal Produit="AV", et inversement ;
+ *  - findOpenDealForPersonAndProduct("PER") ignore un deal Produit="AV", et inversement ;
+ *  - aucun deal du produit ouvert → null (un nouveau deal sera créé) ;
  *  - le wrapper PER `syncToPipedrive` produit toujours Produit:"PER" / Source:"Simu-PER"
- *    / titre "PER - …" et ne filtre PAS par produit (réutilisation de deal inchangée).
+ *    / titre "PER - …" et matche le deal en filtrant par Produit="PER" (jamais un deal AV).
  */
 import type { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 
@@ -163,45 +163,43 @@ function makeComputed(): ComputedResults {
   };
 }
 
-describe("findOpenDealForPerson", () => {
-  test("sans produit → comportement historique (1er deal ouvert, limit=1)", async () => {
-    const { findOpenDealForPerson } = await import("@/lib/pipedrive");
-    installFetchMock({ dealsLimit1: [{ id: 111 }] });
-    const id = await findOpenDealForPerson(42);
-    expect(id).toBe(111);
-    // On a bien interrogé la version historique (limit=1), pas la version filtrée.
-    expect(calls.some((c) => c.path === "/persons/42/deals")).toBe(true);
-  });
-
-  test('avec "PER" → ignore un deal Produit="AV" et retient le deal PER', async () => {
-    const { findOpenDealForPerson } = await import("@/lib/pipedrive");
+describe("findOpenDealForPersonAndProduct", () => {
+  test('"PER" → ignore un deal Produit="AV" et retient le deal PER', async () => {
+    const { findOpenDealForPersonAndProduct } = await import("@/lib/pipedrive");
     installFetchMock({
       dealsLimit50: [
         { id: 201, [PROD_KEY]: "AV" },
         { id: 202, [PROD_KEY]: "PER" },
       ],
     });
-    const id = await findOpenDealForPerson(42, "PER");
+    const id = await findOpenDealForPersonAndProduct(42, "PER");
     expect(id).toBe(202);
   });
 
-  test('avec "AV" → ignore un deal Produit="PER" et retient le deal AV', async () => {
-    const { findOpenDealForPerson } = await import("@/lib/pipedrive");
+  test('"AV" → ignore un deal Produit="PER" et retient le deal AV', async () => {
+    const { findOpenDealForPersonAndProduct } = await import("@/lib/pipedrive");
     installFetchMock({
       dealsLimit50: [
         { id: 201, [PROD_KEY]: "PER" },
         { id: 202, [PROD_KEY]: "AV" },
       ],
     });
-    const id = await findOpenDealForPerson(42, "AV");
+    const id = await findOpenDealForPersonAndProduct(42, "AV");
     expect(id).toBe(202);
   });
 
-  test("avec produit mais aucun deal du produit → null (nouveau deal sera créé)", async () => {
-    const { findOpenDealForPerson } = await import("@/lib/pipedrive");
+  test("aucun deal du produit ouvert → null (nouveau deal sera créé)", async () => {
+    const { findOpenDealForPersonAndProduct } = await import("@/lib/pipedrive");
     installFetchMock({ dealsLimit50: [{ id: 201, [PROD_KEY]: "PER" }] });
-    const id = await findOpenDealForPerson(42, "AV");
+    const id = await findOpenDealForPersonAndProduct(42, "AV");
     expect(id).toBeNull();
+  });
+
+  test("comparaison normalisée (espaces / casse)", async () => {
+    const { findOpenDealForPersonAndProduct } = await import("@/lib/pipedrive");
+    installFetchMock({ dealsLimit50: [{ id: 303, [PROD_KEY]: "  per  " }] });
+    const id = await findOpenDealForPersonAndProduct(42, "PER");
+    expect(id).toBe(303);
   });
 });
 
@@ -223,7 +221,26 @@ describe("syncToPipedrive (wrapper PER) — non-régression", () => {
     expect(dealPost!.body!.pipeline_id).toBe(1);
     expect(dealPost!.body!.stage_id).toBe(10);
 
-    // Le wrapper PER ne filtre PAS par produit → recherche de deal historique (limit=1).
+    // Le wrapper PER interroge bien les deals de la Person pour filtrer par produit.
     expect(calls.some((c) => c.path === "/persons/500/deals")).toBe(true);
+  });
+
+  test("ne réutilise PAS un deal AV ouvert → crée un nouveau deal PER (fix dédup)", async () => {
+    const { syncToPipedrive } = await import("@/lib/pipedrive");
+    // La personne a déjà un deal AV ouvert (id 777). Une simu PER ne doit PAS le
+    // réutiliser/écraser : elle crée un nouveau deal PER.
+    installFetchMock({
+      existingPersonId: 500,
+      dealsLimit50: [{ id: 777, [PROD_KEY]: "AV" }],
+    });
+
+    const res = await syncToPipedrive(makePerData(), makeComputed(), true);
+    expect(res.dealId).toBe(900); // nouveau deal (POST), pas le 777 réutilisé
+
+    const dealPost = calls.find((c) => c.path === "/deals" && c.method === "POST");
+    expect(dealPost).toBeDefined();
+    expect(dealPost!.body![PROD_KEY]).toBe("PER");
+    // Aucun PUT sur le deal AV existant : on ne l'a pas touché.
+    expect(calls.some((c) => c.path === "/deals/777" && c.method === "PUT")).toBe(false);
   });
 });

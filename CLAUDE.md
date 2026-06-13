@@ -50,8 +50,8 @@ Page hébergeant le **Pipedrive Scheduler** (iframe, `SchedulerPipedrive.tsx`). 
 
 ## Pipedrive (`src/lib/pipedrive.ts`) — généralisé "par produit"
 - Clés de champs custom résolues dynamiquement par nom (pas de hash en dur), cache 10 min.
-- Cœur générique `syncProductToPipedrive` ; `syncToPipedrive` (wrapper PER, inchangé) et `syncAVToPipedrive` (Produit "AV", Source "Simu-AV", titre "AV - …", champs deal AV : Horizon, Capital net avec/sans, Gain net optimisé + réutilisés Versement initial/mensuel, Capital projeté).
-- `findOpenDealForPerson(personId, produitValue?)` : sans arg = historique PER ; avec arg = filtre sur le champ texte **`Produit`** (n'écrase jamais un deal d'un autre produit).
+- Cœur générique `syncProductToPipedrive` (param `produit` obligatoire) ; `syncToPipedrive` (wrapper PER : Produit "PER", Source "Simu-PER", titre "PER - …") et `syncAVToPipedrive` (Produit "AV", Source "Simu-AV", titre "AV - …", champs deal AV : Horizon, Capital net avec/sans, Gain net optimisé + réutilisés Versement initial/mensuel, Capital projeté).
+- **Matching deal par PERSONNE + PRODUIT** (`findOpenDealForPersonAndProduct(personId, produit)`, produit OBLIGATOIRE) : filtre sur le champ texte **`Produit`** (comparaison trim+casse). On ne réutilise/déplace JAMAIS le deal d'un autre produit, on n'écrase JAMAIS son `Produit`. Une personne peut avoir un deal PER ouvert ET un deal AV ouvert simultanément. Les deux wrappers passent `produit` : `syncToPipedrive`→"PER", `syncAVToPipedrive`→"AV". Si aucun deal ouvert du produit (ou champ `Produit` introuvable) → création d'un nouveau deal.
 - Routing pipeline selon OTP (commun PER/AV) : `Leads`/`Tel Validé` (OTP) vs `Leads sans OTP`/`Simulation effectuée`. Person = champs communs ; Deal = champs spécifiques produit.
 
 ## Brevo & Make

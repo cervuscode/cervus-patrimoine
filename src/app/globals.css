@@ -32,3 +32,37 @@
   from { opacity: 0; transform: translateY(-28px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Sliders du simulateur d'intérêts composés (charte Cervus) ───────────── */
+.cervus-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+.cervus-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #795d48;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(93, 71, 56, 0.4);
+  cursor: pointer;
+}
+.cervus-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #795d48;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(93, 71, 56, 0.4);
+  cursor: pointer;
+}
+.cervus-range::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+}

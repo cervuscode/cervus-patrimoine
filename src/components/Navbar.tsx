@@ -16,6 +16,7 @@ const navLinks = [
 const simulatorOptions = [
   { label: "Simulateur PER", href: "/simulateur-per" },
   { label: "Simulateur Assurance-vie", href: "/simulateur-assurance-vie" },
+  { label: "Calcul intérêts composés", href: "/simulateur-interets-composes" },
 ];
 
 export default function Navbar() {

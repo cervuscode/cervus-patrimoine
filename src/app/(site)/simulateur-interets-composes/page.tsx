@@ -92,12 +92,12 @@ export default function SimulateurInteretsComposesPage() {
 
         {/* ── CTA DE CONVERSION (juste sous le simulateur) ─────────────── */}
         <section className="mt-12 sm:mt-16">
-          <div className="rounded-3xl bg-[#0f0f0f] text-white p-8 sm:p-10 flex flex-col items-start gap-5">
+          <div className="rounded-3xl bg-[#5D4738] text-white p-8 sm:p-10 flex flex-col items-start gap-5">
             <div>
               <h2 className="font-cormorant text-2xl sm:text-3xl font-light leading-snug">
                 Et si vous optimisiez aussi votre fiscalité ?
               </h2>
-              <p className="font-inter text-white/65 text-base mt-3 max-w-2xl leading-relaxed">
+              <p className="font-inter text-white/70 text-base mt-3 max-w-2xl leading-relaxed">
                 Les intérêts composés font croître votre épargne — la fiscalité
                 décide de ce qu&apos;il vous en reste. Découvrez combien un plan
                 d&apos;épargne retraite pourrait réduire votre impôt, chiffres à
@@ -106,13 +106,13 @@ export default function SimulateurInteretsComposesPage() {
             </div>
             <Link
               href="/simulateur-per"
-              className="px-7 py-3.5 bg-[#795D48] hover:bg-[#6a5040] text-white font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] transition-colors"
+              className="px-7 py-3.5 bg-cervus-bronze hover:bg-white text-[#5D4738] font-inter text-sm font-medium tracking-[0.03em] rounded-[50px] transition-colors"
             >
               Simuler mon PER
             </Link>
             <Link
               href="/reserver"
-              className="font-inter text-sm text-white/55 hover:text-white/90 underline underline-offset-4 transition-colors"
+              className="font-inter text-sm text-white/60 hover:text-white underline underline-offset-4 transition-colors"
             >
               ou prendre rendez-vous avec un conseiller
             </Link>

@@ -22,9 +22,54 @@ function fmtEur(n: number): string {
   return Math.round(n).toLocaleString("fr-FR") + " €";
 }
 
+// ── Échelle non-linéaire (optionnelle) ─────────────────────────────────────────
+// Pour les montants (capital, versement), on veut que la « zone de confort » (les
+// valeurs courantes, ~90 % des cas) occupe la MAJEURE partie du slider, et que le
+// dernier quart monte de façon exponentielle (géométrique) jusqu'à des extrêmes
+// (5 M€, 10 000 €/mois) qu'on peut atteindre par curiosité. On mappe donc la
+// position du slider (fraction 0→1) vers la valeur via deux segments :
+//   • [0 → comfortFrac]  : linéaire de min à comfortMax (bonne résolution courante)
+//   • [comfortFrac → 1]  : géométrique de comfortMax à max (rampe exponentielle)
+interface Scale {
+  comfortMax: number; // valeur atteinte au point de bascule
+  comfortFrac: number; // position (0→1) du point de bascule, ex. 0,75 = dernier quart
+  snap: (v: number) => number; // arrondi « propre » selon l'ordre de grandeur
+}
+
+const POS_STEPS = 1000; // granularité interne de la position du slider
+
+function posToValue(pos: number, min: number, max: number, sc: Scale): number {
+  if (pos <= sc.comfortFrac) {
+    return min + (pos / sc.comfortFrac) * (sc.comfortMax - min); // linéaire
+  }
+  const t = (pos - sc.comfortFrac) / (1 - sc.comfortFrac); // 0→1 sur le dernier segment
+  return sc.comfortMax * Math.pow(max / sc.comfortMax, t); // géométrique
+}
+
+function valueToPos(value: number, min: number, max: number, sc: Scale): number {
+  const v = Math.min(max, Math.max(min, value));
+  if (v <= sc.comfortMax) {
+    const lin = sc.comfortMax - min;
+    return lin > 0 ? ((v - min) / lin) * sc.comfortFrac : 0;
+  }
+  const t = Math.log(v / sc.comfortMax) / Math.log(max / sc.comfortMax);
+  return sc.comfortFrac + t * (1 - sc.comfortFrac);
+}
+
+// Arrondi « propre » des montants en euros selon l'ordre de grandeur, pour que le
+// déplacement du slider produise des valeurs lisibles (pas 4 873 €).
+function snapEur(v: number): number {
+  if (v < 1000) return Math.round(v / 10) * 10;
+  if (v < 10000) return Math.round(v / 50) * 50;
+  if (v < 100000) return Math.round(v / 500) * 500;
+  if (v < 1000000) return Math.round(v / 1000) * 1000;
+  return Math.round(v / 10000) * 10000;
+}
+
 // ── Slider avec saisie manuelle au clic sur la valeur ──────────────────────────
 // Tous les paramètres réutilisent ce composant : la valeur affichée à droite du
 // libellé est cliquable → devient un <input> éditable, puis le slider se cale.
+// `scale` (optionnel) active l'échelle non-linéaire décrite ci-dessus.
 interface SliderInputProps {
   label: string;
   value: number;
@@ -34,6 +79,7 @@ interface SliderInputProps {
   step: number;
   suffix?: string;
   format?: (v: number) => string;
+  scale?: Scale;
 }
 
 function SliderInput({
@@ -45,6 +91,7 @@ function SliderInput({
   step,
   suffix,
   format,
+  scale,
 }: SliderInputProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -63,8 +110,28 @@ function SliderInput({
   };
 
   const display = format ? format(value) : `${value}${suffix ?? ""}`;
+
+  // Paramètres du <input type="range"> : en mode `scale`, le slider travaille en
+  // espace de position (0→POS_STEPS) puis on convertit en valeur via l'échelle.
+  const rangeMin = scale ? 0 : min;
+  const rangeMax = scale ? POS_STEPS : max;
+  const rangeStep = scale ? 1 : step;
+  const rangeValue = scale
+    ? Math.round(valueToPos(value, min, max, scale) * POS_STEPS)
+    : clamp(value);
+  const handleRange = (raw: number) => {
+    if (scale) {
+      const pos = raw / POS_STEPS;
+      onChange(clamp(scale.snap(posToValue(pos, min, max, scale))));
+    } else {
+      onChange(raw);
+    }
+  };
+
   // Position de la pastille (%) pour styliser la piste remplie.
-  const pct = ((value - min) / (max - min)) * 100;
+  const pct = scale
+    ? (rangeValue / POS_STEPS) * 100
+    : ((clamp(value) - min) / (max - min)) * 100;
 
   return (
     <div className="flex flex-col gap-2">
@@ -101,11 +168,11 @@ function SliderInput({
       </div>
       <input
         type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={Math.min(max, Math.max(min, value))}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
+        min={rangeMin}
+        max={rangeMax}
+        step={rangeStep}
+        value={rangeValue}
+        onChange={(e) => handleRange(parseFloat(e.target.value))}
         className="cervus-range w-full"
         style={{
           background: `linear-gradient(to right, #795D48 0%, #795D48 ${pct}%, #E4DACE ${pct}%, #E4DACE 100%)`,
@@ -202,9 +269,10 @@ export default function SimulateurInteretsComposes() {
             value={capitalInitial}
             onChange={setCapitalInitial}
             min={0}
-            max={500000}
+            max={5000000}
             step={500}
             format={fmtEur}
+            scale={{ comfortMax: 100000, comfortFrac: 0.75, snap: snapEur }}
           />
 
           <div className="flex flex-col gap-3">
@@ -216,6 +284,7 @@ export default function SimulateurInteretsComposes() {
               max={10000}
               step={50}
               format={fmtEur}
+              scale={{ comfortMax: 2000, comfortFrac: 0.75, snap: snapEur }}
             />
             <PillGroup<Frequence>
               value={frequence}

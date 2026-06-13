@@ -55,6 +55,18 @@ function formatPhone(phone: string): string {
   return "+33" + cleaned;
 }
 
+// Date du jour au format "YYYY-MM-DD" (date locale Europe/Paris, sans heure).
+// Sert d'ancre au champ deal "Date simulation" pour les relances J+1/J+7/J+21.
+// `en-CA` produit nativement le format ISO court AAAA-MM-JJ.
+function todaySimulationDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Routage pipeline / étape selon le statut OTP
 // ─────────────────────────────────────────────────────────────────────────────
@@ -321,6 +333,20 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
   // ── Deal ─────────────────────────────────────────────────────────────────
   const dealCustom = buildCustomFields(meta.dealFields, dealValues, "Deal");
 
+  // "Date simulation" : ancre des relances (J+1/J+7/J+21). On ne l'écrit QU'À LA
+  // CRÉATION (ou si le deal existant n'a pas encore de date). Sur un deal déjà daté,
+  // on retire la clé du payload de mise à jour pour ne pas réinitialiser l'ancre
+  // lors d'une 2e visite (ex. early-contact → submit, ou simu rejouée un autre jour).
+  const dateSimKey = meta.dealFields["Date simulation"];
+  async function stripDateSimIfAlreadySet(existingDealId: number): Promise<void> {
+    if (!dateSimKey || dealCustom[dateSimKey] === undefined) return;
+    const res = await pdGet<{ data?: Record<string, unknown> }>(`/deals/${existingDealId}`);
+    const existing = res.data?.[dateSimKey];
+    if (existing != null && String(existing).trim() !== "") {
+      delete dealCustom[dateSimKey];
+    }
+  }
+
   let dealId: number;
 
   // OTP validé : réutiliser le deal créé par early-contact plutôt que d'en créer un 2e.
@@ -329,6 +355,7 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
   if (otpVerifie) {
     const existingDealId = await findOpenDealForPersonAndProduct(personId, produit);
     if (existingDealId) {
+      await stripDateSimIfAlreadySet(existingDealId);
       await pdPut(`/deals/${existingDealId}`, {
         title,
         pipeline_id: pipelineId,
@@ -415,6 +442,7 @@ export async function syncToPipedrive(
       Produit: "PER",
       Objectif: data.objectif ? objectifLabels[data.objectif] ?? data.objectif : "",
       Source: "Simu-PER",
+      "Date simulation": todaySimulationDate(),
       "OTP vérifié": otpVerifie ? "Oui" : "Non",
     },
     title: `PER - ${fullName || data.email}`,
@@ -468,6 +496,7 @@ export async function syncAVToPipedrive(
       "Profil investisseur": avProfilLabels[data.profil] ?? data.profil,
       Produit: "AV",
       Source: "Simu-AV",
+      "Date simulation": todaySimulationDate(),
       "OTP vérifié": otpVerifie ? "Oui" : "Non",
     },
     title: `AV - ${fullName || data.email}`,

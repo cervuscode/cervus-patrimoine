@@ -67,6 +67,20 @@ function todaySimulationDate(): string {
   }).format(new Date());
 }
 
+// Ajoute `days` jours calendaires à une date "YYYY-MM-DD" et renvoie "YYYY-MM-DD".
+// Calcul robuste via Date.UTC (midi UTC pour éviter tout effet de bord) : gère
+// nativement les passages de mois et d'année (28/02 → 01/03, 25/12 → 05/01, etc.).
+// Aucune composante horaire / fuseau dans le résultat : date calendaire pure.
+function addDaysToISODate(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Routage pipeline / étape selon le statut OTP
 // ─────────────────────────────────────────────────────────────────────────────
@@ -333,17 +347,24 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
   // ── Deal ─────────────────────────────────────────────────────────────────
   const dealCustom = buildCustomFields(meta.dealFields, dealValues, "Deal");
 
-  // "Date simulation" : ancre des relances (J+1/J+7/J+21). On ne l'écrit QU'À LA
-  // CRÉATION (ou si le deal existant n'a pas encore de date). Sur un deal déjà daté,
-  // on retire la clé du payload de mise à jour pour ne pas réinitialiser l'ancre
-  // lors d'une 2e visite (ex. early-contact → submit, ou simu rejouée un autre jour).
+  // "Date simulation" + échéancier de relances figé (Relance J1/J7/J21 le) : ces 4
+  // dates sont l'ancre des relances. On ne les écrit QU'À LA CRÉATION (ou si le deal
+  // existant n'a pas encore de Date simulation). Sur un deal déjà daté, on retire ces
+  // clés du payload de mise à jour pour ne JAMAIS réinitialiser l'échéancier lors d'une
+  // 2e visite (ex. early-contact → submit, ou simu rejouée un autre jour).
+  // Le champ "Dernière relance envoyée" n'est jamais touché ici (géré par Make).
   const dateSimKey = meta.dealFields["Date simulation"];
+  const relanceKeys = ["Relance J1 le", "Relance J7 le", "Relance J21 le"]
+    .map((name) => meta.dealFields[name])
+    .filter((k): k is string => Boolean(k));
   async function stripDateSimIfAlreadySet(existingDealId: number): Promise<void> {
     if (!dateSimKey || dealCustom[dateSimKey] === undefined) return;
     const res = await pdGet<{ data?: Record<string, unknown> }>(`/deals/${existingDealId}`);
     const existing = res.data?.[dateSimKey];
+    // Si la Date simulation est déjà posée → on ne réécrit ni elle ni les 3 relances.
     if (existing != null && String(existing).trim() !== "") {
       delete dealCustom[dateSimKey];
+      for (const k of relanceKeys) delete dealCustom[k];
     }
   }
 
@@ -411,6 +432,7 @@ export async function syncToPipedrive(
 ): Promise<PipedriveSyncResult> {
   const fullName = `${data.prenom ?? ""} ${data.nom ?? ""}`.trim();
   const phone = formatPhone(data.telephone);
+  const dateSimulationPER = todaySimulationDate();
 
   return syncProductToPipedrive({
     email: data.email,
@@ -442,7 +464,10 @@ export async function syncToPipedrive(
       Produit: "PER",
       Objectif: data.objectif ? objectifLabels[data.objectif] ?? data.objectif : "",
       Source: "Simu-PER",
-      "Date simulation": todaySimulationDate(),
+      "Date simulation": dateSimulationPER,
+      "Relance J1 le": addDaysToISODate(dateSimulationPER, 1),
+      "Relance J7 le": addDaysToISODate(dateSimulationPER, 7),
+      "Relance J21 le": addDaysToISODate(dateSimulationPER, 21),
       "OTP vérifié": otpVerifie ? "Oui" : "Non",
     },
     title: `PER - ${fullName || data.email}`,
@@ -477,6 +502,7 @@ export async function syncAVToPipedrive(
 ): Promise<PipedriveSyncResult> {
   const fullName = `${data.prenom ?? ""} ${data.nom ?? ""}`.trim();
   const phone = formatPhone(data.telephone);
+  const dateSimulationAV = todaySimulationDate();
 
   return syncProductToPipedrive({
     email: data.email,
@@ -496,7 +522,10 @@ export async function syncAVToPipedrive(
       "Profil investisseur": avProfilLabels[data.profil] ?? data.profil,
       Produit: "AV",
       Source: "Simu-AV",
-      "Date simulation": todaySimulationDate(),
+      "Date simulation": dateSimulationAV,
+      "Relance J1 le": addDaysToISODate(dateSimulationAV, 1),
+      "Relance J7 le": addDaysToISODate(dateSimulationAV, 7),
+      "Relance J21 le": addDaysToISODate(dateSimulationAV, 21),
       "OTP vérifié": otpVerifie ? "Oui" : "Non",
     },
     title: `AV - ${fullName || data.email}`,

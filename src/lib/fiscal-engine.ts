@@ -1,9 +1,10 @@
 // ============================================================
-// CERVUS PATRIMOINE — Moteur de calcul fiscal IR 2025
+// CERVUS PATRIMOINE — Moteur de calcul fiscal IR 2026
 // Code validé et testé — NE PAS MODIFIER SANS VALIDATION
 // ============================================================
 
-// Barème IR 2025 (revenus 2024)
+// Barème IR 2026 (loi de finances 2026, revenus 2025)
+// Seuils inchangés vs 2025 (cf. art. 4 LF 2026).
 const TRANCHES: Array<{ min: number; max: number; taux: number }> = [
   { min: 0,      max: 11600,          taux: 0    },
   { min: 11600,  max: 29579,          taux: 0.11 },
@@ -12,8 +13,12 @@ const TRANCHES: Array<{ min: number; max: number; taux: number }> = [
   { min: 181917, max: Infinity,       taux: 0.45 },
 ];
 
-// Plafond quotient familial 2025 : 1 791 € par demi-part supplémentaire
-const PLAFOND_PAR_DEMI_PART = 1791;
+// Plafond quotient familial 2026 : 1 807 € par demi-part supplémentaire ordinaire
+const PLAFOND_PAR_DEMI_PART = 1807; // barème 2026
+
+// Plafond spécifique case T (parent isolé) 2026 : 4 262 € pour la PART ENTIÈRE
+// liée au 1er enfant du parent isolé (et non 2 × plafond demi-part).
+const PLAFOND_CASE_T = 4262; // barème 2026
 
 // ── CALCUL IMPÔT BRUT ──────────────────────────────────────────────────────────
 // Divise le revenu par le nombre de parts, applique le barème progressif,
@@ -28,32 +33,83 @@ export function impotBrut(R: number, parts: number): number {
   return impotParPart * parts;
 }
 
-// ── DÉCOTE 2025 ────────────────────────────────────────────────────────────────
+// ── DÉCOTE 2026 ────────────────────────────────────────────────────────────────
 // Retourne l'impôt APRÈS décote (pas la réduction).
-// Célibataire : seuil 1 929 €, flat 873, coef 0.4525
-// Couple      : seuil 3 191 €, flat 1 444, coef 0.4525
-// Règle : la décote ne peut jamais augmenter l'impôt → Math.min(impotBrut, flat − coef × impotBrut)
+// Célibataire : seuil 1 983 €, flat 897, coef 0.4525
+// Couple      : seuil 3 278 €, flat 1 483, coef 0.4525
+// Règle : l'impôt net = impôt brut − décote (la décote est une réduction).
+// La décote vaut max(0 ; flat − coef × impotBrut) et l'impôt net est borné à 0.
 function applyDecote(impotBrut: number, couple: boolean): number {
   const [seuil, coef, flat] = couple
-    ? [3191, 0.4525, 1444]
-    : [1929, 0.4525, 873];
+    ? [3278, 0.4525, 1483]  // barème 2026
+    : [1983, 0.4525, 897];  // barème 2026
   if (impotBrut < seuil) {
-    const impotApresDecote = Math.max(0, flat - coef * impotBrut);
-    return Math.min(impotBrut, impotApresDecote);
+    const decote = Math.max(0, flat - coef * impotBrut);
+    return Math.max(0, impotBrut - decote);
   }
   return impotBrut;
+}
+
+// ── CONTEXTE DE PLAFONNEMENT (extensible) ─────────────────────────────────────
+// Décrit les particularités du foyer qui ouvrent des plafonds spécifiques,
+// au-delà du plafond standard par demi-part. Tous les champs sont optionnels :
+// un contexte vide ({}) = foyer standard (comportement historique).
+//
+// Extensibilité : pour ajouter une nouvelle catégorie de plafond (ex. à venir :
+// demi-part handicap), ajouter un champ ici puis sa branche dans
+// plafondQuotientFamilial(). Aucun autre point du moteur n'est à modifier.
+export interface PlafondContext {
+  // Parent isolé (case T) : le 1er enfant ouvre une PART ENTIÈRE plafonnée
+  // spécifiquement à PLAFOND_CASE_T (et non 2 × plafond demi-part).
+  caseT?: boolean;
+}
+
+// ── PLAFOND TOTAL DU QUOTIENT FAMILIAL ────────────────────────────────────────
+// Calcule le plafond de l'avantage fiscal comme une SOMME de plafonds par
+// catégorie de parts supplémentaires (extensible).
+//
+//   - Case T (parent isolé) : la part entière du 1er enfant → PLAFOND_CASE_T,
+//     puis les demi-parts au-delà du 1er enfant → plafond ordinaire.
+//   - Standard : toutes les demi-parts supplémentaires → plafond ordinaire.
+function plafondQuotientFamilial(
+  partsBase: number,
+  partsTotal: number,
+  ctx: PlafondContext = {}
+): number {
+  const partsSupp = partsTotal - partsBase;
+  if (partsSupp <= 0) return 0;
+
+  let plafond = 0;
+  let demiPartsOrdinaires = partsSupp * 2;
+
+  // Catégorie case T : on isole la part entière (2 demi-parts) du 1er enfant.
+  if (ctx.caseT) {
+    plafond += PLAFOND_CASE_T;
+    demiPartsOrdinaires -= 2; // déjà comptée via PLAFOND_CASE_T
+  }
+
+  // Catégorie standard : demi-parts ordinaires restantes.
+  plafond += Math.max(demiPartsOrdinaires, 0) * PLAFOND_PAR_DEMI_PART;
+
+  return plafond;
 }
 
 // ── CALCUL IMPÔT RÉEL avec plafonnement du quotient familial + décote ─────────
 // partsBase  : parts du foyer sans enfants (1 = célibataire/divorcé, 2 = couple)
 // partsTotal : parts avec enfants
+// ctx        : contexte de plafonnement (case T…) — défaut foyer standard
 //
 // Logique :
 // 1. Calculer l'impôt avec le quotient familial (faux barème × partsTotal)
 // 2. Calculer l'impôt sans enfants (barème réel × partsBase)
-// 3. Si l'économie dépasse le plafond → plafonner
-// 4. Appliquer la décote 2025 sur l'impôt résultant
-export function impotReel(R: number, partsBase: number, partsTotal: number): number {
+// 3. Si l'économie dépasse le plafond (somme par catégorie) → plafonner
+// 4. Appliquer la décote 2026 sur l'impôt résultant
+export function impotReel(
+  R: number,
+  partsBase: number,
+  partsTotal: number,
+  ctx: PlafondContext = {}
+): number {
   const couple = partsBase === 2;
 
   if (partsTotal === partsBase) {
@@ -64,8 +120,7 @@ export function impotReel(R: number, partsBase: number, partsTotal: number): num
   const impotAvecEnfants  = impotBrut(R, partsTotal); // faux barème
   const impotSansEnfants  = impotBrut(R, partsBase);  // barème réel
   const economieReelle    = impotSansEnfants - impotAvecEnfants;
-  const nbDemiPartsSupp   = (partsTotal - partsBase) * 2;
-  const plafondTotal      = nbDemiPartsSupp * PLAFOND_PAR_DEMI_PART;
+  const plafondTotal      = plafondQuotientFamilial(partsBase, partsTotal, ctx);
 
   let impot: number;
   if (economieReelle <= plafondTotal) {
@@ -82,9 +137,14 @@ export function impotReel(R: number, partsBase: number, partsTotal: number): num
 // ── TMI EFFECTIVE ──────────────────────────────────────────────────────────────
 // Calcule la tranche marginale d'imposition sur les 1 000 € suivants
 // et arrondit au taux légal le plus proche (0 / 11 / 30 / 41 / 45)
-export function calculerTMI(R: number, partsBase: number, partsTotal: number): number {
+export function calculerTMI(
+  R: number,
+  partsBase: number,
+  partsTotal: number,
+  ctx: PlafondContext = {}
+): number {
   const DELTA = 1000;
-  const diff = impotReel(R + DELTA, partsBase, partsTotal) - impotReel(R, partsBase, partsTotal);
+  const diff = impotReel(R + DELTA, partsBase, partsTotal, ctx) - impotReel(R, partsBase, partsTotal, ctx);
   const tauxBrut = diff / DELTA;
   const TAUX_LEGAUX = [0, 0.11, 0.30, 0.41, 0.45];
   let closest = TAUX_LEGAUX[0];

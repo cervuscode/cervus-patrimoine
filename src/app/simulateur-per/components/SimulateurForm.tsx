@@ -69,6 +69,10 @@ function compute(data: SimulateurData): ComputedResults {
   const { partsBase, partsTotal } =
     statut ? calculerParts(statut, data.nbEnfants) : { partsBase: 1, partsTotal: 1 };
 
+  // Plafond quotient familial spécifique case T (parent isolé, 1er enfant = part entière).
+  // Le statut "parent_isole" n'est atteint que via effectiveStatut (garde parentale) avec ≥1 enfant.
+  const ctx = { caseT: statut === "parent_isole" };
+
   const isIndep = data.statutPro === "independant" || data.statutPro === "liberal";
   const needsConjoint = data.statut === "marie" || data.statut === "pacse";
 
@@ -82,7 +86,7 @@ function compute(data: SimulateurData): ComputedResults {
     foncier: parseFloat(data.foncier) || 0,
   });
 
-  const tmi = revenuImposable > 0 ? calculerTMI(revenuImposable, partsBase, partsTotal) : 0;
+  const tmi = revenuImposable > 0 ? calculerTMI(revenuImposable, partsBase, partsTotal, ctx) : 0;
 
   const annee = parseInt(data.anneeNaissance);
   const ageRetraiteNum = parseInt(data.ageRetraite) || 64;
@@ -103,9 +107,9 @@ function compute(data: SimulateurData): ComputedResults {
 
   const economieFiscale = economieFiscaleAnnuelle(versementMensuel, tmi);
 
-  const impotAvant     = Math.round(impotReel(revenuImposable, partsBase, partsTotal));
+  const impotAvant     = Math.round(impotReel(revenuImposable, partsBase, partsTotal, ctx));
   const revApres       = Math.max(0, revenuImposable - versementAnnuel);
-  const impotApres     = Math.round(impotReel(revApres, partsBase, partsTotal));
+  const impotApres     = Math.round(impotReel(revApres, partsBase, partsTotal, ctx));
   const economieAnn    = impotAvant - impotApres;
   const pasMensAvant   = Math.round(impotAvant / 12);
   const pasMensApres   = Math.round(impotApres / 12);

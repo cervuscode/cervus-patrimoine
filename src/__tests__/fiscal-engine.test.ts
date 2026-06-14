@@ -34,11 +34,11 @@ describe("impotReel", () => {
     expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(7208, 0);
   });
 
-  it("Couple + 1 enfant 70k€ → ~5 417 € (plafonnement QF actif)", () => {
-    // Sans enfants: 7208 | Avec 2.5 parts: 4510 | Économie: 2698 > plafond 1791
-    // → impôt réel = 7208 - 1791 = 5417
+  it("Couple + 1 enfant 70k€ → ~5 401 € (plafonnement QF actif, barème 2026)", () => {
+    // Sans enfants: 7208 | Avec 2.5 parts: 4510 | Économie: 2698 > plafond 1807
+    // → impôt réel = 7208 - 1807 = 5401
     const { partsBase, partsTotal } = calculerParts("marie", 1);
-    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(5417, 0);
+    expect(impotReel(70000, partsBase, partsTotal)).toBeCloseTo(5401, 0);
   });
 
   it("Célibataire 90k€ → ~21 100 €", () => {
@@ -60,13 +60,45 @@ describe("impotReel", () => {
     expect(impot).toBeGreaterThan(0);
     expect(impot).toBeLessThan(impotReel(60000, 2, 2)); // moins qu'un couple sans enfant
   });
+
+  // ── Décote (impôt net = brut − décote, barème 2026) ─────────────────────────
+  it("Couple 35k€ → 402 € (décote couple : brut 1298 − décote 896)", () => {
+    const { partsBase, partsTotal } = calculerParts("marie", 0);
+    expect(impotReel(35000, partsBase, partsTotal)).toBeCloseTo(402, 0);
+  });
+
+  it("Parent isolé 1 enfant 40k€ → 1 787 € (décote célib : brut 1848 − décote 61)", () => {
+    const { partsBase, partsTotal } = calculerParts("parent_isole", 1);
+    expect(impotReel(40000, partsBase, partsTotal, { caseT: true })).toBeCloseTo(1787, 0);
+  });
+
+  // ── Plafond case T différencié (parent isolé, barème 2026) ───────────────────
+  it("Parent isolé 1 enfant 200k€ → 62 262 € (plafond case T 4262)", () => {
+    // Économie QF >> plafond → impôt = sans enfant (66524) − 4262
+    const { partsBase, partsTotal } = calculerParts("parent_isole", 1);
+    expect(impotReel(200000, partsBase, partsTotal, { caseT: true })).toBeCloseTo(62262, 0);
+  });
+
+  it("Parent isolé 2 enfants 200k€ → 60 455 € (plafond case T 4262 + 1 demi-part 1807)", () => {
+    // Plafond total = 4262 + 1807 = 6069 → impôt = 66524 − 6069
+    const { partsBase, partsTotal } = calculerParts("parent_isole", 2);
+    expect(impotReel(200000, partsBase, partsTotal, { caseT: true })).toBeCloseTo(60455, 0);
+  });
+
+  it("Parent isolé 3 enfants 200k€ → 56 841 € (case T 4262 + 3 demi-parts 1807)", () => {
+    // parts 1/3.5 → demi-parts ordinaires = (2.5×2)−2 = 3
+    // Plafond total = 4262 + 3×1807 = 9683 → impôt = 66524 − 9683 = 56841
+    const { partsBase, partsTotal } = calculerParts("parent_isole", 3);
+    expect(impotReel(200000, partsBase, partsTotal, { caseT: true })).toBeCloseTo(56841, 0);
+  });
 });
 
 // ── calculerTMI ───────────────────────────────────────────────────────────────
 describe("calculerTMI", () => {
-  it("Célibataire 15k€ → TMI 11 % (tranche 11%)", () => {
+  it("Célibataire 15k€ → TMI 0 % (impôt net nul après décote, barème 2026)", () => {
+    // À 15k : brut 374, décote 727 > brut → net 0 ; marginal sur +1000 € = 0
     const { partsBase, partsTotal } = calculerParts("celibataire", 0);
-    expect(calculerTMI(15000, partsBase, partsTotal)).toBe(11);
+    expect(calculerTMI(15000, partsBase, partsTotal)).toBe(0);
   });
 
   it("Célibataire 30k€ → TMI 30 % (30k dépasse la borne 29 315€)", () => {

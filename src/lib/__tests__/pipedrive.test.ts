@@ -12,6 +12,10 @@ import type { SimulateurData, ComputedResults } from "@/app/simulateur-per/types
 // Clés hash factices des champs Deal renvoyées par la "meta" mockée.
 const PROD_KEY = "prod_hash";
 const SRC_KEY = "src_hash";
+// Champs monétaires "revenus annexes" (résolus par nom lisible côté pipedrive.ts).
+const FONCIER_KEY = "foncier_hash";
+const BNC_KEY = "bnc_hash";
+const BIC_KEY = "bic_hash";
 
 interface CapturedCall {
   method: string;
@@ -63,6 +67,9 @@ function installFetchMock(opts: {
         data: [
           { name: "Produit", key: PROD_KEY },
           { name: "Source", key: SRC_KEY },
+          { name: "Foncier", key: FONCIER_KEY },
+          { name: "BNC", key: BNC_KEY },
+          { name: "BIC", key: BIC_KEY },
         ],
       });
     }
@@ -223,6 +230,41 @@ describe("syncToPipedrive (wrapper PER) — non-régression", () => {
 
     // Le wrapper PER interroge bien les deals de la Person pour filtrer par produit.
     expect(calls.some((c) => c.path === "/persons/500/deals")).toBe(true);
+  });
+
+  test("revenus annexes (Foncier/BNC/BIC) → présents dans le payload deal quand saisis", async () => {
+    const { syncToPipedrive } = await import("@/lib/pipedrive");
+    installFetchMock({ existingPersonId: null, dealsLimit1: [] });
+
+    const data = makePerData();
+    data.foncier = "12000";
+    data.bnc = "8000";
+    data.bic = "3500";
+
+    await syncToPipedrive(data, makeComputed(), true);
+
+    const dealPost = calls.find((c) => c.path === "/deals" && c.method === "POST");
+    expect(dealPost).toBeDefined();
+    // Valeurs monétaires écrites en nombre SIMPLE (comme "Capital projeté").
+    expect(dealPost!.body![FONCIER_KEY]).toBe(12000);
+    expect(dealPost!.body![BNC_KEY]).toBe(8000);
+    expect(dealPost!.body![BIC_KEY]).toBe(3500);
+  });
+
+  test("revenus annexes absents/0 → clés omises (jamais 0 par défaut)", async () => {
+    const { syncToPipedrive } = await import("@/lib/pipedrive");
+    installFetchMock({ existingPersonId: null, dealsLimit1: [] });
+
+    const data = makePerData(); // foncier/bnc/bic = "" par défaut
+    data.bic = "0";
+
+    await syncToPipedrive(data, makeComputed(), true);
+
+    const dealPost = calls.find((c) => c.path === "/deals" && c.method === "POST");
+    expect(dealPost).toBeDefined();
+    expect(dealPost!.body![FONCIER_KEY]).toBeUndefined();
+    expect(dealPost!.body![BNC_KEY]).toBeUndefined();
+    expect(dealPost!.body![BIC_KEY]).toBeUndefined();
   });
 
   test("ne réutilise PAS un deal AV ouvert → crée un nouveau deal PER (fix dédup)", async () => {

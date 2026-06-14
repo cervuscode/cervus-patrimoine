@@ -82,6 +82,25 @@ function addDaysToISODate(iso: string, days: number): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Champs deal "revenus annexes" de la personne (foncier / BNC / BIC).
+// Communs PER & AV (ce sont des revenus du contact, pas du produit). Résolus par
+// NOM LISIBLE comme tous les autres champs custom (aucun hash en dur, cf. en-tête).
+// Type Pipedrive : monétaire → on écrit une valeur numérique SIMPLE, exactement
+// comme "Capital projeté" / "Versement mensuel" (pas d'objet {value, currency}).
+// ─────────────────────────────────────────────────────────────────────────────
+const DEAL_FIELD_FONCIER = "Foncier";
+const DEAL_FIELD_BNC = "BNC";
+const DEAL_FIELD_BIC = "BIC";
+
+// Montant monétaire optionnel : renvoie un nombre strictement positif, sinon
+// `undefined` → la clé sera OMISE par buildCustomFields. Pour ces revenus annexes
+// on ne veut jamais écrire 0 par défaut (≠ des champs versements qui forcent `|| 0`).
+function optionalAmount(raw: string | number | null | undefined): number | undefined {
+  const n = typeof raw === "number" ? raw : parseFloat((raw ?? "").toString());
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Routage pipeline / étape selon le statut OTP
 // ─────────────────────────────────────────────────────────────────────────────
 const ROUTING = {
@@ -453,6 +472,9 @@ export async function syncToPipedrive(
     dealValues: {
       "Versement initial": parseFloat(data.versementInitial) || 0,
       "Versement mensuel": parseFloat(data.versementMensuel) || 0,
+      [DEAL_FIELD_FONCIER]: optionalAmount(data.foncier),
+      [DEAL_FIELD_BNC]: optionalAmount(data.bnc),
+      [DEAL_FIELD_BIC]: optionalAmount(data.bic),
       "Capital projeté": computed.capitalFinal,
       "Économie fiscale": computed.economieFiscale,
       "Économie mensuelle": computed.economieMensuelle,
@@ -493,6 +515,11 @@ export interface AVSyncInput {
   dureeAnnees: number;
   profil: string;
   marie: boolean | null;
+  // Revenus annexes de la personne (communs PER/AV). Optionnels : le parcours AV
+  // ne les collecte pas aujourd'hui → undefined → clés Pipedrive omises.
+  foncier?: string;
+  bnc?: string;
+  bic?: string;
 }
 
 export async function syncAVToPipedrive(
@@ -514,6 +541,9 @@ export async function syncAVToPipedrive(
     dealValues: {
       "Versement initial": parseFloat(data.versementInitial) || 0,
       "Versement mensuel": parseFloat(data.versementMensuel) || 0,
+      [DEAL_FIELD_FONCIER]: optionalAmount(data.foncier),
+      [DEAL_FIELD_BNC]: optionalAmount(data.bnc),
+      [DEAL_FIELD_BIC]: optionalAmount(data.bic),
       "Capital projeté": computed.capitalFinalBrut,
       Horizon: data.dureeAnnees,
       "Capital net avec": computed.capitalNetAvecCervus,

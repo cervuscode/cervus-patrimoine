@@ -23,7 +23,11 @@ Page hébergeant le **Pipedrive Scheduler** (iframe, `SchedulerPipedrive.tsx`). 
 
 ## Simulateur PER (existant, NE PAS CASSER)
 - Parcours : `simulateur-per/components/SimulateurForm.tsx` orchestre 16 écrans `Q*.tsx` (Q0→Q15). État unique `SimulateurData` (`types.ts`), navigation conditionnelle.
-- Moteur : `src/lib/fiscal-engine.ts` (parts, revenu imposable, TMI, projection PER, économie fiscale) — **validé, 35 tests** (`src/__tests__/fiscal-engine.test.ts`).
+- Moteur : `src/lib/fiscal-engine.ts` (parts, revenu imposable, TMI, projection PER, économie fiscale) — **validé, 53 tests** (`src/__tests__/fiscal-engine.test.ts`).
+  - **Barème 2026** (LF 2026, revenus 2025, commit `fc18e0b`) : tranches 11600/29579/84577/181917 (inchangées vs 2025), `PLAFOND_PAR_DEMI_PART = 1807`, décote célib 897/seuil 1983, couple 1483/seuil 3278, coef 0,4525.
+  - **Décote** : `applyDecote` renvoie l'impôt net = `max(0, impotBrut − décote)` (un ancien bug renvoyait le *montant* de la décote au lieu de l'impôt net → faussait tous les foyers en zone de décote/bas revenus ; corrigé dans ce même commit).
+  - **Plafonnement QF différencié et extensible** : `plafondQuotientFamilial(partsBase, partsTotal, ctx)` calcule le plafond comme une SOMME par catégorie. `PlafondContext = { caseT?: boolean }`. Case T (parent isolé, 1er enfant = part entière) → `PLAFOND_CASE_T = 4262` ; demi-parts au-delà → 1807 chacune ; standard → toutes demi-parts à 1807 (garde alternée : quart de part → 903,5 € par cohérence arithmétique). `impotReel`/`calculerTMI` acceptent un 4e param `ctx` optionnel (rétro-compatible, défaut `{}`). **Structure prête pour la demi-part handicap** (ajouter un champ à `PlafondContext` + sa branche), PAS encore implémentée.
+  - Câblage prod : `SimulateurForm.compute()` passe `ctx = { caseT: statut === 'parent_isole' }` (statut dérivé via `effectiveStatut`, car `data.statut` ne vaut JAMAIS `parent_isole` — la case T vient de l'écran `QGarde` → `gardeParentale`). `preview-pdf` = démo figée → `ctx = {}`.
 - Résultats : `ResultPage.tsx` (stats + AreaChart recharts + CTA `/reserver`).
 - PDF : `src/app/api/submit/PdfDocument.tsx` (@react-pdf/renderer).
 

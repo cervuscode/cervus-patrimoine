@@ -122,6 +122,7 @@ function makePerData(): SimulateurData {
     statut: "celibataire",
     nbEnfants: 0,
     gardeParentale: null,
+    demiPartHandicap: false,
     salaireMensuel: "3000",
     abattementSalaires: "forfait10",
     fraisReels: "",

@@ -67,11 +67,12 @@ function effectiveStatut(data: SimulateurData) {
 function compute(data: SimulateurData): ComputedResults {
   const statut = effectiveStatut(data);
   const { partsBase, partsTotal } =
-    statut ? calculerParts(statut, data.nbEnfants) : { partsBase: 1, partsTotal: 1 };
+    statut ? calculerParts(statut, data.nbEnfants, data.demiPartHandicap) : { partsBase: 1, partsTotal: 1 };
 
   // Plafond quotient familial spécifique case T (parent isolé, 1er enfant = part entière).
   // Le statut "parent_isole" n'est atteint que via effectiveStatut (garde parentale) avec ≥1 enfant.
-  const ctx = { caseT: statut === "parent_isole" };
+  // handicap : demi-part invalidité → réduction complémentaire (temps 2) dans impotReel.
+  const ctx = { caseT: statut === "parent_isole", handicap: data.demiPartHandicap };
 
   const isIndep = data.statutPro === "independant" || data.statutPro === "liberal";
   const needsConjoint = data.statut === "marie" || data.statut === "pacse";

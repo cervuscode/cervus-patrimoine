@@ -51,6 +51,27 @@ export default function QStatut({ data, onChange, onNext }: Props) {
           </motion.button>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => onChange({ demiPartHandicap: !data.demiPartHandicap })}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left font-inter text-sm transition-colors duration-150 ${
+          data.demiPartHandicap
+            ? "border-2 border-[#795D48] bg-[#F5EFE8] text-[#795D48] font-semibold"
+            : "border border-[#D4C9BE] bg-[#EDE8E3] text-[#555555] hover:border-[#795D48]/40"
+        }`}
+      >
+        <span
+          className={`flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs ${
+            data.demiPartHandicap
+              ? "border-[#795D48] bg-[#795D48] text-white"
+              : "border-[#B7A998] bg-white text-transparent"
+          }`}
+        >
+          ✓
+        </span>
+        Invalidité ou handicap (demi-part supplémentaire)
+      </button>
     </div>
   );
 }

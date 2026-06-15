@@ -176,6 +176,80 @@ describe("calculerParts", () => {
   it("Parent isolé 3 enfants → 1/3.5 (+1 pt à partir du 3ème)", () => {
     expect(calculerParts("parent_isole", 3)).toEqual({ partsBase: 1, partsTotal: 3.5 });
   });
+
+  // Demi-part handicap : +0,5 UNIQUEMENT sur partsTotal, jamais sur partsBase.
+  it("Célibataire 0 enfant + handicap → 1/1.5", () => {
+    expect(calculerParts("celibataire", 0, true)).toEqual({ partsBase: 1, partsTotal: 1.5 });
+  });
+
+  it("Couple 2 enfants + handicap → 2/3.5", () => {
+    expect(calculerParts("marie", 2, true)).toEqual({ partsBase: 2, partsTotal: 3.5 });
+  });
+
+  it("Couple 4 enfants + handicap → 2/5.5 (cas BOFiP)", () => {
+    expect(calculerParts("marie", 4, true)).toEqual({ partsBase: 2, partsTotal: 5.5 });
+  });
+
+  it("handicap=false (défaut) ne change rien", () => {
+    expect(calculerParts("celibataire", 0, false)).toEqual({ partsBase: 1, partsTotal: 1 });
+  });
+});
+
+// ── Demi-part handicap/invalidité (plafond 1807 + réduction complémentaire 1801) ─
+describe("demi-part handicap", () => {
+  // Référence OFFICIELLE BOFiP BOI-IR-LIQ-20-20-20 §185 :
+  // couple marié, 4 enfants dont 1 invalide, revenu net imposable 130 000 €.
+  // parts = 5,5 (couple 2 + enfants 3 + handicap 0,5) → impôt = 10 758 €.
+  it("BOFiP §185 : couple 4 enf dont 1 invalide, 130k → 10 758 € (au centime)", () => {
+    const { partsBase, partsTotal } = calculerParts("marie", 4, true);
+    expect(partsTotal).toBe(5.5);
+    expect(Math.round(impotReel(130000, partsBase, partsTotal, { handicap: true }))).toBe(10758);
+  });
+
+  // Plafond NE mord PAS (economieReelle 1668 <= 1807) → pas de réduction compl,
+  // mais l'impôt AVEC handicap reste strictement < SANS (le +0,5 part agit).
+  it("Célib 0 enf 35k : SANS = 3604, AVEC < 3604 (le +0,5 agit, plafond ne mord pas)", () => {
+    const sans = calculerParts("celibataire", 0, false);
+    const avec = calculerParts("celibataire", 0, true);
+    const impSans = Math.round(impotReel(35000, sans.partsBase, sans.partsTotal));
+    const impAvec = Math.round(impotReel(35000, avec.partsBase, avec.partsTotal, { handicap: true }));
+    expect(impSans).toBe(3604);
+    expect(impAvec).toBeLessThan(impSans);
+    expect(impAvec).toBe(1915);
+  });
+
+  it("Couple 2 enf 90k : SANS = 9594, AVEC < 9594", () => {
+    const sans = calculerParts("marie", 2, false);
+    const avec = calculerParts("marie", 2, true);
+    const impSans = Math.round(impotReel(90000, sans.partsBase, sans.partsTotal));
+    const impAvec = Math.round(impotReel(90000, avec.partsBase, avec.partsTotal, { handicap: true }));
+    expect(impSans).toBe(9594);
+    expect(impAvec).toBeLessThan(impSans);
+    expect(impAvec).toBe(5986);
+  });
+
+  // Plafond mord à plein : écart AVEC vs SANS = 1807 (QF plafonné) + 1801 (réduc).
+  it("Célib 0 enf 200k : SANS = 66524, AVEC = 62916 (écart exact 3608 = 1807 + 1801)", () => {
+    const sans = calculerParts("celibataire", 0, false);
+    const avec = calculerParts("celibataire", 0, true);
+    const impSans = Math.round(impotReel(200000, sans.partsBase, sans.partsTotal));
+    const impAvec = Math.round(impotReel(200000, avec.partsBase, avec.partsTotal, { handicap: true }));
+    expect(impSans).toBe(66524);
+    expect(impAvec).toBe(62916);
+    expect(impSans - impAvec).toBe(3608);
+  });
+
+  it("Couple 1 enf 250k AVEC handicap → 64686 €", () => {
+    const { partsBase, partsTotal } = calculerParts("marie", 1, true);
+    expect(partsTotal).toBe(3);
+    expect(Math.round(impotReel(250000, partsBase, partsTotal, { handicap: true }))).toBe(64686);
+  });
+
+  // Non-régression : ctx sans handicap = comportement historique inchangé.
+  it("Couple 1 enf 250k SANS handicap = 68294 € (réduc compl. ne s'applique pas)", () => {
+    const { partsBase, partsTotal } = calculerParts("marie", 1, false);
+    expect(Math.round(impotReel(250000, partsBase, partsTotal))).toBe(68294);
+  });
 });
 
 // ── calculerRevenuImposable ───────────────────────────────────────────────────

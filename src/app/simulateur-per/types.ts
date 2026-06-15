@@ -10,6 +10,7 @@ export interface SimulateurData {
   statut: Statut | '';
   nbEnfants: number;
   gardeParentale: 'garde_principale' | 'parent_isole' | 'garde_partagee' | null; // null = non applicable
+  demiPartHandicap: boolean; // invalidité/handicap du foyer → +0,5 part (écran situation)
 
   // Étape 2 — Revenus
   salaireMensuel: string;          // mensuel saisi, × 12 dans compute()
@@ -68,6 +69,7 @@ export const INITIAL_DATA: SimulateurData = {
   statut: '',
   nbEnfants: 0,
   gardeParentale: null,
+  demiPartHandicap: false,
   salaireMensuel: '',
   abattementSalaires: 'forfait10',
   fraisReels: '',

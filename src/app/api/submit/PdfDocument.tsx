@@ -228,6 +228,7 @@ export default function PdfDocument({ data, computed }: Props) {
             <Text style={s.cardVal}>
               {displayStatut(data)}
               {data.nbEnfants > 0 ? " · " + data.nbEnfants + " enfant" + (data.nbEnfants > 1 ? "s" : "") : ""}
+              {data.demiPartHandicap ? " · demi-part invalidité" : ""}
             </Text>
             <Text style={s.cardSub}>
               {computed.partsTotal} parts · {PROFIL_LABELS[data.profil] ?? data.profil}

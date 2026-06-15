@@ -16,6 +16,7 @@ const MOCK: SimulateurData = {
   statut:             "celibataire",
   nbEnfants:          0,
   gardeParentale:     null,
+  demiPartHandicap:   false,
   salaireMensuel:     "5500",
   abattementSalaires: "forfait10",
   fraisReels:         "",

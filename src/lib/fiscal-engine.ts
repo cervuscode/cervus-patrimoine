@@ -20,6 +20,15 @@ const PLAFOND_PAR_DEMI_PART = 1807; // barème 2026
 // liée au 1er enfant du parent isolé (et non 2 × plafond demi-part).
 const PLAFOND_CASE_T = 4262; // barème 2026
 
+// Réduction d'impôt complémentaire liée à la demi-part handicap/invalidité 2026.
+// PLAFOND (pas un forfait) : s'impute APRÈS le plafonnement du quotient familial,
+// uniquement si le plafonnement a effectivement mordu (cf. impotReel, temps 2).
+// Source : dépliant DGFiP GP 125 (mars 2026) + BOFiP BOI-IR-LIQ-20-20-20.
+// NB : pour un QUART de part (enfant invalide en garde alternée) cette réduction
+// est divisée par 2 (900,50 €). La case actuelle n'ajoute qu'une DEMI-part
+// (+0,5), donc seul le cas demi-part (1801) est géré ici.
+const REDUCTION_COMPL_HANDICAP = 1801; // barème 2026
+
 // ── CALCUL IMPÔT BRUT ──────────────────────────────────────────────────────────
 // Divise le revenu par le nombre de parts, applique le barème progressif,
 // multiplie le résultat par le nombre de parts.
@@ -62,6 +71,13 @@ export interface PlafondContext {
   // Parent isolé (case T) : le 1er enfant ouvre une PART ENTIÈRE plafonnée
   // spécifiquement à PLAFOND_CASE_T (et non 2 × plafond demi-part).
   caseT?: boolean;
+  // Demi-part handicap/invalidité : N'A AUCUN EFFET au temps 1 (plafonnement).
+  // La demi-part (+0,5) est déjà dans partsTotal donc déjà comptée dans partsSupp
+  // et déjà plafonnée à 1807 par le calcul standard — ne PAS rajouter 1807 ici
+  // (double-comptage). Ce drapeau ne sert qu'au TEMPS 2 dans impotReel : la
+  // réduction d'impôt complémentaire (REDUCTION_COMPL_HANDICAP) quand le
+  // plafonnement a mordu.
+  handicap?: boolean;
 }
 
 // ── PLAFOND TOTAL DU QUOTIENT FAMILIAL ────────────────────────────────────────
@@ -131,6 +147,18 @@ export function impotReel(
     impot = impotSansEnfants - plafondTotal;
   }
 
+  // ── TEMPS 2 : réduction d'impôt complémentaire demi-part handicap ──
+  // S'applique UNIQUEMENT si le foyer porte la demi-part handicap ET si le
+  // plafonnement du QF a effectivement mordu (economieReelle > plafondTotal).
+  // reductionCompl = min(1801, montant raboté par le plafonnement).
+  // Imputée APRÈS plafonnement, AVANT la décote (dernier ajustement).
+  if (ctx.handicap && economieReelle > plafondTotal) {
+    const montantRabote  = economieReelle - plafondTotal;
+    const reductionCompl = Math.min(REDUCTION_COMPL_HANDICAP, montantRabote);
+    impot -= reductionCompl;
+  }
+  impot = Math.max(0, impot); // borne avant décote
+
   return applyDecote(impot, couple);
 }
 
@@ -183,21 +211,26 @@ function partsEnfantsGardePartagee(n: number): number {
 
 export function calculerParts(
   statut: 'celibataire' | 'divorce' | 'marie' | 'pacse' | 'parent_isole' | 'garde_partagee',
-  nbEnfants: number
+  nbEnfants: number,
+  demiPartHandicap: boolean = false
 ): { partsBase: number; partsTotal: number } {
+  // La demi-part handicap (+0,5) s'ajoute UNIQUEMENT à partsTotal, JAMAIS à
+  // partsBase : c'est l'écart base↔total qui crée l'avantage fiscal. Ainsi un
+  // célibataire 0 enfant + handicap → { partsBase: 1, partsTotal: 1.5 }.
+  const supp = demiPartHandicap ? 0.5 : 0;
   if (statut === 'marie' || statut === 'pacse') {
     const partsBase = 2;
-    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) };
+    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) + supp };
   } else if (statut === 'parent_isole') {
     const partsBase = 1;
-    return { partsBase, partsTotal: partsBase + partsEnfantsParentIsole(nbEnfants) };
+    return { partsBase, partsTotal: partsBase + partsEnfantsParentIsole(nbEnfants) + supp };
   } else if (statut === 'garde_partagee') {
     const partsBase = 1;
-    return { partsBase, partsTotal: partsBase + partsEnfantsGardePartagee(nbEnfants) };
+    return { partsBase, partsTotal: partsBase + partsEnfantsGardePartagee(nbEnfants) + supp };
   } else {
     // celibataire, divorce, garde_principale
     const partsBase = 1;
-    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) };
+    return { partsBase, partsTotal: partsBase + partsEnfantsStandard(nbEnfants) + supp };
   }
 }
 

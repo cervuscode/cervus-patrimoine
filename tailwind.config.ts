@@ -10,6 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         "cervus-gold": "#795D48",
+        "cervus-gold-dark": "#5D4738",
         "cervus-gold-light": "#a07d62",
         "cervus-dark": "#0f0f0f",
         "cervus-cream": "#f8f5f1",

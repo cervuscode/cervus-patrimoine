@@ -18,6 +18,19 @@ Contexte projet pour les sessions Claude. À lire en premier.
 - `src/components/` — globaux (Navbar, Footer, AnimatedSection, ProfilCarousel, SchedulerPipedrive…).
 - `public/` — assets (`/videos/hero-15s.mp4`, `/images/...`). Déposer images/vidéos ici.
 
+## Outil RDV Conseiller (`app.cervuspatrimoine.fr`) — chantier en cours
+Espace web authentifié **interne au cabinet** (poste de pilotage des RDV clients), même repo / même projet Vercel que le site public, servi sur le **sous-domaine `app.cervuspatrimoine.fr`**. Doc de cadrage complet : `docs/MASTER_OUTIL_RDV.md` (découpage en 14 lots 0→13, invariants : Pipedrive = source de vérité, fiche client unique, `fiscal-engine.ts` consommation seule, code client `C-0042` à l'écran, Supabase seulement au Lot 13).
+- **Lot 0 TERMINÉ** (socle auth + coquille, RIEN d'autre : pas de Pipedrive, pas de simulateurs) :
+  - **Auth Google OAuth via NextAuth v4** (`next-auth@^4.24`) : `src/lib/auth.ts` (`authOptions`) + handler `src/app/api/auth/[...nextauth]/route.ts`. Google provider avec `hd=ALLOWED_DOMAIN` (UX, **non sécurisant**) **+ défense en profondeur** dans le callback `signIn` : revérif **server-side** que l'email retourné finit par `@${ALLOWED_DOMAIN}` (rejette si `hd` falsifié → `?error=AccessDenied`). Session JWT, **aucun mot de passe stocké**. `pages.signIn`/`error = "/login"` (URLs PUBLIQUES sans préfixe `/app`).
+  - **Middleware routing par hostname** : `src/middleware.ts`. Logique **STRICTEMENT identique dev/prod, aucune branche `NODE_ENV`**. `APP_HOSTS = { app.cervuspatrimoine.fr, app.localhost }` (dev local via `app.localhost`, résolu auto par les navigateurs). Sur hôte app → rewrite `/...` vers `/app/...` SAUF `/api`, `/_next`, `/app` (déjà préfixé) ; pose `X-Robots-Tag: noindex, nofollow`. Sur hôte public → **404 sur tout `/app/*`** (l'espace conseiller n'y est jamais servi ; site public intact). `/api/auth/*` jamais réécrit (callback OAuth `https://app.cervuspatrimoine.fr/api/auth/callback/google` préservé).
+  - **Coquille** : route group `src/app/app/(conseiller)/` (le `/app` apparaît dans l'URL interne, pas le `(conseiller)`). `layout.tsx` (metadata `noindex`, fond sombre charté), `page.tsx` (accueil protégé via `getServerSession` → redirect `/login` si pas de session, sinon « Espace Conseiller » + déconnexion), `login/page.tsx` (bouton Google + message d'erreur propre `AccessDenied`). Boutons client `src/components/conseiller/SignInButton.tsx` / `SignOutButton.tsx` (`signIn`/`signOut` next-auth/react, sans `SessionProvider` car tout passe par `getServerSession` côté serveur).
+  - **`noindex`** : triple — root layout global déjà actif + metadata du layout conseiller + header `X-Robots-Tag` du middleware.
+  - **Charte** : ajout couleur Tailwind `cervus-gold-dark: #5D4738`.
+  - **Variables d'env** (Vercel Prod+Preview) : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET` (`openssl rand -base64 32`), `NEXTAUTH_URL` (`https://app.cervuspatrimoine.fr`), `ALLOWED_DOMAIN` (`cervuspatrimoine.fr`). Documentées dans `.env.local.example`.
+  - **Non touché** : aucun fichier du site public hors `middleware.ts` (créé) / `tailwind.config.ts` (additif) / `.env.local.example` (additif) ; `fiscal-engine.ts` et `pipedrive.ts` intacts.
+  - **Critère de validation** : compte `@cervuspatrimoine.fr` → accès accordé ; Gmail externe → refus propre (retour `/login` + message), pas d'erreur brute.
+- **RESTE (Lot 0, actions hors-repo)** : créer le client OAuth Google Cloud (origins/redirect `app.cervuspatrimoine.fr`), ajouter le sous-domaine dans Vercel, créer le CNAME chez Squarespace DNS, renseigner les 5 vars d'env Vercel, redéployer & tester. **Lot 1 = lecture Pipedrive + vue client (Simulation vs Découverte RDV) + code client + panneau persistant.**
+
 ## /reserver
 Page hébergeant le **Pipedrive Scheduler** (iframe, `SchedulerPipedrive.tsx`). TOUS les CTA RDV pointent vers `/reserver`. Calendly a été entièrement retiré.
 

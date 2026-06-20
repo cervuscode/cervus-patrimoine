@@ -80,6 +80,11 @@ Page hébergeant le **Pipedrive Scheduler** (iframe, `SchedulerPipedrive.tsx`). 
 - `api/submit` (PER) / `api/submit-av` — après OTP : Brevo #5 (PER) / #12 (AV) + webhook Make `type=otp_valide` + Pipedrive (otpVerifie=true). **PER et AV avec PDF inline base64.**
 - `api/mark-pending` — marque la simu en attente si l'utilisateur quitte avant l'OTP (PER + AV).
 
+### Sécurité / audit
+- **Ciblage Pipedrive par email, jamais par ID du body** : les routes publiques d'écriture (`submit`, `early-contact`, `submit-av`, `early-contact-av`) ne lisent jamais de `personId`/`dealId` depuis le corps. La cible est résolue server-side via `findPersonByEmail` (`exact_match=true`) puis `findOpenDealForPersonAndProduct` (personId résolu + Produit). Aucun chemin ne touche un enregistrement autre que celui de l'email soumis ; réponses = `{ ok: true }` seul (jamais de données Pipedrive ni PDF renvoyés). Résidu connu (MD §11) : l'email étant non authentifié, écriture/écrasement possible sur l'enregistrement d'un email connu + email Make déclenché → à durcir (honeypot + validation) **avant la levée du `noindex`**. Atténué par rate-limiting IP.
+- **`/api/pipedrive-sync` SUPPRIMÉE le 20 juin 2026** — route morte non utilisée (aucun appel front/Make/script, confirmé par grep), qui divulguait `personId`/`dealId` Pipedrive (`return { ok, ...result }`) sans auth ni rate-limit. Trouvée lors d'un audit de sécurité avant le Lot 2. Tout passe désormais par `submit`/`early-contact` (+ variantes AV).
+- **Vigilance Lot 2+** : les routes `api/rdv/*` utilisent un `personId`/`dealId` venu du body — acceptable car protégées par `getServerSession` (équipe Cervus, déjà accès Pipedrive complet). À garder à l'esprit pour toute nouvelle écriture ajoutée.
+
 ## Pipedrive (`src/lib/pipedrive.ts`) — généralisé "par produit"
 - Clés de champs custom résolues dynamiquement par nom (pas de hash en dur), cache 10 min.
 - Cœur générique `syncProductToPipedrive` (param `produit` obligatoire) ; `syncToPipedrive` (wrapper PER : Produit "PER", Source "Simu-PER", titre "PER - …") et `syncAVToPipedrive` (Produit "AV", Source "Simu-AV", titre "AV - …", champs deal AV : Horizon, Capital net avec/sans, Gain net optimisé + réutilisés Versement initial/mensuel, Capital projeté).

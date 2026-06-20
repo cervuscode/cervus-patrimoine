@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRdvClient, type ClientView as ClientViewData } from "./RdvClientProvider";
 import DealSelector from "./DealSelector";
 import ClientCodeBadge from "./ClientCodeBadge";
@@ -53,6 +54,20 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
       </header>
 
       <DealSelector />
+
+      {/* Accès rapide aux simulateurs en mode connecté (pré-rempli depuis la fiche). */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/client/${initial.personId}/simulateur-per`}
+          className="inline-flex items-center gap-2 rounded-[50px] border border-cervus-gold/40 px-4 py-2 text-sm font-medium text-cervus-bronze hover:bg-cervus-gold/10"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18" />
+            <path d="m7 14 4-4 3 3 5-6" />
+          </svg>
+          Simulateur PER
+        </Link>
+      </div>
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}
 

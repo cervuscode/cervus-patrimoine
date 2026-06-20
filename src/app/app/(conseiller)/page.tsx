@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SignOutButton from "@/components/conseiller/SignOutButton";
 import ClientSearch from "@/components/conseiller/ClientSearch";
+import SimulateurGrid from "@/components/conseiller/SimulateurGrid";
 
 export default async function ConseillerHomePage() {
   const session = await getServerSession(authOptions);
@@ -27,6 +28,11 @@ export default async function ConseillerHomePage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-cervus-bronze/70">Rechercher un client</h2>
         <ClientSearch />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-cervus-bronze/70">Simulateurs</h2>
+        <SimulateurGrid />
       </section>
 
       <p className="text-xs text-cervus-bronze/40">

@@ -26,7 +26,15 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    // Fenêtre glissante d'inactivité de 1h : le JWT porte exp = now + maxAge ;
+    // updateAge:0 force la re-signature du token à CHAQUE accès session, donc
+    // chaque interaction (navigation + ping d'activité côté client via getSession)
+    // repousse l'expiration d'1h. Sans activité pendant 1h → token expiré.
+    maxAge: 60 * 60,
+    updateAge: 0,
+  },
   callbacks: {
     async signIn({ profile }) {
       // Défense en profondeur : ne JAMAIS se fier au seul paramètre `hd`.

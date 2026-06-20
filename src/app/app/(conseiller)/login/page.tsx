@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SignInButton from "@/components/conseiller/SignInButton";
 
-function messageErreur(error?: string): string | null {
+function messageErreur(error?: string, reason?: string): string | null {
+  // Déconnexion par inactivité (Lot 2, point A) — pas une erreur d'accès.
+  if (reason === "timeout") {
+    return "Session expirée par inactivité, reconnectez-vous.";
+  }
   if (!error) return null;
   switch (error) {
     case "AccessDenied":
@@ -16,12 +20,12 @@ function messageErreur(error?: string): string | null {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: { error?: string; reason?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (session) redirect("/");
 
-  const erreur = messageErreur(searchParams?.error);
+  const erreur = messageErreur(searchParams?.error, searchParams?.reason);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-8 px-6 py-16 text-center">

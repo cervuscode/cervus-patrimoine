@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import SignOutButton from "@/components/conseiller/SignOutButton";
+import ClientSearch from "@/components/conseiller/ClientSearch";
 
 export default async function ConseillerHomePage() {
   const session = await getServerSession(authOptions);
@@ -10,22 +11,27 @@ export default async function ConseillerHomePage() {
   const identite = session.user?.name ?? session.user?.email ?? "Conseiller";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-start justify-center gap-8 px-6 py-16">
-      <header className="space-y-3">
-        <p className="text-sm uppercase tracking-[0.2em] text-cervus-gold-light">
-          Cervus Patrimoine
-        </p>
-        <h1 className="font-cormorant text-5xl font-semibold text-cervus-bronze">
-          Espace Conseiller
-        </h1>
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-12 pb-28 sm:px-6 sm:py-16">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-sm uppercase tracking-[0.2em] text-cervus-gold-light">
+            Cervus Patrimoine
+          </p>
+          <h1 className="font-cormorant text-4xl font-semibold text-cervus-bronze sm:text-5xl">
+            Espace Conseiller
+          </h1>
+        </div>
+        <SignOutButton />
       </header>
 
-      <p className="text-base text-cervus-bronze/80">
-        Connecté en tant que{" "}
-        <span className="font-medium text-cervus-bronze">{identite}</span>.
-      </p>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-cervus-bronze/70">Rechercher un client</h2>
+        <ClientSearch />
+      </section>
 
-      <SignOutButton />
+      <p className="text-xs text-cervus-bronze/40">
+        Connecté en tant que {identite}.
+      </p>
     </main>
   );
 }

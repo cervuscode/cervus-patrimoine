@@ -1,5 +1,11 @@
 import { SimulateurData, ComputedResults } from "@/app/simulateur-per/types";
 import type { AVComputed } from "@/lib/av-engine";
+import {
+  RDV_FIELDS,
+  NOTES_FIELD,
+  CODE_CLIENT_FIELD_NAME,
+  type RdvFieldDef,
+} from "@/lib/rdv-fields";
 
 /**
  * Pipedrive sync — server-side only.
@@ -388,6 +394,8 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
   }
 
   let dealId: number;
+  // Volet A (Lot 1) : on ne génère le code client QUE pour un deal nouvellement créé.
+  let dealCreated = false;
 
   // OTP validé : réutiliser le deal créé par early-contact plutôt que d'en créer un 2e.
   // On le met à jour et on le déplace vers "Leads" / "Tel Validé". Si aucun deal ouvert
@@ -413,6 +421,7 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
         ...dealCustom,
       });
       dealId = deal.data.id;
+      dealCreated = true;
       console.log(`[Pipedrive] Aucun deal ouvert trouvé, deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
     }
   } else {
@@ -432,8 +441,16 @@ export async function syncProductToPipedrive(params: ProductSyncParams): Promise
         ...dealCustom,
       });
       dealId = deal.data.id;
+      dealCreated = true;
       console.log(`[Pipedrive] Deal créé: ${dealId} (pipeline ${pipelineId}, stage ${stageId})`);
     }
+  }
+
+  // Volet A : attribution du code client à la source, UNIQUEMENT à la création d'un
+  // nouveau deal. Strictement non-bloquant : un échec ne doit jamais faire échouer la
+  // création du deal ni le parcours du site public (cf. assignClientCodeOnCreate).
+  if (dealCreated) {
+    await assignClientCodeOnCreate(dealId);
   }
 
   return { personId, dealId };
@@ -562,4 +579,290 @@ export async function syncAVToPipedrive(
     otpVerifie,
     produit: "AV",
   });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Outil RDV Conseiller — Lot 1
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Volet A — Code client généré à la source (format C-0042, scan + 1, jamais régénéré)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CODE_CLIENT_REGEX = /^C-(\d+)$/i;
+
+function formatClientCode(n: number): string {
+  return `C-${String(n).padStart(4, "0")}`;
+}
+
+/**
+ * Scanne TOUS les deals (paginé) pour trouver le plus grand code `C-XXXX` attribué,
+ * et renvoie le suivant (`C-0001` si aucun). Exporté : réutilisé par le Volet B
+ * (bouton « Générer un code » de l'outil RDV) pour proposer le même prochain code.
+ */
+export async function computeNextClientCode(): Promise<string> {
+  const meta = await getMeta();
+  const codeKey = meta.dealFields[CODE_CLIENT_FIELD_NAME];
+  if (!codeKey) {
+    throw new Error(`Champ Deal "${CODE_CLIENT_FIELD_NAME}" introuvable côté Pipedrive`);
+  }
+
+  let max = 0;
+  let start = 0;
+  const limit = 500;
+  // Pagination Pipedrive : on boucle tant que more_items_in_collection est vrai.
+  for (let guard = 0; guard < 100; guard++) {
+    const res = await pdGet<{
+      data?: Array<Record<string, unknown>> | null;
+      additional_data?: { pagination?: { more_items_in_collection?: boolean; next_start?: number } };
+    }>(`/deals?status=all_not_deleted&limit=${limit}&start=${start}`);
+    for (const deal of res.data ?? []) {
+      const raw = deal[codeKey];
+      if (raw == null) continue;
+      const m = String(raw).trim().match(CODE_CLIENT_REGEX);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (Number.isFinite(n) && n > max) max = n;
+      }
+    }
+    const pg = res.additional_data?.pagination;
+    if (!pg?.more_items_in_collection) break;
+    start = pg.next_start ?? start + limit;
+  }
+  return formatClientCode(max + 1);
+}
+
+/**
+ * Attribue un code client à un deal NOUVELLEMENT créé, s'il n'en a pas déjà un.
+ * STRICTEMENT NON-BLOQUANT : toute erreur (champ absent, réseau, quota) est avalée
+ * et loggée — ne fait jamais échouer la création du deal ni le parcours public.
+ * Ne régénère jamais un code déjà présent.
+ */
+export async function assignClientCodeOnCreate(dealId: number): Promise<void> {
+  try {
+    const meta = await getMeta();
+    const codeKey = meta.dealFields[CODE_CLIENT_FIELD_NAME];
+    if (!codeKey) {
+      console.warn(`[Pipedrive] Champ "${CODE_CLIENT_FIELD_NAME}" absent → code client non généré (no-op)`);
+      return;
+    }
+    // Ne jamais régénérer : si le deal a déjà un code, on s'arrête.
+    const current = await pdGet<{ data?: Record<string, unknown> }>(`/deals/${dealId}`);
+    const existing = current.data?.[codeKey];
+    if (existing != null && String(existing).trim() !== "") {
+      return;
+    }
+    const code = await computeNextClientCode();
+    await pdPut(`/deals/${dealId}`, { [codeKey]: code });
+    console.log(`[Pipedrive] Code client attribué au deal ${dealId}: ${code}`);
+  } catch (err) {
+    console.warn(`[Pipedrive] Échec attribution code client (non-bloquant) deal ${dealId}:`, err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Volet B — Lire le code client d'un deal (vérification « Lier la fiche »)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function readDealCodeClient(dealId: number): Promise<string | null> {
+  const meta = await getMeta();
+  const codeKey = meta.dealFields[CODE_CLIENT_FIELD_NAME];
+  if (!codeKey) return null;
+  const res = await pdGet<{ data?: Record<string, unknown> }>(`/deals/${dealId}`);
+  const raw = res.data?.[codeKey];
+  return raw != null && String(raw).trim() !== "" ? String(raw).trim() : null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recherche de personnes (champ libre nom/email — JAMAIS de dropdown côté UI)
+// ─────────────────────────────────────────────────────────────────────────────
+export interface PersonSearchHit {
+  id: number;
+  name: string;
+  email: string | null;
+}
+
+export async function searchPersonsByTerm(term: string): Promise<PersonSearchHit[]> {
+  const q = term.trim();
+  if (q.length < 2) return [];
+  const res = await pdGet<{
+    data?: { items?: Array<{ item?: { id?: number; name?: string; primary_email?: string | null } }> };
+  }>(`/persons/search?term=${encodeURIComponent(q)}&fields=name,email&limit=20`);
+  const hits: PersonSearchHit[] = [];
+  for (const it of res.data?.items ?? []) {
+    const id = it.item?.id;
+    if (typeof id !== "number") continue;
+    hits.push({
+      id,
+      name: it.item?.name ?? "(sans nom)",
+      email: it.item?.primary_email ?? null,
+    });
+  }
+  return hits;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Vue client : Person + tous ses deals, valeurs Simulation + Découverte RDV
+// ─────────────────────────────────────────────────────────────────────────────
+export interface ClientFieldValue {
+  id: string; // RdvFieldDef.id
+  sim: string | number | null; // valeur Simulation (lecture seule)
+  dec: string | number | null; // valeur Découverte RDV (en base)
+}
+
+export interface ClientDeal {
+  id: number;
+  title: string;
+  produit: string | null;
+  status: string | null;
+  code: string | null;
+  // valeurs des champs Découverte RDV portés par le DEAL (id → {sim, dec})
+  fields: Record<string, ClientFieldValue>;
+}
+
+export interface ClientView {
+  personId: number;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  // valeurs des champs Découverte RDV portés par la PERSON (id → {sim, dec})
+  personFields: Record<string, ClientFieldValue>;
+  notes: string | null;
+  deals: ClientDeal[];
+}
+
+function readVal(
+  source: Record<string, unknown>,
+  nameToKey: Record<string, string>,
+  fieldName?: string
+): string | number | null {
+  if (!fieldName) return null;
+  const key = nameToKey[fieldName];
+  if (!key) return null;
+  const raw = source[key];
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "number" || typeof raw === "string") return raw;
+  // Champ monétaire renvoyé sous forme d'objet {value, currency} selon le contexte.
+  if (typeof raw === "object" && "value" in (raw as Record<string, unknown>)) {
+    const v = (raw as { value?: unknown }).value;
+    return typeof v === "number" || typeof v === "string" ? v : null;
+  }
+  return null;
+}
+
+function collectFields(
+  entity: RdvFieldDef["entity"],
+  source: Record<string, unknown>,
+  nameToKey: Record<string, string>
+): Record<string, ClientFieldValue> {
+  const out: Record<string, ClientFieldValue> = {};
+  for (const f of RDV_FIELDS) {
+    if (f.entity !== entity) continue;
+    out[f.id] = {
+      id: f.id,
+      sim: readVal(source, nameToKey, f.simName),
+      dec: readVal(source, nameToKey, f.decName),
+    };
+  }
+  return out;
+}
+
+export async function getClientView(personId: number): Promise<ClientView> {
+  const meta = await getMeta();
+
+  const personRes = await pdGet<{ data?: Record<string, unknown> }>(`/persons/${personId}`);
+  const person = personRes.data ?? {};
+
+  const notesKey = meta.personFields[NOTES_FIELD.decName];
+  const notesRaw = notesKey ? person[notesKey] : null;
+  const notes = notesRaw != null && String(notesRaw).trim() !== "" ? String(notesRaw) : null;
+
+  const dealsRes = await pdGet<{ data?: Array<Record<string, unknown>> | null }>(
+    `/persons/${personId}/deals?status=all_not_deleted&limit=50&sort=add_time DESC`
+  );
+  const produitKey = meta.dealFields["Produit"];
+  const codeKey = meta.dealFields[CODE_CLIENT_FIELD_NAME];
+
+  const deals: ClientDeal[] = (dealsRes.data ?? []).map((d) => {
+    const idRaw = d.id;
+    const code = codeKey ? d[codeKey] : null;
+    const produit = produitKey ? d[produitKey] : null;
+    return {
+      id: typeof idRaw === "number" ? idRaw : Number(idRaw),
+      title: typeof d.title === "string" ? d.title : "",
+      produit: produit != null && String(produit).trim() !== "" ? String(produit) : null,
+      status: typeof d.status === "string" ? d.status : null,
+      code: code != null && String(code).trim() !== "" ? String(code).trim() : null,
+      fields: collectFields("deal", d, meta.dealFields),
+    };
+  });
+
+  return {
+    personId,
+    name: typeof person.name === "string" ? person.name : "",
+    firstName: typeof person.first_name === "string" ? person.first_name : null,
+    lastName: typeof person.last_name === "string" ? person.last_name : null,
+    email:
+      typeof person.primary_email === "string"
+        ? person.primary_email
+        : null,
+    personFields: collectFields("person", person, meta.personFields),
+    notes,
+    deals,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Écriture Découverte RDV (jamais les champs Simulation)
+// `personValues` / `dealValues` : { fieldId → valeur }. `notes` à part (Person).
+// ─────────────────────────────────────────────────────────────────────────────
+export interface SaveDecouverteInput {
+  personId: number;
+  dealId?: number | null;
+  personValues?: Record<string, string | number | null>;
+  dealValues?: Record<string, string | number | null>;
+  notes?: string | null;
+}
+
+function buildDecouvertePayload(
+  entity: RdvFieldDef["entity"],
+  values: Record<string, string | number | null> | undefined,
+  nameToKey: Record<string, string>
+): Record<string, string | number | null> {
+  const out: Record<string, string | number | null> = {};
+  if (!values) return out;
+  for (const [fieldId, value] of Object.entries(values)) {
+    const def = RDV_FIELDS.find((f) => f.id === fieldId && f.entity === entity);
+    if (!def) continue; // jamais un champ inconnu
+    const key = nameToKey[def.decName]; // TOUJOURS la clé Découverte RDV, jamais Simulation
+    if (!key) {
+      console.warn(`[Pipedrive] Champ Découverte introuvable, ignoré: "${def.decName}"`);
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+export async function saveDecouverteRDV(input: SaveDecouverteInput): Promise<void> {
+  const meta = await getMeta();
+
+  // ── Person ──
+  const personPayload = buildDecouvertePayload("person", input.personValues, meta.personFields);
+  if (input.notes !== undefined) {
+    const notesKey = meta.personFields[NOTES_FIELD.decName];
+    if (notesKey) personPayload[notesKey] = input.notes;
+    else console.warn(`[Pipedrive] Champ "${NOTES_FIELD.decName}" introuvable, notes ignorées`);
+  }
+  if (Object.keys(personPayload).length > 0) {
+    await pdPut(`/persons/${input.personId}`, personPayload);
+  }
+
+  // ── Deal ──
+  if (input.dealId) {
+    const dealPayload = buildDecouvertePayload("deal", input.dealValues, meta.dealFields);
+    if (Object.keys(dealPayload).length > 0) {
+      await pdPut(`/deals/${input.dealId}`, dealPayload);
+    }
+  }
 }

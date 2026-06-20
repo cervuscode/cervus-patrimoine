@@ -287,3 +287,92 @@ describe("syncToPipedrive (wrapper PER) — non-régression", () => {
     expect(calls.some((c) => c.path === "/deals/777" && c.method === "PUT")).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Volet A (Lot 1) — code client à la source
+// ─────────────────────────────────────────────────────────────────────────────
+describe("Volet A — code client", () => {
+  const CODE_KEY = "code_hash";
+
+  // Mock dédié : meta avec le champ "Code client", scan /deals paramétrable,
+  // GET /deals/{id} paramétrable (code présent ou non), capture des PUT.
+  function installVoletAMock(opts: { scanDeals?: Array<Record<string, unknown>>; dealHasCode?: string | null }) {
+    const { scanDeals = [], dealHasCode = null } = opts;
+    const fetchMock = jest.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      const path = url.split("?")[0].replace(/^https?:\/\/[^/]+\/api\/v1/, "");
+      const method = (init?.method ?? "GET").toUpperCase();
+      let body: Record<string, unknown> | null = null;
+      if (init?.body) {
+        try { body = JSON.parse(init.body as string); } catch { body = null; }
+      }
+      calls.push({ method, path, body });
+
+      if (url.includes("/personFields")) return ok({ data: [] });
+      if (url.includes("/dealFields")) return ok({ data: [{ name: "Code client", key: CODE_KEY }, { name: "Produit", key: "prod_hash" }] });
+      if (url.includes("/pipelines")) return ok({ data: [{ id: 1, name: "Leads" }] });
+      if (url.includes("/stages")) return ok({ data: [{ id: 10, name: "Tel Validé", pipeline_id: 1 }] });
+
+      // Scan de tous les deals (computeNextClientCode)
+      if (path === "/deals" && method === "GET") {
+        return ok({ data: scanDeals, additional_data: { pagination: { more_items_in_collection: false } } });
+      }
+      // Lecture d'un deal précis (assignClientCodeOnCreate)
+      if (path.match(/^\/deals\/\d+$/) && method === "GET") {
+        return ok({ data: dealHasCode != null ? { [CODE_KEY]: dealHasCode } : {} });
+      }
+      if (path.match(/^\/deals\/\d+$/) && method === "PUT") return ok({ data: { id: 900 } });
+      return ok({ data: {} });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    return fetchMock;
+  }
+
+  beforeEach(() => {
+    jest.resetModules(); // cache meta neuf (les describes précédents ont un autre meta)
+    calls = [];
+  });
+
+  test("computeNextClientCode : max + 1, padding 4 chiffres", async () => {
+    const { computeNextClientCode } = await import("@/lib/pipedrive");
+    installVoletAMock({ scanDeals: [{ [CODE_KEY]: "C-0003" }, { [CODE_KEY]: "C-0007" }, { [CODE_KEY]: null }] });
+    expect(await computeNextClientCode()).toBe("C-0008");
+  });
+
+  test("computeNextClientCode : aucun code → C-0001", async () => {
+    const { computeNextClientCode } = await import("@/lib/pipedrive");
+    installVoletAMock({ scanDeals: [{ foo: "bar" }] });
+    expect(await computeNextClientCode()).toBe("C-0001");
+  });
+
+  test("assignClientCodeOnCreate : deal sans code → écrit le prochain code", async () => {
+    const { assignClientCodeOnCreate } = await import("@/lib/pipedrive");
+    installVoletAMock({ scanDeals: [{ [CODE_KEY]: "C-0041" }], dealHasCode: null });
+    await assignClientCodeOnCreate(900);
+    const put = calls.find((c) => c.path === "/deals/900" && c.method === "PUT");
+    expect(put).toBeDefined();
+    expect(put!.body![CODE_KEY]).toBe("C-0042");
+  });
+
+  test("assignClientCodeOnCreate : deal déjà codé → ne régénère pas (aucun PUT)", async () => {
+    const { assignClientCodeOnCreate } = await import("@/lib/pipedrive");
+    installVoletAMock({ scanDeals: [], dealHasCode: "C-0009" });
+    await assignClientCodeOnCreate(900);
+    expect(calls.some((c) => c.path === "/deals/900" && c.method === "PUT")).toBe(false);
+  });
+
+  test("assignClientCodeOnCreate : champ Code client absent → no-op, ne throw pas", async () => {
+    const { assignClientCodeOnCreate } = await import("@/lib/pipedrive");
+    // meta sans "Code client"
+    const fetchMock = jest.fn((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/personFields")) return ok({ data: [] });
+      if (url.includes("/dealFields")) return ok({ data: [{ name: "Produit", key: "prod_hash" }] });
+      if (url.includes("/pipelines")) return ok({ data: [] });
+      if (url.includes("/stages")) return ok({ data: [] });
+      return ok({ data: {} });
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await expect(assignClientCodeOnCreate(900)).resolves.toBeUndefined();
+  });
+});

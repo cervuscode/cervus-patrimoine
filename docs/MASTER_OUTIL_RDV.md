@@ -219,6 +219,9 @@ Modeler la structure sur Eilau : Identité / Revenus & Fiscalité / Patrimoine /
 | **11** | Impression PDF des livrables | 4+ | PDF propre, charté, imprimable |
 | **12** | Présentations web paramétrées (ex-PowerPoint) | socle | À cadrer séparément |
 | **13** | KYC/REB/LCB-FT (3 pièces) + coffre fichiers via lien sécurisé (Supabase Storage, RLS, formulaire Next.js natif) | socle + COA/CIF pour activation | À cadrer en détail au démarrage du lot, revue conformité dédiée, checklist RLS §8.3 obligatoire |
+| **14** | Bilan Patrimonial Automatisé (voir §14) — synthèse + IFI + succession/DMTG + plus-value immo + projection retraite + flux financiers, livrable PDF multi-pages | socle + plusieurs nouveaux moteurs de calcul | À cadrer en détail au démarrage du lot — chantier de l'ampleur d'un nouveau fiscal-engine.ts, pas un simulateur unitaire |
+
+> **Onglet "Autres simulateurs" :** au fur et à mesure que de nouveaux simulateurs sont identifiés comme pistes futures (au-delà des Lots 4-10 déjà cadrés) — ex. inspirés d'outils concurrents repérés en veille — ils sont listés dans un onglet dédié "Autres simulateurs" du `CLAUDE.md`, pas immédiatement ajoutés au tableau des lots ci-dessus. Ils ne deviennent un lot numéroté qu'une fois explicitement priorisés par Auguste. Voir §14 pour le premier exemple (Bilan Patrimonial Automatisé).
 
 ---
 
@@ -251,6 +254,8 @@ Indépendant de l'outil RDV mais soulevé dans la même réflexion cyber :
 
 ---
 
+---
+
 ## 13. Les invariants à ne jamais oublier
 
 1. **Pipedrive = source de vérité** pour le RDV. Pas de base dédiée avant le Lot 13 (KYC, où Supabase intervient en complément isolé, jamais en remplacement).
@@ -262,3 +267,30 @@ Indépendant de l'outil RDV mais soulevé dans la même réflexion cyber :
 7. **Charte :** bronze `#795D48`, bronze foncé `#5D4738`, crème `#F2EDE8`, sombre `#0f0f0f` ; Cormorant (titres) / Inter (corps) ; boutons pilule.
 8. **Supabase uniquement au Lot 13** (KYC/fichiers via lien sécurisé), bucket isolé du Drive existant, hébergement UE, RLS stricte (checklist §8.3 obligatoire).
 9. **Auguste ne code pas :** prompts Claude Code complets, prêts à coller.
+
+---
+
+## 14. Idée future — Bilan Patrimonial Automatisé (Lot 14, non cadré en détail)
+
+> Repéré en veille concurrentielle (outil "Majors", juin 2026) — référence de niveau à viser, pas un cahier des charges figé. Volontairement non priorisé maintenant ; à cadrer en détail le jour où ce lot est lancé.
+
+**Constat sur la faisabilité (analyse du 20 juin 2026) :** la quasi-totalité de la valeur de ce type de bilan est du **calcul déterministe**, pas de la génération IA — exactement la même philosophie que `fiscal-engine.ts` :
+
+- **Calcul pur (sans IA), réutilisant/étendant les moteurs existants ou à créer sur le même modèle :**
+  - Synthèse patrimoniale (actif net, répartition par classe d'actifs) — agrégation des données saisies
+  - IFI (barème + plafonnement art. 979) — nouveau moteur isolé, même rigueur que le moteur IR (tests croisés DGFiP/BOFiP)
+  - Plus-value immobilière (abattements durée de détention)
+  - Succession/DMTG (barèmes par lien de parenté, abattements)
+  - Projection retraite (capital projeté, méthode des 4 %)
+  - Flux financiers (revenus/charges/capacité d'épargne)
+  - Scores composites (diversification, préparation succession) — formule pondérée à définir et valider, pas de l'IA
+
+- **Ce qui nécessiterait un vrai chantier de règles métier (PAS de génération IA libre, pour les mêmes raisons de fiabilité/responsabilité que le reste de l'outil) :**
+  - Les paragraphes de "lecture experte" : à remplacer par une **bibliothèque de templates de phrases conditionnelles** écrits à l'avance (ex. "si concentration immobilière > X% alors phrase Y"), déterministes et auditables — pas de génération libre dans un document à enjeu réglementaire (cabinet engageant sa responsabilité, art. L.541-8-1 CMF)
+  - Les références légales citées : codées en dur par condition détectée (ex. "si IFI > seuil → afficher art. 974 CGI"), pas de RAG — largement suffisant pour un usage interne à cas limités
+
+**Pourquoi reporté :** ampleur comparable à la création de plusieurs nouveaux `fiscal-engine.ts` (IFI, succession, plus-value immo) + une bibliothèque de templates de recommandations + un formulaire de collecte complet (identité, patrimoine ligne à ligne, flux) + un module PDF multi-pages bien plus riche que les PDF actuels. Net dépassement du périmètre d'un simulateur unitaire (Lots 4-10).
+
+**Quand ce lot sera lancé :** cadrage dédié nécessaire (quels moteurs en premier, quelle structure de formulaire de collecte, quelle bibliothèque de templates, quel format PDF).
+
+---

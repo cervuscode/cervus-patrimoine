@@ -190,6 +190,22 @@ export default function ResultPageAV({ data, computed }: Props) {
         </div>
       )}
 
+      {/* Mention pédagogique : fiscalité moins favorable avant 8 ans de détention */}
+      {data.dureeAnnees < 8 && (
+        <div className="flex items-start gap-3 p-5 rounded-3xl bg-cervus-cream border border-cervus-gold/30">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0">
+            <circle cx="12" cy="12" r="9" stroke="#795D48" strokeWidth="1.4" />
+            <path d="M12 8h.01M11 12h1v4h1" stroke="#795D48" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <p className="font-inter text-sm leading-relaxed text-cervus-dark/70">
+            Avant 8 ans, la fiscalité de l&apos;assurance-vie est moins avantageuse : pas
+            d&apos;abattement annuel (4&nbsp;600&nbsp;€ / 9&nbsp;200&nbsp;€), plus-value taxée
+            au PFU de 30&nbsp;%. L&apos;avantage fiscal pleinement déployé s&apos;obtient après
+            8 ans de détention.
+          </p>
+        </div>
+      )}
+
       {/* Transparence quand l'accompagnement n'apporte pas de gain fiscal significatif */}
       {!utile && (
         <div className="flex flex-col gap-3 p-6 rounded-2xl border" style={{ backgroundColor: "#EDE5DC", borderColor: "#D4C9BE" }}>

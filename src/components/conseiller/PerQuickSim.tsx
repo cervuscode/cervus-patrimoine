@@ -20,6 +20,7 @@ import {
 } from "@/lib/per-quick";
 import TauxSlider from "./TauxSlider";
 import { useRdvClient } from "./RdvClientProvider";
+import { perQuickDraft } from "@/lib/sim-history";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 
@@ -71,23 +72,17 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
     if (!client) return;
     if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
     const t = setTimeout(() => {
-      recordSim({
-        simId: "per-quick",
-        label: "PER rapide",
-        inputs: {
-          versementMensuel: inputs.versementMensuel,
-          versementInitial: inputs.versementInitial,
-          horizon: inputs.horizon,
-          taux: result.taux,
-          profil: inputs.profil,
-        },
-        result: {
-          tmi: result.tmi,
-          economieFiscale: result.economieFiscale,
-          capitalFinal: result.capitalFinal,
-          totalVerse: result.totalVerse,
-        },
-      });
+      recordSim(
+        perQuickDraft(
+          {
+            versementMensuel: inputs.versementMensuel,
+            versementInitial: inputs.versementInitial,
+            horizon: inputs.horizon,
+            profil: inputs.profil,
+          },
+          result
+        )
+      );
     }, 700);
     return () => clearTimeout(t);
   }, [client, inputs, result, recordSim]);

@@ -69,6 +69,75 @@ export type SimRecordDraft =
   | Omit<PerQuickRecord, "id" | "ts">
   | Omit<PerFullRecord, "id" | "ts">;
 
+// ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
+// Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
+// présentation (PerQuickPresentation/PerFullPresentation) → un seul endroit décide
+// quelles hypothèses/quels résultats sont mémorisés. Types de result minimaux pour
+// éviter de coupler ce module aux signatures complètes des moteurs.
+export function perQuickDraft(
+  inputs: { versementMensuel: number; versementInitial: number; horizon: number; profil: PerProfil },
+  result: { taux: number; tmi: number; economieFiscale: number; capitalFinal: number; totalVerse: number }
+): Omit<PerQuickRecord, "id" | "ts"> {
+  return {
+    simId: "per-quick",
+    label: "PER rapide",
+    inputs: {
+      versementMensuel: inputs.versementMensuel,
+      versementInitial: inputs.versementInitial,
+      horizon: inputs.horizon,
+      taux: result.taux,
+      profil: inputs.profil,
+    },
+    result: {
+      tmi: result.tmi,
+      economieFiscale: result.economieFiscale,
+      capitalFinal: result.capitalFinal,
+      totalVerse: result.totalVerse,
+    },
+  };
+}
+
+export function perFullDraft(
+  inputs: {
+    versementMensuel: number;
+    versementInitial: number;
+    horizon: number;
+    profil: PerProfil;
+    trancheSortie: number;
+    ageConversion: number;
+  },
+  result: {
+    taux: number;
+    capitalFinal: number;
+    sortie1: { capitalNet: number };
+    sortie2: { equivalentMensuel: number; capitalNet: number };
+    sortie3: { disponible: boolean; renteMensuelle: number; renteNetteAnnuelle: number };
+  }
+): Omit<PerFullRecord, "id" | "ts"> {
+  return {
+    simId: "per-full",
+    label: "PER complet",
+    inputs: {
+      versementMensuel: inputs.versementMensuel,
+      versementInitial: inputs.versementInitial,
+      horizon: inputs.horizon,
+      taux: result.taux,
+      profil: inputs.profil,
+      trancheSortie: inputs.trancheSortie,
+      ageConversion: inputs.ageConversion,
+    },
+    result: {
+      capitalFinal: result.capitalFinal,
+      sortie1Net: result.sortie1.capitalNet,
+      sortie2RetraitMensuel: result.sortie2.equivalentMensuel,
+      sortie2Net: result.sortie2.capitalNet,
+      sortie3Disponible: result.sortie3.disponible,
+      sortie3RenteMensuelle: result.sortie3.renteMensuelle,
+      sortie3RenteNetteMensuelle: Math.round(result.sortie3.renteNetteAnnuelle / 12),
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.

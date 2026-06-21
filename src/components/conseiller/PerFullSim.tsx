@@ -17,6 +17,7 @@ import {
 } from "@/lib/per-sortie";
 import TauxSlider from "./TauxSlider";
 import { useRdvClient } from "./RdvClientProvider";
+import { perFullDraft } from "@/lib/sim-history";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 const TRANCHES = [0, 11, 30, 41, 45];
@@ -72,28 +73,19 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
     if (!client) return;
     if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
     const t = setTimeout(() => {
-      recordSim({
-        simId: "per-full",
-        label: "PER complet",
-        inputs: {
-          versementMensuel: inputs.versementMensuel,
-          versementInitial: inputs.versementInitial,
-          horizon: inputs.horizon,
-          taux: result.taux,
-          profil: inputs.profil,
-          trancheSortie: inputs.trancheSortie,
-          ageConversion: inputs.ageConversion,
-        },
-        result: {
-          capitalFinal: result.capitalFinal,
-          sortie1Net: result.sortie1.capitalNet,
-          sortie2RetraitMensuel: result.sortie2.equivalentMensuel,
-          sortie2Net: result.sortie2.capitalNet,
-          sortie3Disponible: result.sortie3.disponible,
-          sortie3RenteMensuelle: result.sortie3.renteMensuelle,
-          sortie3RenteNetteMensuelle: Math.round(result.sortie3.renteNetteAnnuelle / 12),
-        },
-      });
+      recordSim(
+        perFullDraft(
+          {
+            versementMensuel: inputs.versementMensuel,
+            versementInitial: inputs.versementInitial,
+            horizon: inputs.horizon,
+            profil: inputs.profil,
+            trancheSortie: inputs.trancheSortie,
+            ageConversion: inputs.ageConversion,
+          },
+          result
+        )
+      );
     }, 700);
     return () => clearTimeout(t);
   }, [client, inputs, result, recordSim]);

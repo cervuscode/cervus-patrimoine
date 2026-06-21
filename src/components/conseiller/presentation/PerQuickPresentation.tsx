@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -19,6 +19,7 @@ import {
   type PerProfil,
 } from "@/lib/per-quick";
 import type { ClientIdentity, HypoValues } from "@/lib/presentation-bridge";
+import { perQuickDraft, type SimRecordDraft } from "@/lib/sim-history";
 import TauxSlider from "../TauxSlider";
 import { BigResult, HypoNumber, HypoPills, IdentityChip } from "./controls";
 
@@ -32,10 +33,12 @@ export default function PerQuickPresentation({
   identity,
   hypo,
   onHypo,
+  onRecord,
 }: {
   identity: ClientIdentity;
   hypo: HypoValues;
   onHypo: <K extends keyof HypoValues>(key: K, value: HypoValues[K]) => void;
+  onRecord?: (draft: SimRecordDraft) => void;
 }) {
   const result = useMemo(
     () =>
@@ -54,6 +57,23 @@ export default function PerQuickPresentation({
       ),
     [identity, hypo]
   );
+
+  // Lot 3 : remonte la variante stabilisée à l'opener (debounce/dédup côté pont).
+  useEffect(() => {
+    if (!onRecord) return;
+    if (hypo.versementMensuel <= 0 && hypo.versementInitial <= 0) return;
+    onRecord(
+      perQuickDraft(
+        {
+          versementMensuel: hypo.versementMensuel,
+          versementInitial: hypo.versementInitial,
+          horizon: hypo.horizon,
+          profil: hypo.profil,
+        },
+        result
+      )
+    );
+  }, [result, hypo, onRecord]);
 
   return (
     <div className="flex flex-col gap-6">

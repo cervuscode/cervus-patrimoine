@@ -6,10 +6,12 @@ import { TAUX_PAR_PROFIL, type PerProfil } from "@/lib/per-quick";
 import {
   encodePresentationParams,
   PRESENT_MSG_IDENTITY,
+  PRESENT_MSG_RECORD,
   PRESENT_MSG_REQUEST,
   type ClientIdentity,
   type HypoValues,
 } from "@/lib/presentation-bridge";
+import type { SimRecordDraft } from "@/lib/sim-history";
 
 function toNum(v: string, fallback = 0): number {
   const n = parseFloat(String(v).replace(",", "."));
@@ -30,8 +32,12 @@ function toProfil(v: string): PerProfil {
  *      (donc une correction faite dans le panneau est rapatriée par « Actualiser »).
  */
 export default function PresentationBridge() {
-  const { client, activeDeal, getValue, fiscalState } = useRdvClient();
+  const { client, activeDeal, getValue, fiscalState, recordSim } = useRdvClient();
   const personId = client?.personId ?? null;
+  // recordSim est stable (useCallback []), mais on le passe par ref car le listener
+  // est monté une seule fois ([] deps) et doit toujours appeler la version courante.
+  const recordSimRef = useRef(recordSim);
+  recordSimRef.current = recordSim;
 
   // Identité = état fiscal PARTAGÉ (Lot 2) : revenu net, parts, TMI calculés une fois.
   const identity: ClientIdentity = {
@@ -51,12 +57,23 @@ export default function PresentationBridge() {
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== PRESENT_MSG_REQUEST) return;
-      const source = event.source as WindowProxy | null;
-      source?.postMessage(
-        { type: PRESENT_MSG_IDENTITY, simId: event.data.simId, identity: identityRef.current },
-        event.origin
-      );
+      // (a) Requête « Actualiser » → renvoie l'identité courante.
+      if (event.data?.type === PRESENT_MSG_REQUEST) {
+        const source = event.source as WindowProxy | null;
+        source?.postMessage(
+          { type: PRESENT_MSG_IDENTITY, simId: event.data.simId, identity: identityRef.current },
+          event.origin
+        );
+        return;
+      }
+      // (b) Lot 3 : variante testée en présentation → historique de session.
+      if (event.data?.type === PRESENT_MSG_RECORD) {
+        const draft = event.data.draft as SimRecordDraft | undefined;
+        if (draft && (draft.simId === "per-quick" || draft.simId === "per-full")) {
+          recordSimRef.current(draft);
+        }
+        return;
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);

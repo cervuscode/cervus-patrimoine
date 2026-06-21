@@ -11,6 +11,7 @@
 
 import type { PerProfil } from "./per-quick";
 import type { AgeConversion } from "./per-sortie";
+import type { SimRecordDraft } from "./sim-history";
 
 export interface ClientIdentity {
   revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
@@ -51,6 +52,10 @@ export const DEFAULT_HYPO: HypoValues = {
 // Toujours vérifier `event.origin === window.location.origin` ET le `type`.
 export const PRESENT_MSG_REQUEST = "cervus:present:request" as const;
 export const PRESENT_MSG_IDENTITY = "cervus:present:identity" as const;
+// Lot 3 (extension) : l'onglet présentation transmet chaque variante stabilisée à
+// l'opener (la fiche) pour l'ajouter à l'historique de session, exactement comme
+// une simulation testée dans un simulateur connecté.
+export const PRESENT_MSG_RECORD = "cervus:present:record" as const;
 
 export interface PresentRequestMessage {
   type: typeof PRESENT_MSG_REQUEST;
@@ -60,6 +65,10 @@ export interface PresentIdentityMessage {
   type: typeof PRESENT_MSG_IDENTITY;
   simId: string;
   identity: ClientIdentity;
+}
+export interface PresentRecordMessage {
+  type: typeof PRESENT_MSG_RECORD;
+  draft: SimRecordDraft;
 }
 
 function num(v: unknown, fallback = 0): number {

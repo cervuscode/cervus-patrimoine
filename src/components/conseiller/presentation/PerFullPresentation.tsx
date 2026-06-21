@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   formatEuro,
   PROFIL_LABELS,
@@ -14,6 +14,7 @@ import {
   type AgeConversion,
 } from "@/lib/per-sortie";
 import type { ClientIdentity, HypoValues } from "@/lib/presentation-bridge";
+import { perFullDraft, type SimRecordDraft } from "@/lib/sim-history";
 import TauxSlider from "../TauxSlider";
 import { HypoNumber, HypoPills, IdentityChip } from "./controls";
 
@@ -28,10 +29,12 @@ export default function PerFullPresentation({
   identity,
   hypo,
   onHypo,
+  onRecord,
 }: {
   identity: ClientIdentity;
   hypo: HypoValues;
   onHypo: <K extends keyof HypoValues>(key: K, value: HypoValues[K]) => void;
+  onRecord?: (draft: SimRecordDraft) => void;
 }) {
   const result = useMemo(
     () =>
@@ -50,6 +53,25 @@ export default function PerFullPresentation({
     [identity, hypo]
   );
   const conv64Indispo = ligneConversionLaPlusProche(identity.anneeNaissance).taux64 == null;
+
+  // Lot 3 : remonte la variante stabilisée à l'opener (debounce/dédup côté pont).
+  useEffect(() => {
+    if (!onRecord) return;
+    if (hypo.versementMensuel <= 0 && hypo.versementInitial <= 0) return;
+    onRecord(
+      perFullDraft(
+        {
+          versementMensuel: hypo.versementMensuel,
+          versementInitial: hypo.versementInitial,
+          horizon: hypo.horizon,
+          profil: hypo.profil,
+          trancheSortie: hypo.trancheSortie,
+          ageConversion: hypo.ageConversion,
+        },
+        result
+      )
+    );
+  }, [result, hypo, onRecord]);
 
   return (
     <div className="flex flex-col gap-6">

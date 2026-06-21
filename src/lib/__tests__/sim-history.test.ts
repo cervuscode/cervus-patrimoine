@@ -1,5 +1,7 @@
 import {
   formatSyntheseNote,
+  perFullDraft,
+  perQuickDraft,
   signatureOf,
   summarizeRecord,
   type PerFullRecord,
@@ -40,6 +42,55 @@ const full: PerFullRecord = {
     sortie3RenteNetteMensuelle: 640,
   },
 };
+
+describe("builders draft (source unique sims connectés ↔ présentation)", () => {
+  it("perQuickDraft mappe inputs + result (taux pris du result)", () => {
+    const d = perQuickDraft(
+      { versementMensuel: 300, versementInitial: 100, horizon: 23, profil: "equilibre" },
+      { taux: 0.05, tmi: 30, economieFiscale: 1080, capitalFinal: 168540, totalVerse: 82900 }
+    );
+    expect(d.simId).toBe("per-quick");
+    expect(d.inputs).toEqual({
+      versementMensuel: 300,
+      versementInitial: 100,
+      horizon: 23,
+      taux: 0.05,
+      profil: "equilibre",
+    });
+    expect(d.result).toEqual({ tmi: 30, economieFiscale: 1080, capitalFinal: 168540, totalVerse: 82900 });
+  });
+
+  it("perFullDraft aplatit les 3 sorties (rente nette mensuelle = annuelle/12 arrondie)", () => {
+    const d = perFullDraft(
+      { versementMensuel: 400, versementInitial: 0, horizon: 23, profil: "equilibre", trancheSortie: 30, ageConversion: 67 },
+      {
+        taux: 0.04,
+        capitalFinal: 215300,
+        sortie1: { capitalNet: 158200 },
+        sortie2: { equivalentMensuel: 920, capitalNet: 184000 },
+        sortie3: { disponible: true, renteMensuelle: 760, renteNetteAnnuelle: 7680 },
+      }
+    );
+    expect(d.simId).toBe("per-full");
+    expect(d.inputs.taux).toBe(0.04);
+    expect(d.inputs.trancheSortie).toBe(30);
+    expect(d.result.sortie1Net).toBe(158200);
+    expect(d.result.sortie2RetraitMensuel).toBe(920);
+    expect(d.result.sortie3RenteNetteMensuelle).toBe(640);
+  });
+
+  it("draft de présentation et de sim connecté avec mêmes valeurs → même signature (dédup cross-onglet)", () => {
+    const a = perQuickDraft(
+      { versementMensuel: 300, versementInitial: 0, horizon: 23, profil: "equilibre" },
+      { taux: 0.04, tmi: 30, economieFiscale: 1080, capitalFinal: 168540, totalVerse: 82800 }
+    );
+    const b = perQuickDraft(
+      { versementMensuel: 300, versementInitial: 0, horizon: 23, profil: "equilibre" },
+      { taux: 0.04, tmi: 30, economieFiscale: 1080, capitalFinal: 168540, totalVerse: 82800 }
+    );
+    expect(signatureOf(a)).toBe(signatureOf(b));
+  });
+});
 
 describe("signatureOf — dédup", () => {
   it("identiques → même signature", () => {

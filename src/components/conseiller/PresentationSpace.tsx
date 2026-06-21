@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { CONSEILLER_SIMS } from "@/lib/conseiller-sims";
 import {
   PRESENT_MSG_IDENTITY,
+  PRESENT_MSG_RECORD,
   PRESENT_MSG_REQUEST,
   type ClientIdentity,
   type DecodedPresentation,
   type HypoValues,
 } from "@/lib/presentation-bridge";
+import type { SimRecordDraft } from "@/lib/sim-history";
 import PerQuickPresentation from "./presentation/PerQuickPresentation";
 import PerFullPresentation from "./presentation/PerFullPresentation";
 
@@ -18,6 +20,8 @@ type PresentationView = ComponentType<{
   identity: ClientIdentity;
   hypo: HypoValues;
   onHypo: <K extends keyof HypoValues>(key: K, value: HypoValues[K]) => void;
+  /** Lot 3 : remonte chaque variante stabilisée vers l'opener (historique de session). */
+  onRecord: (draft: SimRecordDraft) => void;
 }>;
 
 const VIEWS: Record<string, PresentationView> = {
@@ -53,6 +57,26 @@ export default function PresentationSpace({ initial }: { initial: DecodedPresent
     },
     [activeSim]
   );
+
+  // Lot 3 : transmission de la variante stabilisée vers l'opener (la fiche).
+  // Debounce 700 ms (même délai que les simulateurs connectés) pour ne remonter que
+  // la variante posée, pas chaque frappe. La dédup consécutive est faite côté opener.
+  const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDraft = useRef<SimRecordDraft | null>(null);
+  const onRecord = useCallback((draft: SimRecordDraft) => {
+    pendingDraft.current = draft;
+    if (recordTimer.current) clearTimeout(recordTimer.current);
+    recordTimer.current = setTimeout(() => {
+      const d = pendingDraft.current;
+      if (!d) return;
+      // Opener fermé entre-temps → échec silencieux (cohérent avec « Actualiser »).
+      if (!window.opener || window.opener.closed) return;
+      window.opener.postMessage({ type: PRESENT_MSG_RECORD, draft: d }, window.location.origin);
+    }, 700);
+  }, []);
+  useEffect(() => () => {
+    if (recordTimer.current) clearTimeout(recordTimer.current);
+  }, []);
 
   // Réception de l'identité fraîche depuis la fiche (opener). N'écrase QUE l'identité.
   useEffect(() => {
@@ -141,7 +165,7 @@ export default function PresentationSpace({ initial }: { initial: DecodedPresent
         ))}
       </nav>
 
-      <ActiveView identity={identity} hypo={activeHypo} onHypo={onHypo} />
+      <ActiveView identity={identity} hypo={activeHypo} onHypo={onHypo} onRecord={onRecord} />
 
       <p className="text-xs leading-relaxed text-cervus-bronze/40">
         Estimation pédagogique indicative, non contractuelle. Les performances futures ne sont pas

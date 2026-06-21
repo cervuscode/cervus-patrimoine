@@ -13,6 +13,7 @@ import type { PerProfil } from "./per-quick";
 import type { AgeConversion } from "./per-sortie";
 import type { SimRecordDraft } from "./sim-history";
 import { DEFAULT_IMPOT_INPUTS, type GardeRegime, type ImpotInputs } from "./impot-sim";
+import { DEFAULT_REDUCTION_INPUTS, type ReductionInputs } from "./reduction-impot";
 
 export interface ClientIdentity {
   revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
@@ -37,6 +38,13 @@ export interface HypoValues {
    * n'utilise PAS `ClientIdentity` (« Actualiser » est sans effet sur cet onglet).
    */
   impot: ImpotInputs;
+  /**
+   * Hypothèses de l'« Illustration réduction d'impôt » (Lot 6). Sous-objet dédié
+   * (additif, IGNORÉ par les autres vues) : reprend les champs situation du Lot 4
+   * + le montant du versement PER à illustrer. Même particularité : tout est
+   * hypothèse, n'utilise PAS `ClientIdentity`.
+   */
+  reduction: ReductionInputs;
 }
 
 export const DEFAULT_IDENTITY: ClientIdentity = {
@@ -55,6 +63,7 @@ export const DEFAULT_HYPO: HypoValues = {
   trancheSortie: 30,
   ageConversion: 67,
   impot: DEFAULT_IMPOT_INPUTS,
+  reduction: DEFAULT_REDUCTION_INPUTS,
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -113,6 +122,13 @@ export function encodePresentationParams(
     ig: hypo.impot.garde,
     ih: hypo.impot.demiPartHandicap ? "1" : "0",
     ir: String(hypo.impot.revenuImposable),
+    // Hypothèses de l'illustration réduction d'impôt (Lot 6).
+    xs: hypo.reduction.statut,
+    xe: String(hypo.reduction.nbEnfants),
+    xg: hypo.reduction.garde,
+    xh: hypo.reduction.demiPartHandicap ? "1" : "0",
+    xr: String(hypo.reduction.revenuImposable),
+    xv: String(hypo.reduction.versementPer),
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -135,6 +151,9 @@ export function decodePresentationParams(
   const gardeRaw = get("ig");
   const garde: GardeRegime =
     gardeRaw === "alternee" || gardeRaw === "isole" ? gardeRaw : "classique";
+  const xgRaw = get("xg");
+  const gardeReduction: GardeRegime =
+    xgRaw === "alternee" || xgRaw === "isole" ? xgRaw : "classique";
   return {
     identity: {
       revenuImposable: num(get("r")),
@@ -156,6 +175,14 @@ export function decodePresentationParams(
         garde,
         demiPartHandicap: get("ih") === "1",
         revenuImposable: num(get("ir")),
+      },
+      reduction: {
+        statut: get("xs") ?? DEFAULT_REDUCTION_INPUTS.statut,
+        nbEnfants: num(get("xe")),
+        garde: gardeReduction,
+        demiPartHandicap: get("xh") === "1",
+        revenuImposable: num(get("xr")),
+        versementPer: num(get("xv")),
       },
     },
     code: get("cc") ?? null,

@@ -83,13 +83,36 @@ export interface ImpotRecord {
   };
 }
 
-export type SimRecord = PerQuickRecord | PerFullRecord | ImpotRecord;
+export interface ReductionRecord {
+  id: string;
+  ts: number;
+  simId: "reduction-impot";
+  label: "Réduction d'impôt PER";
+  inputs: {
+    statut: string;
+    nbEnfants: number;
+    garde: string;
+    demiPartHandicap: boolean;
+    revenuImposable: number;
+    versementPer: number;
+  };
+  result: {
+    impotAvant: number;
+    impotApres: number;
+    economie: number;
+    tmiAvant: number;
+    tmiApres: number;
+  };
+}
+
+export type SimRecord = PerQuickRecord | PerFullRecord | ImpotRecord | ReductionRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
   | Omit<PerQuickRecord, "id" | "ts">
   | Omit<PerFullRecord, "id" | "ts">
-  | Omit<ImpotRecord, "id" | "ts">;
+  | Omit<ImpotRecord, "id" | "ts">
+  | Omit<ReductionRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -196,6 +219,42 @@ export function impotDraft(
   };
 }
 
+export function reductionDraft(
+  inputs: {
+    statut: string;
+    nbEnfants: number;
+    garde: string;
+    demiPartHandicap: boolean;
+    revenuImposable: number;
+    versementPer: number;
+  },
+  result: {
+    avant: { impotNet: number; tmi: number };
+    apres: { impotNet: number; tmi: number };
+    economie: number;
+  }
+): Omit<ReductionRecord, "id" | "ts"> {
+  return {
+    simId: "reduction-impot",
+    label: "Réduction d'impôt PER",
+    inputs: {
+      statut: inputs.statut,
+      nbEnfants: inputs.nbEnfants,
+      garde: inputs.garde,
+      demiPartHandicap: inputs.demiPartHandicap,
+      revenuImposable: inputs.revenuImposable,
+      versementPer: inputs.versementPer,
+    },
+    result: {
+      impotAvant: result.avant.impotNet,
+      impotApres: result.apres.impotNet,
+      economie: result.economie,
+      tmiAvant: result.avant.tmi,
+      tmiApres: result.apres.tmi,
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -225,6 +284,19 @@ export function signatureOf(rec: SimRecordDraft): string {
       i.demiPartHandicap ? "h" : "",
       Math.round(i.revenuImposable),
       Math.round(rec.result.impotNet),
+    ].join("|");
+  }
+  if (rec.simId === "reduction-impot") {
+    const i = rec.inputs;
+    return [
+      "ri",
+      i.statut,
+      Math.round(i.nbEnfants),
+      i.garde,
+      i.demiPartHandicap ? "h" : "",
+      Math.round(i.revenuImposable),
+      Math.round(i.versementPer),
+      Math.round(rec.result.economie),
     ].join("|");
   }
   const i = rec.inputs;
@@ -299,6 +371,19 @@ export function summarizeRecord(rec: SimRecord): string {
       `, revenu ${formatEuro(i.revenuImposable)} (${formatNombre(r.partsTotal)} parts) ` +
       `→ impôt net ${formatEuro(r.impotNet)}, TMI ${r.tmi} %, taux moyen ${tauxMoyen}` +
       (r.plafonnementActif ? " · plafonnement QF actif" : "")
+    );
+  }
+  if (rec.simId === "reduction-impot") {
+    const i = rec.inputs;
+    const r = rec.result;
+    return (
+      `<b>Réduction d'impôt PER</b> — ${esc(i.statut)}` +
+      (i.nbEnfants > 0 ? `, ${i.nbEnfants} enfant${i.nbEnfants > 1 ? "s" : ""}` : "") +
+      (i.demiPartHandicap ? ", demi-part invalidité" : "") +
+      `, revenu ${formatEuro(i.revenuImposable)}, versement PER ${formatEuro(i.versementPer)} ` +
+      `→ impôt ${formatEuro(r.impotAvant)} → ${formatEuro(r.impotApres)}, ` +
+      `économie ${formatEuro(r.economie)}/an` +
+      (r.tmiAvant !== r.tmiApres ? ` (TMI ${r.tmiAvant} % → ${r.tmiApres} %)` : "")
     );
   }
   const i = rec.inputs;

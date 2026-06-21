@@ -74,7 +74,8 @@ export default function PresentationBridge() {
           draft &&
           (draft.simId === "per-quick" ||
             draft.simId === "per-full" ||
-            draft.simId === "impot")
+            draft.simId === "impot" ||
+            draft.simId === "reduction-impot")
         ) {
           recordSimRef.current(draft);
         }
@@ -111,6 +112,17 @@ export default function PresentationBridge() {
         garde: normalizeGarde(getValue("garde")),
         demiPartHandicap: false,
         revenuImposable: fiscalState.revenuNetImposable,
+      },
+      // Hypothèses de l'illustration réduction d'impôt (Lot 6), pré-remplies depuis
+      // la fiche. Versement à illustrer = versement initial (0 si absent). Tout
+      // reste éditable en présentation.
+      reduction: {
+        statut: normalizeStatutLabel(getValue("statutMarital")),
+        nbEnfants: toNum(getValue("nbEnfants")),
+        garde: normalizeGarde(getValue("garde")),
+        demiPartHandicap: false,
+        revenuImposable: fiscalState.revenuNetImposable,
+        versementPer: toNum(getValue("versementInitial")),
       },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

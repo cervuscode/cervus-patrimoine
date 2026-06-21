@@ -81,6 +81,25 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "revenuImposable",
     ],
   },
+  {
+    id: "reduction-impot",
+    label: "Illustration réduction d'impôt",
+    description: "Visuel avant/après : l'effet d'un versement PER sur les tranches.",
+    autonomousHref: "/simulateur-reduction-impot",
+    clientHref: (personId) => `/client/${personId}/simulateur-reduction-impot`,
+    available: true,
+    // Comme le Lot 4 : tout est « hypothèse », aucun champ d'identité figé (revenu
+    // et situation familiale inclus). `identityKeys` vide (purement documentaire).
+    identityKeys: [],
+    hypothesisKeys: [
+      "statut",
+      "nbEnfants",
+      "garde",
+      "demiPartHandicap",
+      "revenuImposable",
+      "versementPer",
+    ],
+  },
 ];
 
 export function getConseillerSim(id: string): ConseillerSim | undefined {

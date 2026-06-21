@@ -3,13 +3,32 @@ import {
   impotDraft,
   perFullDraft,
   perQuickDraft,
+  reductionDraft,
   signatureOf,
   summarizeRecord,
   type ImpotRecord,
   type PerFullRecord,
   type PerQuickRecord,
+  type ReductionRecord,
   type SimRecord,
 } from "../sim-history";
+
+const reduction = (over: Partial<ReductionRecord["inputs"]> = {}): ReductionRecord => ({
+  id: "r",
+  ts: 0,
+  simId: "reduction-impot",
+  label: "Réduction d'impôt PER",
+  inputs: {
+    statut: "Célibataire",
+    nbEnfants: 0,
+    garde: "classique",
+    demiPartHandicap: false,
+    revenuImposable: 60000,
+    versementPer: 6000,
+    ...over,
+  },
+  result: { impotAvant: 11104, impotApres: 9304, economie: 1800, tmiAvant: 30, tmiApres: 30 },
+});
 
 const impot = (over: Partial<ImpotRecord["inputs"]> = {}): ImpotRecord => ({
   id: "z",
@@ -128,6 +147,13 @@ describe("signatureOf — dédup", () => {
     expect(signatureOf(impot())).not.toBe(signatureOf(quick()));
     expect(signatureOf(impot())).not.toBe(signatureOf(full));
   });
+
+  it("réduction d'impôt : un champ changé → signature différente, ne collisionne pas", () => {
+    expect(signatureOf(reduction())).toBe(signatureOf(reduction()));
+    expect(signatureOf(reduction({ versementPer: 9000 }))).not.toBe(signatureOf(reduction()));
+    expect(signatureOf(reduction())).not.toBe(signatureOf(impot()));
+    expect(signatureOf(reduction())).not.toBe(signatureOf(quick()));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -160,6 +186,23 @@ describe("summarizeRecord", () => {
     expect(s).toContain("TMI 30 %");
     expect(s).toContain("plafonnement QF actif");
   });
+  it("Réduction d'impôt — revenu, versement, économie ; TMI affichée si elle change", () => {
+    const sansChangement = summarizeRecord(reduction());
+    expect(sansChangement).toContain("Réduction d'impôt PER");
+    expect(sansChangement).toContain("versement PER");
+    expect(sansChangement).toContain("économie");
+    expect(sansChangement).not.toContain("TMI 30 % → 30 %");
+    const avecChangement = summarizeRecord(
+      reduction({}) // base 30/30
+    );
+    expect(avecChangement).not.toContain("→ 11 %");
+    const changeTmi = summarizeRecord({
+      ...reduction(),
+      result: { impotAvant: 3000, impotApres: 1200, economie: 1800, tmiAvant: 30, tmiApres: 11 },
+    });
+    expect(changeTmi).toContain("TMI 30 % → 11 %");
+  });
+
   it("Impôt — demi-part invalidité mentionnée, plafonnement omis si inactif", () => {
     const s = summarizeRecord(
       impot({ demiPartHandicap: true, nbEnfants: 0 })
@@ -178,6 +221,32 @@ describe("impotDraft — builder", () => {
     expect(d.label).toBe("Impôt sur le revenu");
     expect(d.inputs.revenuImposable).toBe(30000);
     expect(d.result.impotNet).toBe(2022);
+  });
+});
+
+describe("reductionDraft — builder", () => {
+  it("mappe entrées + résultats (avant/après/économie) vers un enregistrement", () => {
+    const d = reductionDraft(
+      {
+        statut: "Célibataire",
+        nbEnfants: 0,
+        garde: "classique",
+        demiPartHandicap: false,
+        revenuImposable: 60000,
+        versementPer: 6000,
+      },
+      {
+        avant: { impotNet: 11104, tmi: 30 },
+        apres: { impotNet: 9304, tmi: 30 },
+        economie: 1800,
+      }
+    );
+    expect(d.simId).toBe("reduction-impot");
+    expect(d.inputs.versementPer).toBe(6000);
+    expect(d.result.impotAvant).toBe(11104);
+    expect(d.result.impotApres).toBe(9304);
+    expect(d.result.economie).toBe(1800);
+    expect(d.label).toBe("Réduction d'impôt PER");
   });
 });
 

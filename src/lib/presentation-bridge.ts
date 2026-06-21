@@ -12,6 +12,7 @@
 import type { PerProfil } from "./per-quick";
 import type { AgeConversion } from "./per-sortie";
 import type { SimRecordDraft } from "./sim-history";
+import { DEFAULT_IMPOT_INPUTS, type GardeRegime, type ImpotInputs } from "./impot-sim";
 
 export interface ClientIdentity {
   revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
@@ -29,6 +30,13 @@ export interface HypoValues {
   taux: number;
   trancheSortie: number;
   ageConversion: AgeConversion;
+  /**
+   * Hypothèses du « Simulateur d'impôt » (Lot 4). Sous-objet groupé : additif,
+   * IGNORÉ par les vues PER. Particularité : ICI tout est hypothèse (y compris
+   * revenu et situation familiale), aucun champ en lecture seule → l'onglet impôt
+   * n'utilise PAS `ClientIdentity` (« Actualiser » est sans effet sur cet onglet).
+   */
+  impot: ImpotInputs;
 }
 
 export const DEFAULT_IDENTITY: ClientIdentity = {
@@ -46,6 +54,7 @@ export const DEFAULT_HYPO: HypoValues = {
   taux: 0.04, // = TAUX_PAR_PROFIL.equilibre
   trancheSortie: 30,
   ageConversion: 67,
+  impot: DEFAULT_IMPOT_INPUTS,
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -98,6 +107,12 @@ export function encodePresentationParams(
     tx: String(hypo.taux),
     ts: String(hypo.trancheSortie),
     ac: String(hypo.ageConversion),
+    // Hypothèses du simulateur d'impôt (Lot 4).
+    is: hypo.impot.statut,
+    ie: String(hypo.impot.nbEnfants),
+    ig: hypo.impot.garde,
+    ih: hypo.impot.demiPartHandicap ? "1" : "0",
+    ir: String(hypo.impot.revenuImposable),
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -117,6 +132,9 @@ export function decodePresentationParams(
   const get = (k: string): string | undefined =>
     params instanceof URLSearchParams ? params.get(k) ?? undefined : params[k];
   const ac = num(get("ac"), 67);
+  const gardeRaw = get("ig");
+  const garde: GardeRegime =
+    gardeRaw === "alternee" || gardeRaw === "isole" ? gardeRaw : "classique";
   return {
     identity: {
       revenuImposable: num(get("r")),
@@ -132,6 +150,13 @@ export function decodePresentationParams(
       taux: num(get("tx"), 0.04),
       trancheSortie: num(get("ts"), 30),
       ageConversion: (ac === 64 ? 64 : 67) as AgeConversion,
+      impot: {
+        statut: get("is") ?? DEFAULT_IMPOT_INPUTS.statut,
+        nbEnfants: num(get("ie")),
+        garde,
+        demiPartHandicap: get("ih") === "1",
+        revenuImposable: num(get("ir")),
+      },
     },
     code: get("cc") ?? null,
     activeSim: get("sim") ?? "per",

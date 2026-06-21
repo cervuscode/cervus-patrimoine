@@ -11,6 +11,7 @@ import {
   type ClientIdentity,
   type HypoValues,
 } from "@/lib/presentation-bridge";
+import { normalizeGarde, normalizeStatutLabel } from "@/lib/impot-sim";
 import type { SimRecordDraft } from "@/lib/sim-history";
 
 function toNum(v: string, fallback = 0): number {
@@ -69,7 +70,12 @@ export default function PresentationBridge() {
       // (b) Lot 3 : variante testée en présentation → historique de session.
       if (event.data?.type === PRESENT_MSG_RECORD) {
         const draft = event.data.draft as SimRecordDraft | undefined;
-        if (draft && (draft.simId === "per-quick" || draft.simId === "per-full")) {
+        if (
+          draft &&
+          (draft.simId === "per-quick" ||
+            draft.simId === "per-full" ||
+            draft.simId === "impot")
+        ) {
           recordSimRef.current(draft);
         }
         return;
@@ -97,6 +103,15 @@ export default function PresentationBridge() {
       // Tranche de sortie par défaut = TMI partagée (Lot 2).
       trancheSortie: fiscalState.tmi,
       ageConversion: 67,
+      // Hypothèses du simulateur d'impôt (Lot 4), pré-remplies depuis la fiche.
+      // Tout reste éditable en présentation (revenu + situation familiale inclus).
+      impot: {
+        statut: normalizeStatutLabel(getValue("statutMarital")),
+        nbEnfants: toNum(getValue("nbEnfants")),
+        garde: normalizeGarde(getValue("garde")),
+        demiPartHandicap: false,
+        revenuImposable: fiscalState.revenuNetImposable,
+      },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;
     const params = encodePresentationParams(identity, hypo, code, "per");

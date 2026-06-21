@@ -62,12 +62,34 @@ export interface PerFullRecord {
   };
 }
 
-export type SimRecord = PerQuickRecord | PerFullRecord;
+export interface ImpotRecord {
+  id: string;
+  ts: number;
+  simId: "impot";
+  label: "Impôt sur le revenu";
+  inputs: {
+    statut: string;
+    nbEnfants: number;
+    garde: string;
+    demiPartHandicap: boolean;
+    revenuImposable: number;
+  };
+  result: {
+    impotNet: number;
+    tmi: number;
+    partsTotal: number;
+    tauxMoyen: number;
+    plafonnementActif: boolean;
+  };
+}
+
+export type SimRecord = PerQuickRecord | PerFullRecord | ImpotRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
   | Omit<PerQuickRecord, "id" | "ts">
-  | Omit<PerFullRecord, "id" | "ts">;
+  | Omit<PerFullRecord, "id" | "ts">
+  | Omit<ImpotRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -138,6 +160,42 @@ export function perFullDraft(
   };
 }
 
+export function impotDraft(
+  inputs: {
+    statut: string;
+    nbEnfants: number;
+    garde: string;
+    demiPartHandicap: boolean;
+    revenuImposable: number;
+  },
+  result: {
+    impotNet: number;
+    tmi: number;
+    partsTotal: number;
+    tauxMoyen: number;
+    plafonnementActif: boolean;
+  }
+): Omit<ImpotRecord, "id" | "ts"> {
+  return {
+    simId: "impot",
+    label: "Impôt sur le revenu",
+    inputs: {
+      statut: inputs.statut,
+      nbEnfants: inputs.nbEnfants,
+      garde: inputs.garde,
+      demiPartHandicap: inputs.demiPartHandicap,
+      revenuImposable: inputs.revenuImposable,
+    },
+    result: {
+      impotNet: result.impotNet,
+      tmi: result.tmi,
+      partsTotal: result.partsTotal,
+      tauxMoyen: result.tauxMoyen,
+      plafonnementActif: result.plafonnementActif,
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -155,6 +213,18 @@ export function signatureOf(rec: SimRecordDraft): string {
       i.taux.toFixed(4),
       i.profil,
       Math.round(rec.result.capitalFinal),
+    ].join("|");
+  }
+  if (rec.simId === "impot") {
+    const i = rec.inputs;
+    return [
+      "im",
+      i.statut,
+      Math.round(i.nbEnfants),
+      i.garde,
+      i.demiPartHandicap ? "h" : "",
+      Math.round(i.revenuImposable),
+      Math.round(rec.result.impotNet),
     ].join("|");
   }
   const i = rec.inputs;
@@ -198,6 +268,10 @@ function fmtTime(ts: number): string {
   return new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatNombre(n: number): string {
+  return n.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
+}
+
 function fmtTaux(t: number): string {
   return `${(t * 100).toFixed(t * 100 % 1 === 0 ? 0 : 1).replace(".", ",")} %`;
 }
@@ -212,6 +286,19 @@ export function summarizeRecord(rec: SimRecord): string {
       (i.versementInitial > 0 ? `, apport initial ${formatEuro(i.versementInitial)}` : "") +
       `, horizon ${Math.round(i.horizon)} ans, profil ${PROFIL_LABELS[i.profil]}, taux ${fmtTaux(i.taux)} ` +
       `→ capital projeté ${formatEuro(r.capitalFinal)}, économie fiscale ${formatEuro(r.economieFiscale)}/an`
+    );
+  }
+  if (rec.simId === "impot") {
+    const i = rec.inputs;
+    const r = rec.result;
+    const tauxMoyen = `${(r.tauxMoyen * 100).toFixed(1).replace(".", ",")} %`;
+    return (
+      `<b>Impôt sur le revenu</b> — ${esc(i.statut)}` +
+      (i.nbEnfants > 0 ? `, ${i.nbEnfants} enfant${i.nbEnfants > 1 ? "s" : ""}` : "") +
+      (i.demiPartHandicap ? ", demi-part invalidité" : "") +
+      `, revenu ${formatEuro(i.revenuImposable)} (${formatNombre(r.partsTotal)} parts) ` +
+      `→ impôt net ${formatEuro(r.impotNet)}, TMI ${r.tmi} %, taux moyen ${tauxMoyen}` +
+      (r.plafonnementActif ? " · plafonnement QF actif" : "")
     );
   }
   const i = rec.inputs;

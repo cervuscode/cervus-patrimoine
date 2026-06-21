@@ -1,13 +1,31 @@
 import {
   formatSyntheseNote,
+  impotDraft,
   perFullDraft,
   perQuickDraft,
   signatureOf,
   summarizeRecord,
+  type ImpotRecord,
   type PerFullRecord,
   type PerQuickRecord,
   type SimRecord,
 } from "../sim-history";
+
+const impot = (over: Partial<ImpotRecord["inputs"]> = {}): ImpotRecord => ({
+  id: "z",
+  ts: 0,
+  simId: "impot",
+  label: "Impôt sur le revenu",
+  inputs: {
+    statut: "Marié(e)",
+    nbEnfants: 1,
+    garde: "classique",
+    demiPartHandicap: false,
+    revenuImposable: 70000,
+    ...over,
+  },
+  result: { impotNet: 5957, tmi: 30, partsTotal: 2.5, tauxMoyen: 0.0851, plafonnementActif: true },
+});
 
 const quick = (over: Partial<PerQuickRecord["inputs"]> = {}, cap = 168540): PerQuickRecord => ({
   id: "x",
@@ -102,6 +120,14 @@ describe("signatureOf — dédup", () => {
   it("per-quick et per-full ne collisionnent pas", () => {
     expect(signatureOf(quick())).not.toBe(signatureOf(full));
   });
+  it("impôt : un champ changé → signature différente", () => {
+    expect(signatureOf(impot({ revenuImposable: 80000 }))).not.toBe(signatureOf(impot()));
+    expect(signatureOf(impot())).toBe(signatureOf(impot()));
+  });
+  it("impôt ne collisionne pas avec les sims PER", () => {
+    expect(signatureOf(impot())).not.toBe(signatureOf(quick()));
+    expect(signatureOf(impot())).not.toBe(signatureOf(full));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -124,6 +150,34 @@ describe("summarizeRecord", () => {
   it("rente non disponible → mention explicite", () => {
     const s = summarizeRecord({ ...full, result: { ...full.result, sortie3Disponible: false } });
     expect(s).toContain("non proposée");
+  });
+  it("Impôt — situation + impôt net + TMI + plafonnement", () => {
+    const s = summarizeRecord(impot());
+    expect(s).toContain("Impôt sur le revenu");
+    expect(s).toContain("Marié(e)");
+    expect(s).toContain("1 enfant");
+    expect(s).toContain("impôt net");
+    expect(s).toContain("TMI 30 %");
+    expect(s).toContain("plafonnement QF actif");
+  });
+  it("Impôt — demi-part invalidité mentionnée, plafonnement omis si inactif", () => {
+    const s = summarizeRecord(
+      impot({ demiPartHandicap: true, nbEnfants: 0 })
+    );
+    expect(s).toContain("demi-part invalidité");
+  });
+});
+
+describe("impotDraft — builder", () => {
+  it("mappe entrées + résultats vers un enregistrement impôt", () => {
+    const d = impotDraft(
+      { statut: "Célibataire", nbEnfants: 0, garde: "classique", demiPartHandicap: false, revenuImposable: 30000 },
+      { impotNet: 2022, tmi: 11, partsTotal: 1, tauxMoyen: 0.0674, plafonnementActif: false }
+    );
+    expect(d.simId).toBe("impot");
+    expect(d.label).toBe("Impôt sur le revenu");
+    expect(d.inputs.revenuImposable).toBe(30000);
+    expect(d.result.impotNet).toBe(2022);
   });
 });
 

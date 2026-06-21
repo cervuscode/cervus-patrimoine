@@ -81,6 +81,16 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
           </svg>
           Simulateur PER complet
         </Link>
+        <Link
+          href={`/client/${initial.personId}/simulateur-impot`}
+          className="inline-flex items-center gap-2 rounded-[50px] border border-cervus-gold/40 px-4 py-2 text-sm font-medium text-cervus-bronze hover:bg-cervus-gold/10"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18" />
+            <path d="m7 14 4-4 3 3 5-6" />
+          </svg>
+          Simulateur d&apos;impôt
+        </Link>
       </div>
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}

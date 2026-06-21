@@ -62,6 +62,25 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "ageConversion",
     ],
   },
+  {
+    id: "impot",
+    label: "Simulateur d'impôt",
+    description: "Impôt sur le revenu et TMI selon la situation du foyer.",
+    autonomousHref: "/simulateur-impot",
+    clientHref: (personId) => `/client/${personId}/simulateur-impot`,
+    available: true,
+    // Particularité Lot 4 : AUCUN champ d'identité figé — tout est « hypothèse »,
+    // librement modifiable (revenu inclus). `identityKeys` vide (toléré : ces deux
+    // clés sont purement documentaires, non consommées).
+    identityKeys: [],
+    hypothesisKeys: [
+      "statut",
+      "nbEnfants",
+      "garde",
+      "demiPartHandicap",
+      "revenuImposable",
+    ],
+  },
 ];
 
 export function getConseillerSim(id: string): ConseillerSim | undefined {

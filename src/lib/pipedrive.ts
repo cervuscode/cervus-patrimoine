@@ -866,3 +866,12 @@ export async function saveDecouverteRDV(input: SaveDecouverteInput): Promise<voi
     }
   }
 }
+
+/**
+ * Ajoute une NOTE (API Notes Pipedrive) attachée à un Deal (Lot 3 — note de
+ * synthèse de RDV). `content` est du HTML léger (Pipedrive rend du HTML).
+ * Ne touche AUCUN champ Découverte — uniquement la création de note.
+ */
+export async function addDealNote(dealId: number, content: string): Promise<void> {
+  await pdPost("/notes", { content, deal_id: dealId });
+}

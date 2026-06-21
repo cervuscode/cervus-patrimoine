@@ -8,8 +8,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { RDV_FIELDS } from "@/lib/rdv-fields";
+import { RDV_FIELDS, SECTION_LABELS, SECTION_ORDER } from "@/lib/rdv-fields";
 import { computeFiscalState, type FiscalState } from "@/lib/fiscal-state";
+import {
+  formatSyntheseNote,
+  signatureOf,
+  type DecouverteLine,
+  type SimRecord,
+  type SimRecordDraft,
+} from "@/lib/sim-history";
 
 // Types alignés sur le retour serveur de getClientView (dupliqués côté client pour
 // éviter d'importer pipedrive.ts — server-only — dans un composant client).
@@ -71,6 +78,13 @@ interface RdvClientContextValue {
   save: () => Promise<boolean>;
   /** État fiscal partagé (Lot 2) : revenu net, parts, TMI calculés UNE FOIS. */
   fiscalState: FiscalState;
+  /** Historique de session des simulations consultées (Lot 3) — en mémoire seul. */
+  simHistory: SimRecord[];
+  /** Capture auto d'une variante (dédup consécutif) ; appelé par les simulateurs connectés. */
+  recordSim: (draft: SimRecordDraft) => void;
+  /** Compile Découverte + historique → note HTML, écrit sur le deal actif. */
+  generateSyntheseNote: () => Promise<boolean>;
+  generatingNote: boolean;
 }
 
 const Ctx = createContext<RdvClientContextValue | null>(null);
@@ -91,6 +105,8 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
   const [notes, setNotesState] = useState("");
   const [notesDirty, setNotesDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [simHistory, setSimHistory] = useState<SimRecord[]>([]);
+  const [generatingNote, setGeneratingNote] = useState(false);
 
   const activeDeal = useMemo(
     () => client?.deals.find((d) => d.id === activeDealId) ?? null,
@@ -115,6 +131,9 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
       setPersonDirty(new Set());
       setDealDirty(new Set());
       setNotesDirty(false);
+      // Lot 3 : l'historique de simulations est lié à la fiche ouverte → reset à
+      // chaque (ré)chargement d'un client (changement de client ou réouverture).
+      setSimHistory([]);
       if (!view) {
         setActiveDealId(null);
         setPersonDraft({});
@@ -281,6 +300,84 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     }
   }, [client, hasUnsavedChanges, personDirty, dealDirty, personDraft, dealDraft, notes, notesDirty, activeDealId]);
 
+  // ── Lot 3 : capture des simulations consultées ────────────────────────────────
+  // Dédup CONSÉCUTIF : on n'ajoute que si la variante diffère du dernier
+  // enregistrement (tue les re-renders identiques, conserve A→B→A = 3 entrées).
+  const recordSim = useCallback((draft: SimRecordDraft) => {
+    setSimHistory((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && signatureOf(last) === signatureOf(draft)) return prev;
+      const id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      return [...prev, { ...draft, id, ts: Date.now() } as SimRecord];
+    });
+  }, []);
+
+  // Compose les lignes Découverte (par section, valeurs courantes Découverte>Sim).
+  const buildDecouverteLines = useCallback((): DecouverteLine[] => {
+    const fmtField = (id: string, raw: string): string => {
+      const def = RDV_FIELDS.find((f) => f.id === id);
+      const trimmed = raw.trim();
+      if (trimmed === "") return "";
+      if (def && (def.kind === "money" || def.kind === "number")) {
+        const n = parseFloat(trimmed.replace(",", "."));
+        if (!Number.isFinite(n)) return trimmed;
+        return def.kind === "money"
+          ? `${n.toLocaleString("fr-FR")} €`
+          : n.toLocaleString("fr-FR");
+      }
+      return trimmed;
+    };
+    const lines: DecouverteLine[] = [];
+    // Ligne fiscale calculée en tête (vérité partagée Lot 2).
+    if (fiscalState.revenuNetImposable > 0) {
+      lines.push({
+        label: "Fiscalité (calculée)",
+        value:
+          `TMI ${fiscalState.tmi} % · ${fiscalState.partsTotal} part` +
+          `${fiscalState.partsTotal > 1 ? "s" : ""} · revenu net ` +
+          `${Math.round(fiscalState.revenuNetImposable).toLocaleString("fr-FR")} €`,
+      });
+    }
+    for (const section of SECTION_ORDER) {
+      const parts: string[] = [];
+      for (const f of RDV_FIELDS) {
+        if (f.section !== section) continue;
+        const v = fmtField(f.id, getValue(f.id));
+        if (v !== "") parts.push(`${f.label} ${v}`);
+      }
+      if (parts.length > 0) {
+        lines.push({ label: SECTION_LABELS[section], value: parts.join(" · ") });
+      }
+    }
+    return lines;
+  }, [fiscalState, getValue]);
+
+  const generateSyntheseNote = useCallback(async (): Promise<boolean> => {
+    if (!client || activeDealId == null) return false;
+    setGeneratingNote(true);
+    try {
+      const content = formatSyntheseNote({
+        code: activeDeal?.code ?? null,
+        generatedAt: new Date(),
+        decouverte: buildDecouverteLines(),
+        history: simHistory,
+      });
+      const res = await fetch("/api/rdv/note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealId: activeDealId, content }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      setGeneratingNote(false);
+    }
+  }, [client, activeDealId, activeDeal, simHistory, buildDecouverteLines]);
+
   const value: RdvClientContextValue = {
     client,
     activeDealId,
@@ -298,6 +395,10 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     setNotes,
     save,
     fiscalState,
+    simHistory,
+    recordSim,
+    generateSyntheseNote,
+    generatingNote,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

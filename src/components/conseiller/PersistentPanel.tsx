@@ -6,6 +6,7 @@ import { useRdvClient } from "./RdvClientProvider";
 import ClientCodeBadge from "./ClientCodeBadge";
 import DiscoverySections from "./DiscoverySections";
 import SaveBar from "./SaveBar";
+import SyntheseNoteButton from "./SyntheseNoteButton";
 
 /**
  * Panneau persistant (« petite tête »), monté globalement dans le layout conseiller.
@@ -100,8 +101,9 @@ export default function PersistentPanel() {
             </div>
 
             {client && (
-              <div className="border-t border-cervus-gold/20 p-4">
+              <div className="flex flex-col gap-4 border-t border-cervus-gold/20 p-4">
                 <SaveBar />
+                <SyntheseNoteButton />
               </div>
             )}
           </div>

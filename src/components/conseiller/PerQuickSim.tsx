@@ -19,6 +19,7 @@ import {
   type PerQuickInputs,
 } from "@/lib/per-quick";
 import TauxSlider from "./TauxSlider";
+import { useRdvClient } from "./RdvClientProvider";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 
@@ -62,6 +63,34 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
     () => computePerQuick(inputs, fiscalTmi != null ? { tmi: fiscalTmi } : undefined),
     [inputs, fiscalTmi]
   );
+
+  // Lot 3 : capture auto dans l'historique de session (mode connecté uniquement),
+  // debouncée pour ne mémoriser que la variante stabilisée (pas chaque frappe).
+  const { recordSim } = useRdvClient();
+  useEffect(() => {
+    if (!client) return;
+    if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
+    const t = setTimeout(() => {
+      recordSim({
+        simId: "per-quick",
+        label: "PER rapide",
+        inputs: {
+          versementMensuel: inputs.versementMensuel,
+          versementInitial: inputs.versementInitial,
+          horizon: inputs.horizon,
+          taux: result.taux,
+          profil: inputs.profil,
+        },
+        result: {
+          tmi: result.tmi,
+          economieFiscale: result.economieFiscale,
+          capitalFinal: result.capitalFinal,
+          totalVerse: result.totalVerse,
+        },
+      });
+    }, 700);
+    return () => clearTimeout(t);
+  }, [client, inputs, result, recordSim]);
 
   function set<K extends keyof PerQuickInputs>(key: K, value: PerQuickInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));

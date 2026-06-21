@@ -16,6 +16,7 @@ import {
   type PerSortieInputs,
 } from "@/lib/per-sortie";
 import TauxSlider from "./TauxSlider";
+import { useRdvClient } from "./RdvClientProvider";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 const TRANCHES = [0, 11, 30, 41, 45];
@@ -63,6 +64,39 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
   const result = useMemo(() => computePerSortie(inputs), [inputs]);
   const ligne = ligneConversionLaPlusProche(inputs.anneeNaissance);
   const conv64Indispo = ligne.taux64 == null;
+
+  // Lot 3 : capture auto dans l'historique de session (mode connecté uniquement),
+  // debouncée pour ne mémoriser que la variante stabilisée (pas chaque frappe).
+  const { recordSim } = useRdvClient();
+  useEffect(() => {
+    if (!client) return;
+    if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
+    const t = setTimeout(() => {
+      recordSim({
+        simId: "per-full",
+        label: "PER complet",
+        inputs: {
+          versementMensuel: inputs.versementMensuel,
+          versementInitial: inputs.versementInitial,
+          horizon: inputs.horizon,
+          taux: result.taux,
+          profil: inputs.profil,
+          trancheSortie: inputs.trancheSortie,
+          ageConversion: inputs.ageConversion,
+        },
+        result: {
+          capitalFinal: result.capitalFinal,
+          sortie1Net: result.sortie1.capitalNet,
+          sortie2RetraitMensuel: result.sortie2.equivalentMensuel,
+          sortie2Net: result.sortie2.capitalNet,
+          sortie3Disponible: result.sortie3.disponible,
+          sortie3RenteMensuelle: result.sortie3.renteMensuelle,
+          sortie3RenteNetteMensuelle: Math.round(result.sortie3.renteNetteAnnuelle / 12),
+        },
+      });
+    }, 700);
+    return () => clearTimeout(t);
+  }, [client, inputs, result, recordSim]);
 
   function set<K extends keyof PerSortieInputs>(key: K, value: PerSortieInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));

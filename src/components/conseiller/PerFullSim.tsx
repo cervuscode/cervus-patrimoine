@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatEuro, PROFIL_LABELS, type PerProfil } from "@/lib/per-quick";
+import {
+  formatEuro,
+  PROFIL_LABELS,
+  resolveTaux,
+  TAUX_PAR_PROFIL,
+  type PerProfil,
+} from "@/lib/per-quick";
 import {
   computePerSortie,
   defaultTrancheSortie,
@@ -9,6 +15,7 @@ import {
   type AgeConversion,
   type PerSortieInputs,
 } from "@/lib/per-sortie";
+import TauxSlider from "./TauxSlider";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 const TRANCHES = [0, 11, 30, 41, 45];
@@ -21,6 +28,7 @@ const BASE: PerSortieInputs = {
   versementInitial: 0,
   horizon: 20,
   profil: "equilibre",
+  taux: TAUX_PAR_PROFIL.equilibre,
   trancheSortie: 30,
   ageConversion: 67,
 };
@@ -44,6 +52,8 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
     if (prefill?.trancheSortie == null) {
       merged.trancheSortie = defaultTrancheSortie(merged.revenuImposable, merged.parts);
     }
+    // Taux par défaut = celui du profil si non fourni par le prefill (Lot I).
+    if (prefill?.taux == null) merged.taux = TAUX_PAR_PROFIL[merged.profil];
     return merged;
   }, [prefill]);
 
@@ -56,6 +66,10 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
 
   function set<K extends keyof PerSortieInputs>(key: K, value: PerSortieInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
+  }
+  // Changer de profil ré-aligne le taux sur le défaut du profil (Lot I).
+  function selectProfil(p: PerProfil) {
+    setInputs((prev) => ({ ...prev, profil: p, taux: TAUX_PAR_PROFIL[p] }));
   }
   function setNum(key: keyof PerSortieInputs, raw: string) {
     const n = parseFloat(raw.replace(",", "."));
@@ -105,9 +119,12 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
           <Pills
             options={PROFILS.map((p) => ({ value: p, label: PROFIL_LABELS[p] }))}
             active={inputs.profil}
-            onSelect={(p) => set("profil", p as PerProfil)}
+            onSelect={(p) => selectProfil(p as PerProfil)}
           />
         </Field>
+        <div className="sm:col-span-2">
+          <TauxSlider value={resolveTaux(inputs.profil, inputs.taux)} onChange={(t) => set("taux", t)} />
+        </div>
       </section>
 
       {/* Hypothèses de sortie */}

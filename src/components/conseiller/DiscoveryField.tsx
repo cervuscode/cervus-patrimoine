@@ -2,7 +2,12 @@
 
 import { RDV_FIELDS } from "@/lib/rdv-fields";
 import { STATUT_MARITAL_OPTIONS } from "@/lib/fiscal-state";
+import { PROFIL_LABELS } from "@/lib/per-quick";
 import { useRdvClient } from "./RdvClientProvider";
+
+// Libellés écrits tels quels dans le champ texte libre « Profil investisseur »
+// (orthographe garantie → lecture pickProfil en correspondance directe).
+const PROFIL_OPTIONS = [PROFIL_LABELS.prudent, PROFIL_LABELS.equilibre, PROFIL_LABELS.dynamique];
 
 const STATE_BADGE: Record<string, { text: string; cls: string } | null> = {
   vide: null,
@@ -29,9 +34,10 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
         </label>
         {badge && <span className={`text-[10px] ${badge.cls}`}>{badge.text}</span>}
       </div>
-      {/* Statut marital : menu déroulant à valeurs fixes (Lot 2) → orthographe
-          garantie écrite dans le champ texte libre Pipedrive → lecture fiable. */}
-      {fieldId === "statutMarital" ? (
+      {/* Menus déroulants à valeurs fixes (Lot 2 / H) → orthographe garantie écrite
+          dans le champ texte libre Pipedrive → lecture fiable (correspondance directe).
+          Statut marital + Profil investisseur. */}
+      {fieldId === "statutMarital" || fieldId === "profil" ? (
         <select
           id={`f-${fieldId}`}
           value={getValue(fieldId)}
@@ -39,9 +45,12 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
           className="w-full rounded-lg border border-cervus-gold/30 bg-cervus-dark/60 px-3 py-2 text-sm text-cervus-bronze focus:border-cervus-gold focus:outline-none"
         >
           <option value="" className="bg-cervus-dark">—</option>
-          {STATUT_MARITAL_OPTIONS.map((o) => (
-            <option key={o.label} value={o.label} className="bg-cervus-dark">
-              {o.label}
+          {(fieldId === "statutMarital"
+            ? STATUT_MARITAL_OPTIONS.map((o) => o.label)
+            : PROFIL_OPTIONS
+          ).map((label) => (
+            <option key={label} value={label} className="bg-cervus-dark">
+              {label}
             </option>
           ))}
         </select>

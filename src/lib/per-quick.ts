@@ -32,6 +32,19 @@ export const PROFIL_LABELS: Record<PerProfil, string> = {
   dynamique: "Dynamique",
 };
 
+/** Bornes du slider de taux de rendement (Lot I), en décimal. */
+export const TAUX_MIN = 0;
+export const TAUX_MAX = 0.1; // 10 %
+
+export function clampTaux(t: number): number {
+  return Math.min(TAUX_MAX, Math.max(TAUX_MIN, t));
+}
+
+/** Taux effectif : valeur du slider si fournie (clampée), sinon défaut du profil. */
+export function resolveTaux(profil: PerProfil, taux?: number): number {
+  return taux != null && Number.isFinite(taux) ? clampTaux(taux) : TAUX_PAR_PROFIL[profil];
+}
+
 export interface PerQuickInputs {
   /** Revenu net imposable du foyer (€/an). */
   revenuImposable: number;
@@ -44,6 +57,11 @@ export interface PerQuickInputs {
   /** Horizon de placement (années jusqu'à la retraite). */
   horizon: number;
   profil: PerProfil;
+  /**
+   * Taux de rendement annuel (décimal, ex. 0.04). Optionnel (Lot I) : hypothèse
+   * ajustable au slider. Absent → défaut = TAUX_PAR_PROFIL[profil].
+   */
+  taux?: number;
 }
 
 export interface PerQuickResult {
@@ -89,7 +107,7 @@ export function computePerQuick(input: PerQuickInputs, opts?: { tmi?: number }):
   const versementInitial = Math.max(0, num(input.versementInitial));
   const horizon = Math.max(1, Math.round(num(input.horizon, 1)));
   const profil: PerProfil = input.profil in TAUX_PAR_PROFIL ? input.profil : "equilibre";
-  const taux = TAUX_PAR_PROFIL[profil];
+  const taux = resolveTaux(profil, input.taux);
 
   // TMI au quotient R/parts (partsBase = partsTotal → pas d'avantage QF : on veut le
   // taux marginal, pas l'impôt total). Définition standard de la TMI.

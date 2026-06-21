@@ -13,9 +13,12 @@ import {
   computePerQuick,
   formatEuro,
   PROFIL_LABELS,
+  resolveTaux,
+  TAUX_PAR_PROFIL,
   type PerProfil,
   type PerQuickInputs,
 } from "@/lib/per-quick";
+import TauxSlider from "./TauxSlider";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 
@@ -35,6 +38,7 @@ const BASE: PerQuickInputs = {
   versementInitial: 0,
   horizon: 20,
   profil: "equilibre",
+  taux: TAUX_PAR_PROFIL.equilibre,
 };
 
 /**
@@ -44,7 +48,12 @@ const BASE: PerQuickInputs = {
  * Pipedrive.
  */
 export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimProps) {
-  const initial = useMemo<PerQuickInputs>(() => ({ ...BASE, ...prefill }), [prefill]);
+  const initial = useMemo<PerQuickInputs>(() => {
+    const merged = { ...BASE, ...prefill };
+    // Taux par défaut = celui du profil si non fourni par le prefill (Lot I).
+    if (prefill?.taux == null) merged.taux = TAUX_PAR_PROFIL[merged.profil];
+    return merged;
+  }, [prefill]);
   const [inputs, setInputs] = useState<PerQuickInputs>(initial);
   useEffect(() => setInputs(initial), [initial]);
 
@@ -56,6 +65,10 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
 
   function set<K extends keyof PerQuickInputs>(key: K, value: PerQuickInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
+  }
+  // Changer de profil ré-aligne le taux sur le défaut du profil (Lot I).
+  function selectProfil(p: PerProfil) {
+    setInputs((prev) => ({ ...prev, profil: p, taux: TAUX_PAR_PROFIL[p] }));
   }
   function setNum(key: keyof PerQuickInputs, raw: string) {
     const n = parseFloat(raw.replace(",", "."));
@@ -102,7 +115,7 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
               <button
                 key={p}
                 type="button"
-                onClick={() => set("profil", p)}
+                onClick={() => selectProfil(p)}
                 className={`flex-1 rounded-[50px] border px-3 py-2 text-xs font-medium transition-colors ${
                   inputs.profil === p
                     ? "border-cervus-gold bg-cervus-gold text-cervus-bronze"
@@ -114,6 +127,9 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
             ))}
           </div>
         </Field>
+        <div className="sm:col-span-2">
+          <TauxSlider value={resolveTaux(inputs.profil, inputs.taux)} onChange={(t) => set("taux", t)} />
+        </div>
       </section>
 
       {/* Résultat live */}

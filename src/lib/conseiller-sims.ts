@@ -42,7 +42,7 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
     clientHref: (personId) => `/client/${personId}/simulateur-per`,
     available: true,
     identityKeys: ["revenuImposable", "parts"],
-    hypothesisKeys: ["versementMensuel", "versementInitial", "horizon", "profil"],
+    hypothesisKeys: ["versementMensuel", "versementInitial", "horizon", "profil", "taux"],
   },
   {
     id: "per-complet",
@@ -57,6 +57,7 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "versementInitial",
       "horizon",
       "profil",
+      "taux",
       "trancheSortie",
       "ageConversion",
     ],

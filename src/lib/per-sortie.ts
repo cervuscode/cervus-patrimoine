@@ -19,7 +19,7 @@
  */
 
 import { calculerTMI, impotReel, projectionPER } from "./fiscal-engine";
-import { TAUX_PAR_PROFIL, type PerProfil } from "./per-quick";
+import { resolveTaux, TAUX_PAR_PROFIL, type PerProfil } from "./per-quick";
 
 // ── Constantes fiscalité de sortie ────────────────────────────────────────────
 export const PFU_TAUX = 0.3; // 12,8 % IR + 17,2 % PS
@@ -91,6 +91,8 @@ export interface PerSortieInputs {
   versementInitial: number;
   horizon: number;
   profil: PerProfil;
+  /** Taux de rendement annuel (décimal) — slider (Lot I). Absent → défaut profil. */
+  taux?: number;
   trancheSortie: number; // 0 | 11 | 30 | 41 | 45
   ageConversion: AgeConversion; // 64 | 67
 }
@@ -177,7 +179,7 @@ export function computePerSortie(input: PerSortieInputs): PerSortieResult {
   const profil: PerProfil = input.profil in TAUX_PAR_PROFIL ? input.profil : "equilibre";
   const tranche = num(input.trancheSortie);
   const ageConversion: AgeConversion = input.ageConversion === 64 ? 64 : 67;
-  const taux = TAUX_PAR_PROFIL[profil];
+  const taux = resolveTaux(profil, input.taux);
 
   const { capitalFinal, courbe } = projectionPER(versementMensuel, taux, horizon, versementInitial);
   const versementsCumules = versementInitial + versementMensuel * 12 * horizon;

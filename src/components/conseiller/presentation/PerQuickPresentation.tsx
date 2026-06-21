@@ -10,8 +10,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { computePerQuick, formatEuro, PROFIL_LABELS, type PerProfil } from "@/lib/per-quick";
+import {
+  computePerQuick,
+  formatEuro,
+  PROFIL_LABELS,
+  resolveTaux,
+  TAUX_PAR_PROFIL,
+  type PerProfil,
+} from "@/lib/per-quick";
 import type { ClientIdentity, HypoValues } from "@/lib/presentation-bridge";
+import TauxSlider from "../TauxSlider";
 import { BigResult, HypoNumber, HypoPills, IdentityChip } from "./controls";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
@@ -39,6 +47,7 @@ export default function PerQuickPresentation({
           versementInitial: hypo.versementInitial,
           horizon: hypo.horizon,
           profil: hypo.profil,
+          taux: hypo.taux,
         },
         // TMI partagée (Lot 2) : consommée, pas recalculée côté présentation.
         { tmi: identity.tmi }
@@ -64,7 +73,14 @@ export default function PerQuickPresentation({
           label="Profil de rendement"
           options={PROFILS.map((p) => ({ value: p, label: PROFIL_LABELS[p] }))}
           active={hypo.profil}
-          onSelect={(p) => onHypo("profil", p)}
+          onSelect={(p) => {
+            onHypo("profil", p);
+            onHypo("taux", TAUX_PAR_PROFIL[p]); // ré-aligne le taux sur le profil
+          }}
+        />
+        <TauxSlider
+          value={resolveTaux(hypo.profil, hypo.taux)}
+          onChange={(t) => onHypo("taux", t)}
         />
       </div>
 

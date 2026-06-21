@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRdvClient } from "./RdvClientProvider";
-import type { PerProfil } from "@/lib/per-quick";
+import { TAUX_PAR_PROFIL, type PerProfil } from "@/lib/per-quick";
 import {
   encodePresentationParams,
   PRESENT_MSG_IDENTITY,
@@ -69,11 +69,14 @@ export default function PresentationBridge() {
       identity.anneeNaissance && ageRetraite
         ? ageRetraite - (new Date().getFullYear() - identity.anneeNaissance)
         : 0;
+    const profil = toProfil(getValue("profil"));
     const hypo: HypoValues = {
       versementMensuel: toNum(getValue("versementMensuel")),
       versementInitial: toNum(getValue("versementInitial")),
       horizon: horizonCalc > 0 ? horizonCalc : 20,
-      profil: toProfil(getValue("profil")),
+      profil,
+      // Taux par défaut = celui du profil (Lot I), ajustable en présentation.
+      taux: TAUX_PAR_PROFIL[profil],
       // Tranche de sortie par défaut = TMI partagée (Lot 2).
       trancheSortie: fiscalState.tmi,
       ageConversion: 67,

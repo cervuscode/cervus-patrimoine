@@ -44,6 +44,14 @@ describe("computePerQuick — câblage fiscal-engine", () => {
     expect(r.taux).toBe(TAUX_PAR_PROFIL.equilibre);
   });
 
+  it("taux du slider (Lot I) prioritaire sur le profil, clampé 0–10 %", () => {
+    expect(computePerQuick({ ...base, taux: 0.07 }).taux).toBe(0.07);
+    expect(computePerQuick({ ...base, taux: 0.25 }).taux).toBe(0.1); // clamp max 10 %
+    expect(computePerQuick({ ...base, taux: -1 }).taux).toBe(0); // clamp min 0 %
+    // Absent → défaut du profil (rétro-compatible).
+    expect(computePerQuick(base).taux).toBe(TAUX_PAR_PROFIL.equilibre);
+  });
+
   it("total versé = initial + mensuel × 12 × horizon", () => {
     const r = computePerQuick(base);
     expect(r.totalVerse).toBe(5000 + 300 * 12 * 20);

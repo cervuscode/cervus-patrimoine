@@ -24,6 +24,8 @@ export interface HypoValues {
   versementInitial: number;
   horizon: number;
   profil: PerProfil;
+  /** Taux de rendement annuel (décimal) — slider (Lot I). */
+  taux: number;
   trancheSortie: number;
   ageConversion: AgeConversion;
 }
@@ -40,6 +42,7 @@ export const DEFAULT_HYPO: HypoValues = {
   versementInitial: 0,
   horizon: 20,
   profil: "equilibre",
+  taux: 0.04, // = TAUX_PAR_PROFIL.equilibre
   trancheSortie: 30,
   ageConversion: 67,
 };
@@ -83,6 +86,7 @@ export function encodePresentationParams(
     vi: String(hypo.versementInitial),
     h: String(hypo.horizon),
     pr: hypo.profil,
+    tx: String(hypo.taux),
     ts: String(hypo.trancheSortie),
     ac: String(hypo.ageConversion),
     sim: activeSim,
@@ -116,6 +120,7 @@ export function decodePresentationParams(
       versementInitial: num(get("vi")),
       horizon: num(get("h"), 20),
       profil: asProfil(get("pr")),
+      taux: num(get("tx"), 0.04),
       trancheSortie: num(get("ts"), 30),
       ageConversion: (ac === 64 ? 64 : 67) as AgeConversion,
     },

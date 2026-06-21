@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useRdvClient } from "./RdvClientProvider";
-import { defaultTrancheSortie } from "@/lib/per-sortie";
 import type { PerProfil } from "@/lib/per-quick";
 import {
   encodePresentationParams,
@@ -31,19 +30,24 @@ function toProfil(v: string): PerProfil {
  *      (donc une correction faite dans le panneau est rapatriée par « Actualiser »).
  */
 export default function PresentationBridge() {
-  const { client, activeDeal, getValue } = useRdvClient();
+  const { client, activeDeal, getValue, fiscalState } = useRdvClient();
   const personId = client?.personId ?? null;
 
+  // Identité = état fiscal PARTAGÉ (Lot 2) : revenu net, parts, TMI calculés une fois.
   const identity: ClientIdentity = {
-    revenuImposable: toNum(getValue("revenuImposable")),
-    parts: toNum(getValue("partsFiscales"), 1),
+    revenuImposable: fiscalState.revenuNetImposable,
+    parts: fiscalState.partsTotal,
     anneeNaissance: toNum(getValue("anneeNaissance"), 1980),
+    tmi: fiscalState.tmi,
   };
-  // Ref à jour : le répondeur lit l'identité au moment de la requête (pas figée).
+  // Ref TOUJOURS à jour : le répondeur lit l'identité COURANTE au moment de la
+  // réception du message (fix « Actualiser » : jamais figée au montage). `identity`
+  // est recalculée à chaque changement (fiscalState mémoïsé) → re-render → ref fraîche.
   const identityRef = useRef(identity);
   identityRef.current = identity;
 
   // Répond aux requêtes « Actualiser » de l'onglet présentation (window.opener).
+  // Listener monté une fois ; il lit identityRef.current (et non une capture figée).
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
@@ -70,7 +74,8 @@ export default function PresentationBridge() {
       versementInitial: toNum(getValue("versementInitial")),
       horizon: horizonCalc > 0 ? horizonCalc : 20,
       profil: toProfil(getValue("profil")),
-      trancheSortie: defaultTrancheSortie(identity.revenuImposable, identity.parts),
+      // Tranche de sortie par défaut = TMI partagée (Lot 2).
+      trancheSortie: fiscalState.tmi,
       ageConversion: 67,
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

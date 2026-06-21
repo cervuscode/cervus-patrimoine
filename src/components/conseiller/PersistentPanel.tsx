@@ -14,7 +14,7 @@ import SaveBar from "./SaveBar";
  * - Filet de sécurité (stratégie C) : enregistrement auto à la fermeture si modifs en attente.
  */
 export default function PersistentPanel() {
-  const { client, activeDeal, hasUnsavedChanges, save } = useRdvClient();
+  const { client, activeDeal, hasUnsavedChanges, save, fiscalState } = useRdvClient();
   const [open, setOpen] = useState(false);
 
   async function close() {
@@ -84,6 +84,16 @@ export default function PersistentPanel() {
               ) : (
                 <div className="flex flex-col gap-5">
                   {code && <ClientCodeBadge code={code} />}
+                  {/* Indicateur fiscal partagé (Lot 2) — calculé une fois. */}
+                  {fiscalState.revenuNetImposable > 0 && (
+                    <p className="text-xs text-cervus-bronze/70">
+                      <span className="text-cervus-gold-light">TMI {fiscalState.tmi} %</span>
+                      {" · "}
+                      {fiscalState.partsTotal} part{fiscalState.partsTotal > 1 ? "s" : ""}
+                      {" · revenu net "}
+                      {Math.round(fiscalState.revenuNetImposable).toLocaleString("fr-FR")} €
+                    </p>
+                  )}
                   <DiscoverySections compact />
                 </div>
               )}

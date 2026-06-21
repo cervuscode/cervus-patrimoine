@@ -31,14 +31,18 @@ export default function PerQuickPresentation({
 }) {
   const result = useMemo(
     () =>
-      computePerQuick({
-        revenuImposable: identity.revenuImposable,
-        parts: identity.parts,
-        versementMensuel: hypo.versementMensuel,
-        versementInitial: hypo.versementInitial,
-        horizon: hypo.horizon,
-        profil: hypo.profil,
-      }),
+      computePerQuick(
+        {
+          revenuImposable: identity.revenuImposable,
+          parts: identity.parts,
+          versementMensuel: hypo.versementMensuel,
+          versementInitial: hypo.versementInitial,
+          horizon: hypo.horizon,
+          profil: hypo.profil,
+        },
+        // TMI partagée (Lot 2) : consommée, pas recalculée côté présentation.
+        { tmi: identity.tmi }
+      ),
     [identity, hypo]
   );
 

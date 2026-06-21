@@ -75,8 +75,14 @@ function num(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** Calcul complet, déterministe, en consommation seule du moteur fiscal. */
-export function computePerQuick(input: PerQuickInputs): PerQuickResult {
+/**
+ * Calcul complet, déterministe, en consommation seule du moteur fiscal.
+ *
+ * `opts.tmi` (Lot 2) : TMI partagée déjà calculée par `computeFiscalState` au niveau
+ * du contexte client (mode CONNECTÉ) → injectée pour ne PAS la recalculer. Absente
+ * (mode autonome / sans contexte) → calcul local au quotient R/parts (inchangé).
+ */
+export function computePerQuick(input: PerQuickInputs, opts?: { tmi?: number }): PerQuickResult {
   const revenuImposable = Math.max(0, num(input.revenuImposable));
   const parts = Math.max(1, num(input.parts, 1));
   const versementMensuel = Math.max(0, num(input.versementMensuel));
@@ -87,7 +93,12 @@ export function computePerQuick(input: PerQuickInputs): PerQuickResult {
 
   // TMI au quotient R/parts (partsBase = partsTotal → pas d'avantage QF : on veut le
   // taux marginal, pas l'impôt total). Définition standard de la TMI.
-  const tmi = revenuImposable > 0 ? calculerTMI(revenuImposable, parts, parts) : 0;
+  const tmi =
+    opts?.tmi != null
+      ? opts.tmi
+      : revenuImposable > 0
+        ? calculerTMI(revenuImposable, parts, parts)
+        : 0;
   const economieFiscale = economieFiscaleAnnuelle(versementMensuel, tmi);
   const { capitalFinal, courbe } = projectionPER(
     versementMensuel,

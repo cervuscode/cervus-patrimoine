@@ -1,6 +1,7 @@
 "use client";
 
 import { RDV_FIELDS } from "@/lib/rdv-fields";
+import { STATUT_MARITAL_OPTIONS } from "@/lib/fiscal-state";
 import { useRdvClient } from "./RdvClientProvider";
 
 const STATE_BADGE: Record<string, { text: string; cls: string } | null> = {
@@ -28,15 +29,33 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
         </label>
         {badge && <span className={`text-[10px] ${badge.cls}`}>{badge.text}</span>}
       </div>
-      <input
-        id={`f-${fieldId}`}
-        type={def.kind === "text" ? "text" : "text"}
-        inputMode={def.kind === "text" ? "text" : "decimal"}
-        value={getValue(fieldId)}
-        onChange={(e) => setValue(fieldId, e.target.value)}
-        className="w-full rounded-lg border border-cervus-gold/30 bg-cervus-dark/60 px-3 py-2 text-sm text-cervus-bronze placeholder-cervus-bronze/30 focus:border-cervus-gold focus:outline-none"
-        placeholder="—"
-      />
+      {/* Statut marital : menu déroulant à valeurs fixes (Lot 2) → orthographe
+          garantie écrite dans le champ texte libre Pipedrive → lecture fiable. */}
+      {fieldId === "statutMarital" ? (
+        <select
+          id={`f-${fieldId}`}
+          value={getValue(fieldId)}
+          onChange={(e) => setValue(fieldId, e.target.value)}
+          className="w-full rounded-lg border border-cervus-gold/30 bg-cervus-dark/60 px-3 py-2 text-sm text-cervus-bronze focus:border-cervus-gold focus:outline-none"
+        >
+          <option value="" className="bg-cervus-dark">—</option>
+          {STATUT_MARITAL_OPTIONS.map((o) => (
+            <option key={o.label} value={o.label} className="bg-cervus-dark">
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          id={`f-${fieldId}`}
+          type="text"
+          inputMode={def.kind === "text" ? "text" : "decimal"}
+          value={getValue(fieldId)}
+          onChange={(e) => setValue(fieldId, e.target.value)}
+          className="w-full rounded-lg border border-cervus-gold/30 bg-cervus-dark/60 px-3 py-2 text-sm text-cervus-bronze placeholder-cervus-bronze/30 focus:border-cervus-gold focus:outline-none"
+          placeholder="—"
+        />
+      )}
       {showSim && (
         <p className="text-[10px] text-cervus-bronze/40">
           Simulation : {String(sim)}

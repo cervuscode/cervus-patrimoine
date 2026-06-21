@@ -24,6 +24,8 @@ interface PerQuickSimProps {
   prefill?: Partial<PerQuickInputs>;
   /** Présent = mode CONNECTÉ : code client en évidence (pas le nom). */
   client?: { personId: number; code: string | null };
+  /** TMI partagée (Lot 2, mode connecté) : calculée une fois côté serveur, consommée ici. */
+  fiscalTmi?: number;
 }
 
 const BASE: PerQuickInputs = {
@@ -41,12 +43,16 @@ const BASE: PerQuickInputs = {
  * via `computePerQuick` (consommation seule de fiscal-engine). N'écrit JAMAIS dans
  * Pipedrive.
  */
-export default function PerQuickSim({ prefill, client }: PerQuickSimProps) {
+export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimProps) {
   const initial = useMemo<PerQuickInputs>(() => ({ ...BASE, ...prefill }), [prefill]);
   const [inputs, setInputs] = useState<PerQuickInputs>(initial);
   useEffect(() => setInputs(initial), [initial]);
 
-  const result = useMemo(() => computePerQuick(inputs), [inputs]);
+  // Mode connecté : consomme la TMI partagée (Lot 2) au lieu de la recalculer.
+  const result = useMemo(
+    () => computePerQuick(inputs, fiscalTmi != null ? { tmi: fiscalTmi } : undefined),
+    [inputs, fiscalTmi]
+  );
 
   function set<K extends keyof PerQuickInputs>(key: K, value: PerQuickInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));

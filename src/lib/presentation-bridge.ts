@@ -13,9 +13,10 @@ import type { PerProfil } from "./per-quick";
 import type { AgeConversion } from "./per-sortie";
 
 export interface ClientIdentity {
-  revenuImposable: number;
-  parts: number;
+  revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
+  parts: number; // = partsTotal de l'état fiscal partagé
   anneeNaissance: number;
+  tmi: number; // TMI partagée, calculée une fois côté fiche (Lot 2)
 }
 
 export interface HypoValues {
@@ -31,6 +32,7 @@ export const DEFAULT_IDENTITY: ClientIdentity = {
   revenuImposable: 0,
   parts: 1,
   anneeNaissance: 1980,
+  tmi: 0,
 };
 
 export const DEFAULT_HYPO: HypoValues = {
@@ -76,6 +78,7 @@ export function encodePresentationParams(
     r: String(identity.revenuImposable),
     p: String(identity.parts),
     an: String(identity.anneeNaissance),
+    tmi: String(identity.tmi),
     vm: String(hypo.versementMensuel),
     vi: String(hypo.versementInitial),
     h: String(hypo.horizon),
@@ -106,6 +109,7 @@ export function decodePresentationParams(
       revenuImposable: num(get("r")),
       parts: num(get("p"), 1),
       anneeNaissance: num(get("an"), 1980),
+      tmi: num(get("tmi")),
     },
     hypo: {
       versementMensuel: num(get("vm")),

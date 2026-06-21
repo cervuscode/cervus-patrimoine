@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { RDV_FIELDS } from "@/lib/rdv-fields";
+import { computeFiscalState, type FiscalState } from "@/lib/fiscal-state";
 
 // Types alignés sur le retour serveur de getClientView (dupliqués côté client pour
 // éviter d'importer pipedrive.ts — server-only — dans un composant client).
@@ -68,6 +69,8 @@ interface RdvClientContextValue {
   notesDirty: boolean;
   setNotes: (value: string) => void;
   save: () => Promise<boolean>;
+  /** État fiscal partagé (Lot 2) : revenu net, parts, TMI calculés UNE FOIS. */
+  fiscalState: FiscalState;
 }
 
 const Ctx = createContext<RdvClientContextValue | null>(null);
@@ -192,6 +195,31 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
 
   const hasUnsavedChanges = personDirty.size > 0 || dealDirty.size > 0 || notesDirty;
 
+  // État fiscal partagé (Lot 2) : calculé UNE FOIS via fiscal-engine (lecture seule),
+  // recalculé automatiquement à chaque changement des champs sources (draft = valeur
+  // courante, déjà résolue Découverte RDV > Simulation à l'hydratation).
+  const fiscalState = useMemo<FiscalState>(() => {
+    const np = (id: string): number | undefined => {
+      const v = parseFloat(String(personDraft[id] ?? "").replace(",", "."));
+      return Number.isFinite(v) ? v : undefined;
+    };
+    const nd = (id: string): number | undefined => {
+      const v = parseFloat(String(dealDraft[id] ?? "").replace(",", "."));
+      return Number.isFinite(v) ? v : undefined;
+    };
+    return computeFiscalState({
+      revenuImposable: np("revenuImposable"),
+      partsFiscales: np("partsFiscales"),
+      salaireMensuel: np("salaireMensuel"),
+      revenuConjoint: np("revenuConjoint"),
+      statutMarital: personDraft["statutMarital"] || undefined,
+      nbEnfants: np("nbEnfants"),
+      foncier: nd("foncier"),
+      bnc: nd("bnc"),
+      bic: nd("bic"),
+    });
+  }, [personDraft, dealDraft]);
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!client) return false;
     if (!hasUnsavedChanges) return true;
@@ -269,6 +297,7 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     notesDirty,
     setNotes,
     save,
+    fiscalState,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

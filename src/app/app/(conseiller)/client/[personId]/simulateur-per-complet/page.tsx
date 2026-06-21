@@ -5,8 +5,9 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { getClientView } from "@/lib/pipedrive";
 import PerFullSim from "@/components/conseiller/PerFullSim";
-import { defaultTrancheSortie, type PerSortieInputs } from "@/lib/per-sortie";
+import type { PerSortieInputs } from "@/lib/per-sortie";
 import type { PerProfil } from "@/lib/per-quick";
+import { computeFiscalState } from "@/lib/fiscal-state";
 
 export const metadata: Metadata = {
   title: "Simulateur PER complet — Cervus Patrimoine",
@@ -65,28 +66,37 @@ export default async function SimulateurPerCompletConnectePage({
     const deal = client.deals[0];
     code = client.deals.find((d) => d.code)?.code ?? null;
 
+    // État fiscal partagé (Lot 2) : calculé UNE FOIS via le même helper que le contexte.
+    const fiscal = computeFiscalState({
+      revenuImposable: pickNum(client.personFields.revenuImposable),
+      partsFiscales: pickNum(client.personFields.partsFiscales),
+      salaireMensuel: pickNum(client.personFields.salaireMensuel),
+      revenuConjoint: pickNum(client.personFields.revenuConjoint),
+      statutMarital: pick(client.personFields.statutMarital)?.toString(),
+      nbEnfants: pickNum(client.personFields.nbEnfants),
+      foncier: deal ? pickNum(deal.fields.foncier) : undefined,
+      bnc: deal ? pickNum(deal.fields.bnc) : undefined,
+      bic: deal ? pickNum(deal.fields.bic) : undefined,
+    });
+
     const anneeNaissance = pickNum(client.personFields.anneeNaissance);
     const ageRetraite = pickNum(client.personFields.ageRetraite);
-    const revenuImposable = pickNum(client.personFields.revenuImposable);
-    const parts = pickNum(client.personFields.partsFiscales);
     const horizon =
       anneeNaissance && ageRetraite
         ? ageRetraite - (new Date().getFullYear() - anneeNaissance)
         : undefined;
 
     const raw: Partial<PerSortieInputs> = {
-      revenuImposable,
-      parts,
+      // Revenu/parts depuis l'état fiscal partagé (cohérence panneau/présentation).
+      revenuImposable: fiscal.revenuNetImposable > 0 ? fiscal.revenuNetImposable : undefined,
+      parts: fiscal.partsTotal,
       anneeNaissance,
       versementMensuel: deal ? pickNum(deal.fields.versementMensuel) : undefined,
       versementInitial: deal ? pickNum(deal.fields.versementInitial) : undefined,
       horizon: horizon && horizon > 0 ? horizon : undefined,
       profil: deal ? pickProfil(deal.fields.profil) : undefined,
-      // Tranche de sortie par défaut = TMI courante si revenu + parts connus.
-      trancheSortie:
-        revenuImposable != null && parts != null
-          ? defaultTrancheSortie(revenuImposable, parts)
-          : undefined,
+      // Tranche de sortie par défaut = TMI partagée (Lot 2).
+      trancheSortie: fiscal.revenuNetImposable > 0 ? fiscal.tmi : undefined,
     };
     prefill = Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== undefined)

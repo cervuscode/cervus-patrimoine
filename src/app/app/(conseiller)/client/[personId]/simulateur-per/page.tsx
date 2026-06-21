@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { getClientView } from "@/lib/pipedrive";
 import PerQuickSim from "@/components/conseiller/PerQuickSim";
 import type { PerProfil, PerQuickInputs } from "@/lib/per-quick";
+import { computeFiscalState } from "@/lib/fiscal-state";
 
 export const metadata: Metadata = {
   title: "Simulateur PER — Cervus Patrimoine",
@@ -60,10 +61,25 @@ export default async function SimulateurPerConnectePage({
 
   let prefill: Partial<PerQuickInputs> = {};
   let code: string | null = null;
+  let fiscalTmi: number | undefined;
   try {
     const client = await getClientView(personId);
     const deal = client.deals[0]; // add_time DESC → le plus récent
     code = client.deals.find((d) => d.code)?.code ?? null;
+
+    // État fiscal partagé (Lot 2) : calculé UNE FOIS via le même helper que le contexte.
+    const fiscal = computeFiscalState({
+      revenuImposable: pickNum(client.personFields.revenuImposable),
+      partsFiscales: pickNum(client.personFields.partsFiscales),
+      salaireMensuel: pickNum(client.personFields.salaireMensuel),
+      revenuConjoint: pickNum(client.personFields.revenuConjoint),
+      statutMarital: pick(client.personFields.statutMarital)?.toString(),
+      nbEnfants: pickNum(client.personFields.nbEnfants),
+      foncier: deal ? pickNum(deal.fields.foncier) : undefined,
+      bnc: deal ? pickNum(deal.fields.bnc) : undefined,
+      bic: deal ? pickNum(deal.fields.bic) : undefined,
+    });
+    fiscalTmi = fiscal.tmi;
 
     const anneeNaissance = pickNum(client.personFields.anneeNaissance);
     const ageRetraite = pickNum(client.personFields.ageRetraite);
@@ -73,8 +89,9 @@ export default async function SimulateurPerConnectePage({
         : undefined;
 
     prefill = {
-      revenuImposable: pickNum(client.personFields.revenuImposable),
-      parts: pickNum(client.personFields.partsFiscales),
+      // Revenu/parts depuis l'état fiscal partagé (cohérence panneau/présentation).
+      revenuImposable: fiscal.revenuNetImposable > 0 ? fiscal.revenuNetImposable : undefined,
+      parts: fiscal.partsTotal,
       versementMensuel: deal ? pickNum(deal.fields.versementMensuel) : undefined,
       versementInitial: deal ? pickNum(deal.fields.versementInitial) : undefined,
       horizon: horizon && horizon > 0 ? horizon : undefined,
@@ -100,7 +117,7 @@ export default async function SimulateurPerConnectePage({
           ← Fiche client
         </Link>
       </div>
-      <PerQuickSim prefill={prefill} client={{ personId, code }} />
+      <PerQuickSim prefill={prefill} client={{ personId, code }} fiscalTmi={fiscalTmi} />
     </main>
   );
 }

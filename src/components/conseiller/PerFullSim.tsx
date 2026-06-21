@@ -18,6 +18,7 @@ import {
 import TauxSlider from "./TauxSlider";
 import { useRdvClient } from "./RdvClientProvider";
 import { perFullDraft } from "@/lib/sim-history";
+import KeepResultButton from "./KeepResultButton";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 const TRANCHES = [0, 11, 30, 41, 45];
@@ -66,29 +67,24 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
   const ligne = ligneConversionLaPlusProche(inputs.anneeNaissance);
   const conv64Indispo = ligne.taux64 == null;
 
-  // Lot 3 : capture auto dans l'historique de session (mode connecté uniquement),
-  // debouncée pour ne mémoriser que la variante stabilisée (pas chaque frappe).
+  // Lot 3 : capture MANUELLE dans l'historique de session (mode connecté uniquement).
   const { recordSim } = useRdvClient();
-  useEffect(() => {
-    if (!client) return;
-    if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
-    const t = setTimeout(() => {
-      recordSim(
-        perFullDraft(
-          {
-            versementMensuel: inputs.versementMensuel,
-            versementInitial: inputs.versementInitial,
-            horizon: inputs.horizon,
-            profil: inputs.profil,
-            trancheSortie: inputs.trancheSortie,
-            ageConversion: inputs.ageConversion,
-          },
-          result
-        )
-      );
-    }, 700);
-    return () => clearTimeout(t);
-  }, [client, inputs, result, recordSim]);
+  function keep() {
+    recordSim(
+      perFullDraft(
+        {
+          versementMensuel: inputs.versementMensuel,
+          versementInitial: inputs.versementInitial,
+          horizon: inputs.horizon,
+          profil: inputs.profil,
+          trancheSortie: inputs.trancheSortie,
+          ageConversion: inputs.ageConversion,
+        },
+        result
+      )
+    );
+    return true;
+  }
 
   function set<K extends keyof PerSortieInputs>(key: K, value: PerSortieInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -180,6 +176,15 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
         <Stat label="Versements cumulés" value={formatEuro(result.versementsCumules)} />
         <Stat label="Plus-value" value={formatEuro(result.plusValue)} />
       </section>
+
+      {/* Capture manuelle dans la note de synthèse (mode connecté uniquement). */}
+      {client && (
+        <KeepResultButton
+          onKeep={keep}
+          disabled={inputs.versementMensuel <= 0 && inputs.versementInitial <= 0}
+          className="w-full sm:w-auto sm:self-end"
+        />
+      )}
 
       {/* Sortie 1 */}
       <Block title="Sortie 1 — Capital intégral">

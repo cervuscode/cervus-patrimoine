@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -21,6 +21,7 @@ import {
 import type { ClientIdentity, HypoValues } from "@/lib/presentation-bridge";
 import { perQuickDraft, type SimRecordDraft } from "@/lib/sim-history";
 import TauxSlider from "../TauxSlider";
+import KeepResultButton from "../KeepResultButton";
 import { BigResult, HypoNumber, HypoPills, IdentityChip } from "./controls";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
@@ -38,7 +39,7 @@ export default function PerQuickPresentation({
   identity: ClientIdentity;
   hypo: HypoValues;
   onHypo: <K extends keyof HypoValues>(key: K, value: HypoValues[K]) => void;
-  onRecord?: (draft: SimRecordDraft) => void;
+  onRecord?: (draft: SimRecordDraft) => boolean;
 }) {
   const result = useMemo(
     () =>
@@ -58,22 +59,24 @@ export default function PerQuickPresentation({
     [identity, hypo]
   );
 
-  // Lot 3 : remonte la variante stabilisée à l'opener (debounce/dédup côté pont).
-  useEffect(() => {
-    if (!onRecord) return;
-    if (hypo.versementMensuel <= 0 && hypo.versementInitial <= 0) return;
-    onRecord(
-      perQuickDraft(
-        {
-          versementMensuel: hypo.versementMensuel,
-          versementInitial: hypo.versementInitial,
-          horizon: hypo.horizon,
-          profil: hypo.profil,
-        },
-        result
-      )
+  // Lot 3 : capture MANUELLE — le conseiller clique « Garder ce résultat » → transmis
+  // à l'opener (la fiche) via onRecord (postMessage). Renvoie false si fiche fermée.
+  function keep(): boolean {
+    if (!onRecord) return false;
+    return (
+      onRecord(
+        perQuickDraft(
+          {
+            versementMensuel: hypo.versementMensuel,
+            versementInitial: hypo.versementInitial,
+            horizon: hypo.horizon,
+            profil: hypo.profil,
+          },
+          result
+        )
+      ) !== false
     );
-  }, [result, hypo, onRecord]);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,6 +113,15 @@ export default function PerQuickPresentation({
         <BigResult label="Capital projeté" value={formatEuro(result.capitalFinal)} />
         <BigResult label="Total versé" value={formatEuro(result.totalVerse)} />
       </div>
+
+      {/* Capture manuelle dans la note de synthèse (transmise à la fiche). */}
+      {onRecord && (
+        <KeepResultButton
+          onKeep={keep}
+          disabled={hypo.versementMensuel <= 0 && hypo.versementInitial <= 0}
+          className="w-full sm:w-auto sm:self-end"
+        />
+      )}
 
       <div className="rounded-3xl border border-cervus-gold/25 bg-cervus-dark/40 p-4 sm:p-6">
         <p className="mb-4 text-sm text-cervus-bronze/70">

@@ -21,6 +21,7 @@ import {
 import TauxSlider from "./TauxSlider";
 import { useRdvClient } from "./RdvClientProvider";
 import { perQuickDraft } from "@/lib/sim-history";
+import KeepResultButton from "./KeepResultButton";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 
@@ -65,27 +66,23 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
     [inputs, fiscalTmi]
   );
 
-  // Lot 3 : capture auto dans l'historique de session (mode connecté uniquement),
-  // debouncée pour ne mémoriser que la variante stabilisée (pas chaque frappe).
+  // Lot 3 : capture MANUELLE dans l'historique de session (mode connecté uniquement).
+  // Le conseiller clique « Garder ce résultat » → ajout de la variante courante.
   const { recordSim } = useRdvClient();
-  useEffect(() => {
-    if (!client) return;
-    if (inputs.versementMensuel <= 0 && inputs.versementInitial <= 0) return;
-    const t = setTimeout(() => {
-      recordSim(
-        perQuickDraft(
-          {
-            versementMensuel: inputs.versementMensuel,
-            versementInitial: inputs.versementInitial,
-            horizon: inputs.horizon,
-            profil: inputs.profil,
-          },
-          result
-        )
-      );
-    }, 700);
-    return () => clearTimeout(t);
-  }, [client, inputs, result, recordSim]);
+  function keep() {
+    recordSim(
+      perQuickDraft(
+        {
+          versementMensuel: inputs.versementMensuel,
+          versementInitial: inputs.versementInitial,
+          horizon: inputs.horizon,
+          profil: inputs.profil,
+        },
+        result
+      )
+    );
+    return true;
+  }
 
   function set<K extends keyof PerQuickInputs>(key: K, value: PerQuickInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -162,6 +159,15 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
         <Stat label="Économie d'impôt / an" value={formatEuro(result.economieFiscale)} highlight />
         <Stat label="Capital projeté" value={formatEuro(result.capitalFinal)} />
       </section>
+
+      {/* Capture manuelle dans la note de synthèse (mode connecté uniquement). */}
+      {client && (
+        <KeepResultButton
+          onKeep={keep}
+          disabled={inputs.versementMensuel <= 0 && inputs.versementInitial <= 0}
+          className="w-full sm:w-auto sm:self-end"
+        />
+      )}
 
       <section className="rounded-2xl border border-cervus-gold/20 bg-cervus-dark/40 p-3">
         <div className="h-48 w-full">

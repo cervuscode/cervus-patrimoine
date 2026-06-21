@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import {
   formatEuro,
   PROFIL_LABELS,
@@ -16,6 +16,7 @@ import {
 import type { ClientIdentity, HypoValues } from "@/lib/presentation-bridge";
 import { perFullDraft, type SimRecordDraft } from "@/lib/sim-history";
 import TauxSlider from "../TauxSlider";
+import KeepResultButton from "../KeepResultButton";
 import { HypoNumber, HypoPills, IdentityChip } from "./controls";
 
 const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
@@ -34,7 +35,7 @@ export default function PerFullPresentation({
   identity: ClientIdentity;
   hypo: HypoValues;
   onHypo: <K extends keyof HypoValues>(key: K, value: HypoValues[K]) => void;
-  onRecord?: (draft: SimRecordDraft) => void;
+  onRecord?: (draft: SimRecordDraft) => boolean;
 }) {
   const result = useMemo(
     () =>
@@ -54,24 +55,25 @@ export default function PerFullPresentation({
   );
   const conv64Indispo = ligneConversionLaPlusProche(identity.anneeNaissance).taux64 == null;
 
-  // Lot 3 : remonte la variante stabilisée à l'opener (debounce/dédup côté pont).
-  useEffect(() => {
-    if (!onRecord) return;
-    if (hypo.versementMensuel <= 0 && hypo.versementInitial <= 0) return;
-    onRecord(
-      perFullDraft(
-        {
-          versementMensuel: hypo.versementMensuel,
-          versementInitial: hypo.versementInitial,
-          horizon: hypo.horizon,
-          profil: hypo.profil,
-          trancheSortie: hypo.trancheSortie,
-          ageConversion: hypo.ageConversion,
-        },
-        result
-      )
+  // Lot 3 : capture MANUELLE — clic « Garder ce résultat » → transmis à l'opener.
+  function keep(): boolean {
+    if (!onRecord) return false;
+    return (
+      onRecord(
+        perFullDraft(
+          {
+            versementMensuel: hypo.versementMensuel,
+            versementInitial: hypo.versementInitial,
+            horizon: hypo.horizon,
+            profil: hypo.profil,
+            trancheSortie: hypo.trancheSortie,
+            ageConversion: hypo.ageConversion,
+          },
+          result
+        )
+      ) !== false
     );
-  }, [result, hypo, onRecord]);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,6 +154,15 @@ export default function PerFullPresentation({
           </p>
         )}
       </Block>
+
+      {/* Capture manuelle dans la note de synthèse (transmise à la fiche). */}
+      {onRecord && (
+        <KeepResultButton
+          onKeep={keep}
+          disabled={hypo.versementMensuel <= 0 && hypo.versementInitial <= 0}
+          className="w-full sm:w-auto sm:self-end"
+        />
+      )}
     </div>
   );
 }

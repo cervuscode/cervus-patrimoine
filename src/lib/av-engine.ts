@@ -53,6 +53,7 @@ const RENDEMENTS: Record<AVProfil, number> = {
   dynamique: 0.05,
 };
 const PS = 0.172; // prélèvements sociaux
+const PFU_IR = 0.128; // taux IR du PFU (contrat < 8 ans) — 12,8 % IR + 17,2 % PS = 30 %
 const SEUIL_150K = 150000; // seuil de versements pour le taux IR (7,5 % vs 12,8 %)
 
 function abattementAnnuel(marie: boolean): number {
@@ -153,16 +154,36 @@ function simuler(input: AVInput, avecCervus: boolean): SimState {
   return { valeur, base, totalVersements, psPayesPendant, purges, courbe };
 }
 
-// Fiscalité de sortie : rachat total au terme. PS sur toute la PV résiduelle,
-// IR sur la PV au-delà de l'abattement de l'année de sortie.
-function sortie(state: SimState, marie: boolean): { net: number; ps: number; ir: number; pv: number } {
+// Fiscalité de sortie : rachat total au terme. PS 17,2 % sur toute la PV résiduelle
+// dans TOUS les cas ; l'IR dépend de l'antériorité du contrat (seuil des 8 ans).
+//
+// HYPOTHÈSE : tous les contrats simulés sont de NOUVEAUX contrats (versements postérieurs
+// au 27/09/2017). Le régime des contrats ouverts AVANT le 27/09/2017 (PFL 35 % si rachat
+// < 4 ans, 15 % entre 4 et 8 ans) est HORS PÉRIMÈTRE et volontairement NON modélisé ici.
+//
+//  - dureeAnnees >= 8 : régime favorable « > 8 ans » — abattement annuel (4 600/9 200 €)
+//    puis PFL 7,5 %/12,8 % au prorata du seuil 150k (cf. irSurGain).
+//  - dureeAnnees  < 8 : PAS d'abattement ; PFU 12,8 % sur TOUTE la part de plus-value
+//    (option standard, on n'applique pas l'option barème même si parfois plus favorable
+//    aux TMI 0 %/11 %). PS 17,2 % identique. Soit 30 % au total sur la PV.
+function sortie(
+  state: SimState,
+  marie: boolean,
+  dureeAnnees: number
+): { net: number; ps: number; ir: number; pv: number } {
   const pv = Math.max(0, state.valeur - state.base);
   const ps = PS * pv;
-  const gainImposable = Math.max(0, pv - abattementAnnuel(marie));
-  // Seuil 150k apprécié sur les primes NETTES réellement présentes (state.base) :
-  // capital initial + versements − capital racheté + réinvestissements de purge.
-  // Surtout PAS sur un cumul brut qui recompterait le capital recyclé à chaque rachat.
-  const ir = irSurGain(gainImposable, state.base);
+  let ir: number;
+  if (dureeAnnees >= 8) {
+    const gainImposable = Math.max(0, pv - abattementAnnuel(marie));
+    // Seuil 150k apprécié sur les primes NETTES réellement présentes (state.base) :
+    // capital initial + versements − capital racheté + réinvestissements de purge.
+    // Surtout PAS sur un cumul brut qui recompterait le capital recyclé à chaque rachat.
+    ir = irSurGain(gainImposable, state.base);
+  } else {
+    // Contrat < 8 ans : aucun abattement, PFU 12,8 % sur la PV entière.
+    ir = PFU_IR * pv;
+  }
   return { net: state.valeur - ps - ir, ps, ir, pv };
 }
 
@@ -172,8 +193,8 @@ const eur = (n: number): number => Math.round(n);
 export function debugAV(input: AVInput) {
   const avec = simuler(input, true);
   const sans = simuler(input, false);
-  const sa = sortie(avec, input.marie);
-  const ss = sortie(sans, input.marie);
+  const sa = sortie(avec, input.marie, input.dureeAnnees);
+  const ss = sortie(sans, input.marie, input.dureeAnnees);
   return {
     trace: avec.courbe.map((c) => ({
       annee: c.annee,
@@ -197,8 +218,8 @@ export function calculerAV(input: AVInput): AVComputed {
   const sans = simuler(input, false);
   const avec = simuler(input, true);
 
-  const sortieSans = sortie(sans, input.marie);
-  const sortieAvec = sortie(avec, input.marie);
+  const sortieSans = sortie(sans, input.marie, input.dureeAnnees);
+  const sortieAvec = sortie(avec, input.marie, input.dureeAnnees);
 
   // IR évité = IR de sortie sans purge − IR de sortie avec purge (les purges
   // annuelles ont réalisé du gain à IR nul dans l'abattement).

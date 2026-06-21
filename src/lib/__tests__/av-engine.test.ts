@@ -98,3 +98,73 @@ describe("av-engine — moteur assurance-vie", () => {
     expect(Number.isFinite(res.gainNetCervus)).toBe(true);
   });
 });
+
+// ── Fiscalité de sortie selon l'antériorité (seuil des 8 ans) ──────────────────
+// Régime > 8 ans : abattement 4 600/9 200 € + 7,5 %/12,8 % (seuil 150k).
+// Régime < 8 ans : pas d'abattement, PFU 12,8 % sur toute la PV (PS 17,2 % à part).
+// IR implicite déduit des champs exposés : capitalFinalBrut − PS − capitalNetSans.
+describe("av-engine — fiscalité de sortie conditionnée au seuil des 8 ans", () => {
+  // Scénarios à prime unique, sans versement mensuel → base (sans purge) = initial.
+  const impliedPV = (r: AVComputed, initial: number) => r.capitalFinalBrut - initial;
+  const impliedIR = (r: AVComputed) =>
+    r.capitalFinalBrut - r.totalPSPayes.sansCervus - r.capitalNetSansCervus;
+  // Marge d'arrondi : ces grandeurs dérivent de 3 entiers déjà arrondis (±2 €).
+  const proche = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThanOrEqual(2);
+
+  it("NON-RÉGRESSION > 8 ans : abattement appliqué + IR à 7,5 % (50 000 €, 15 ans, seul)", () => {
+    const input: AVInput = {
+      versementInitial: 50000,
+      versementMensuel: 0,
+      dureeAnnees: 15,
+      profil: "equilibre",
+      marie: false,
+    };
+    const res = calculerAV(input);
+    const pv = impliedPV(res, 50000);
+    // base < 150k → tout le gain imposable à 7,5 %, sur la PV au-delà de 4 600 €.
+    const irAttendu = 0.075 * Math.max(0, pv - 4600);
+    proche(res.totalPSPayes.sansCervus, 0.172 * pv);
+    proche(impliedIR(res), irAttendu);
+  });
+
+  it("NOUVEAU < 8 ans : aucun abattement, PFU 12,8 % sur toute la PV (50 000 €, 5 ans, seul)", () => {
+    const input: AVInput = {
+      versementInitial: 50000,
+      versementMensuel: 0,
+      dureeAnnees: 5,
+      profil: "prudent",
+      marie: false,
+    };
+    const res = calculerAV(input);
+    const pv = impliedPV(res, 50000);
+    expect(pv).toBeGreaterThan(0);
+    // IR < 8 ans = 12,8 % de TOUTE la PV (pas d'abattement).
+    proche(impliedIR(res), 0.128 * pv);
+    proche(res.totalPSPayes.sansCervus, 0.172 * pv);
+    // Vérifie que c'est bien PLUS taxé que ne l'aurait donné le régime > 8 ans
+    // (abattement + 7,5 %) : le net < 8 ans doit être strictement inférieur.
+    const net8ans = res.capitalFinalBrut - 0.172 * pv - 0.075 * Math.max(0, pv - 4600);
+    expect(res.capitalNetSansCervus).toBeLessThan(net8ans);
+    // Aucune purge possible avant 8 ans → stratégie non pertinente.
+    expect(res.purges).toHaveLength(0);
+    expect(res.purgeUtile).toBe(false);
+  });
+
+  it("FRONTIÈRE exactement 8 ans : régime FAVORABLE (abattement) appliqué", () => {
+    // PV projetée (~2 668 €) sous l'abattement 4 600 € → IR du régime > 8 ans = 0.
+    // Si le régime < 8 ans s'appliquait à tort, l'IR serait 0,128 × PV > 0.
+    const input: AVInput = {
+      versementInitial: 10000,
+      versementMensuel: 0,
+      dureeAnnees: 8,
+      profil: "prudent",
+      marie: false,
+    };
+    const res = calculerAV(input);
+    const pv = impliedPV(res, 10000);
+    expect(pv).toBeGreaterThan(0);
+    expect(pv).toBeLessThan(4600); // sous l'abattement
+    // Régime favorable à 8 ans → IR nul (toute la PV absorbée par l'abattement).
+    proche(impliedIR(res), 0);
+  });
+});

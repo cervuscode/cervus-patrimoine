@@ -22,16 +22,24 @@ function fmt(n: number) {
   return n.toLocaleString("fr-FR");
 }
 
-// Fiscalité de liquidation à une date donnée (miroir du moteur, pour tracer la VALEUR
-// NETTE année par année — sans modifier av-engine). PS 17,2 %, abattement 4 600/9 200,
-// 7,5 %/12,8 % au prorata des primes nettes > 150 000 €.
-function netLiquidatif(valeur: number, base: number, marie: boolean): number {
+// Fiscalité de liquidation à une date donnée (miroir du moteur av-engine, pour tracer
+// la VALEUR NETTE année par année — sans modifier av-engine). PS 17,2 % dans tous les
+// cas ; l'IR dépend de l'antériorité du contrat à l'année considérée (seuil des 8 ans),
+// EXACTEMENT comme la fonction sortie() du moteur :
+//   - annee >= 8 : abattement 4 600/9 200 € + 7,5 %/12,8 % au prorata du seuil 150 000 € ;
+//   - annee  < 8 : pas d'abattement, PFU 12,8 % sur toute la PV (nouveaux contrats post-2017).
+function netLiquidatif(valeur: number, base: number, marie: boolean, annee: number): number {
   const pv = Math.max(0, valeur - base);
   const ps = 0.172 * pv;
-  const abat = marie ? 9200 : 4600;
-  const gi = Math.max(0, pv - abat);
-  const ratio = base > 0 ? Math.max(0, base - 150000) / base : 0;
-  const ir = 0.075 * gi * (1 - ratio) + 0.128 * gi * ratio;
+  let ir: number;
+  if (annee >= 8) {
+    const abat = marie ? 9200 : 4600;
+    const gi = Math.max(0, pv - abat);
+    const ratio = base > 0 ? Math.max(0, base - 150000) / base : 0;
+    ir = 0.075 * gi * (1 - ratio) + 0.128 * gi * ratio;
+  } else {
+    ir = 0.128 * pv;
+  }
   return valeur - ps - ir;
 }
 
@@ -51,8 +59,8 @@ export default function ResultPageAV({ data, computed }: Props) {
   const chartData = computed.courbe.map((pt) => {
     cumPurge += purgeNetByYear[pt.annee] ?? 0;
     const primes = initial + mensuel * 12 * pt.annee;
-    const sans = Math.round(netLiquidatif(pt.capitalSans, primes, marie));
-    const avec = Math.round(netLiquidatif(pt.capitalAvec, primes + cumPurge, marie));
+    const sans = Math.round(netLiquidatif(pt.capitalSans, primes, marie, pt.annee));
+    const avec = Math.round(netLiquidatif(pt.capitalAvec, primes + cumPurge, marie, pt.annee));
     return { annee: pt.annee, sans, avec };
   });
 

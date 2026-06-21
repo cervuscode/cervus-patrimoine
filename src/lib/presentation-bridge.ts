@@ -1,0 +1,121 @@
+/**
+ * Pont de l'espace « Présentations clients » (Lot F) — ISOMORPHE (aucun secret).
+ *
+ * Sépare formellement les deux familles de champs et porte le protocole same-origin
+ * entre la fiche client (onglet opener, source d'identité) et l'onglet présentation :
+ *  - IDENTITÉ : revenu, parts, année de naissance → viennent de la fiche, lecture
+ *    seule en présentation, rapatriables via « Actualiser ».
+ *  - HYPOTHÈSES : versement, horizon, profil, tranche de sortie, âge de conversion →
+ *    éditables en direct dans l'onglet présentation, JAMAIS écrasées par Actualiser.
+ */
+
+import type { PerProfil } from "./per-quick";
+import type { AgeConversion } from "./per-sortie";
+
+export interface ClientIdentity {
+  revenuImposable: number;
+  parts: number;
+  anneeNaissance: number;
+}
+
+export interface HypoValues {
+  versementMensuel: number;
+  versementInitial: number;
+  horizon: number;
+  profil: PerProfil;
+  trancheSortie: number;
+  ageConversion: AgeConversion;
+}
+
+export const DEFAULT_IDENTITY: ClientIdentity = {
+  revenuImposable: 0,
+  parts: 1,
+  anneeNaissance: 1980,
+};
+
+export const DEFAULT_HYPO: HypoValues = {
+  versementMensuel: 0,
+  versementInitial: 0,
+  horizon: 20,
+  profil: "equilibre",
+  trancheSortie: 30,
+  ageConversion: 67,
+};
+
+// ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
+// Toujours vérifier `event.origin === window.location.origin` ET le `type`.
+export const PRESENT_MSG_REQUEST = "cervus:present:request" as const;
+export const PRESENT_MSG_IDENTITY = "cervus:present:identity" as const;
+
+export interface PresentRequestMessage {
+  type: typeof PRESENT_MSG_REQUEST;
+  simId: string;
+}
+export interface PresentIdentityMessage {
+  type: typeof PRESENT_MSG_IDENTITY;
+  simId: string;
+  identity: ClientIdentity;
+}
+
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : fallback;
+}
+function asProfil(v: unknown): PerProfil {
+  return v === "prudent" || v === "equilibre" || v === "dynamique" ? v : "equilibre";
+}
+
+// ── Encode / decode de l'URL de présentation ──────────────────────────────────
+export function encodePresentationParams(
+  identity: ClientIdentity,
+  hypo: HypoValues,
+  code: string | null,
+  activeSim: string
+): URLSearchParams {
+  const p = new URLSearchParams({
+    r: String(identity.revenuImposable),
+    p: String(identity.parts),
+    an: String(identity.anneeNaissance),
+    vm: String(hypo.versementMensuel),
+    vi: String(hypo.versementInitial),
+    h: String(hypo.horizon),
+    pr: hypo.profil,
+    ts: String(hypo.trancheSortie),
+    ac: String(hypo.ageConversion),
+    sim: activeSim,
+  });
+  if (code) p.set("cc", code);
+  return p;
+}
+
+export interface DecodedPresentation {
+  identity: ClientIdentity;
+  hypo: HypoValues;
+  code: string | null;
+  activeSim: string;
+}
+
+export function decodePresentationParams(
+  params: URLSearchParams | Record<string, string | undefined>
+): DecodedPresentation {
+  const get = (k: string): string | undefined =>
+    params instanceof URLSearchParams ? params.get(k) ?? undefined : params[k];
+  const ac = num(get("ac"), 67);
+  return {
+    identity: {
+      revenuImposable: num(get("r")),
+      parts: num(get("p"), 1),
+      anneeNaissance: num(get("an"), 1980),
+    },
+    hypo: {
+      versementMensuel: num(get("vm")),
+      versementInitial: num(get("vi")),
+      horizon: num(get("h"), 20),
+      profil: asProfil(get("pr")),
+      trancheSortie: num(get("ts"), 30),
+      ageConversion: (ac === 64 ? 64 : 67) as AgeConversion,
+    },
+    code: get("cc") ?? null,
+    activeSim: get("sim") ?? "per",
+  };
+}

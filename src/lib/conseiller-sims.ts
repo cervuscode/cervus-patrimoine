@@ -21,16 +21,45 @@ export interface ConseillerSim {
   clientHref: (personId: number) => string;
   /** `true` = disponible ; `false` = à venir (carte grisée, non cliquable). */
   available: boolean;
+  /**
+   * Champs d'IDENTITÉ/SITUATION : viennent de la fiche, LECTURE SEULE en
+   * présentation, rapatriables via « Actualiser » (Lot F).
+   */
+  identityKeys: string[];
+  /**
+   * Champs d'HYPOTHÈSE : paramètres de scénario, ÉDITABLES en direct dans
+   * l'espace présentation, JAMAIS écrasés par « Actualiser » (Lot F).
+   */
+  hypothesisKeys: string[];
 }
 
 export const CONSEILLER_SIMS: ConseillerSim[] = [
   {
     id: "per",
-    label: "Simulateur PER",
+    label: "Simulateur PER rapide",
     description: "Économie d'impôt et capital projeté en quelques chiffres.",
     autonomousHref: "/simulateur-per",
     clientHref: (personId) => `/client/${personId}/simulateur-per`,
     available: true,
+    identityKeys: ["revenuImposable", "parts"],
+    hypothesisKeys: ["versementMensuel", "versementInitial", "horizon", "profil"],
+  },
+  {
+    id: "per-complet",
+    label: "Simulateur PER complet",
+    description: "3 sorties : capital, fractionnement 20 ans, rente viagère.",
+    autonomousHref: "/simulateur-per-complet",
+    clientHref: (personId) => `/client/${personId}/simulateur-per-complet`,
+    available: true,
+    identityKeys: ["revenuImposable", "parts", "anneeNaissance"],
+    hypothesisKeys: [
+      "versementMensuel",
+      "versementInitial",
+      "horizon",
+      "profil",
+      "trancheSortie",
+      "ageConversion",
+    ],
   },
 ];
 

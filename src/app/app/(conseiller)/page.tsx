@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import Link from "next/link";
 import SignOutButton from "@/components/conseiller/SignOutButton";
 import ClientSearch from "@/components/conseiller/ClientSearch";
 import SimulateurGrid from "@/components/conseiller/SimulateurGrid";
@@ -33,6 +34,22 @@ export default async function ConseillerHomePage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-cervus-bronze/70">Simulateurs</h2>
         <SimulateurGrid />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-cervus-bronze/70">Outils</h2>
+        <Link
+          href="/reference-fiscale"
+          className="group rounded-2xl border border-cervus-gold/30 bg-cervus-dark/60 p-4 transition-colors hover:border-cervus-gold hover:bg-cervus-gold/10"
+        >
+          <div className="flex items-center justify-between">
+            <p className="font-cormorant text-xl text-cervus-bronze">Référence fiscale 2026</p>
+            <span className="text-cervus-gold-light transition-transform group-hover:translate-x-0.5">→</span>
+          </div>
+          <p className="mt-1 text-xs text-cervus-bronze/60">
+            Impôt net, TMI et économie PER — vérification express, sans client ouvert.
+          </p>
+        </Link>
       </section>
 
       <p className="text-xs text-cervus-bronze/40">

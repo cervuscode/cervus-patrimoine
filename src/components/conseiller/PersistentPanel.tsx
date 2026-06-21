@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRdvClient } from "./RdvClientProvider";
 import ClientCodeBadge from "./ClientCodeBadge";
 import DiscoverySections from "./DiscoverySections";
@@ -64,6 +65,18 @@ export default function PersistentPanel() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Lien rapide vers la référence fiscale (dispo même sans client). */}
+              <Link
+                href="/reference-fiscale"
+                onClick={() => setOpen(false)}
+                className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-cervus-gold-light hover:text-cervus-bronze"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+                </svg>
+                Référence fiscale 2026
+              </Link>
               {!client ? (
                 <p className="text-sm text-cervus-bronze/50">
                   Aucun client ouvert. Recherchez un client pour commencer.

@@ -134,15 +134,3 @@ export function decodePerInputs(params: URLSearchParams | Record<string, string 
 export function formatEuro(n: number): string {
   return Math.round(n).toLocaleString("fr-FR") + " €";
 }
-
-// ── Protocole postMessage sim ↔ présentation (Lot 2, point D) ─────────────────
-// L'onglet présentation demande les valeurs courantes à la fenêtre principale
-// (window.opener) ; celle-ci répond avec ses entrées. Toujours vérifier
-// `event.origin === window.location.origin` ET le `type` des deux côtés.
-export const PER_MSG_REQUEST = "cervus:per:request" as const;
-export const PER_MSG_VALUES = "cervus:per:values" as const;
-
-export interface PerValuesMessage {
-  type: typeof PER_MSG_VALUES;
-  payload: PerQuickInputs;
-}

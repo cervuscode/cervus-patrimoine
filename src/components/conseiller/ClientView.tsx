@@ -8,6 +8,7 @@ import ClientCodeBadge from "./ClientCodeBadge";
 import GenerateCodeBox from "./GenerateCodeBox";
 import DiscoverySections from "./DiscoverySections";
 import SaveBar from "./SaveBar";
+import PresentationBridge from "./PresentationBridge";
 
 /**
  * Vue client complète (page). Reçoit le snapshot serveur `initial` et hydrate le
@@ -53,6 +54,9 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
         </div>
       </header>
 
+      {/* Accès proéminent à l'espace présentation client (ouvre un onglet dédié). */}
+      <PresentationBridge />
+
       <DealSelector />
 
       {/* Accès rapide aux simulateurs en mode connecté (pré-rempli depuis la fiche). */}
@@ -65,7 +69,17 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
             <path d="M3 3v18h18" />
             <path d="m7 14 4-4 3 3 5-6" />
           </svg>
-          Simulateur PER
+          Simulateur PER rapide
+        </Link>
+        <Link
+          href={`/client/${initial.personId}/simulateur-per-complet`}
+          className="inline-flex items-center gap-2 rounded-[50px] border border-cervus-gold/40 px-4 py-2 text-sm font-medium text-cervus-bronze hover:bg-cervus-gold/10"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18" />
+            <path d="m7 14 4-4 3 3 5-6" />
+          </svg>
+          Simulateur PER complet
         </Link>
       </div>
 

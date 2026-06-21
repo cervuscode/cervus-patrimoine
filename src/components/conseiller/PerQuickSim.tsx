@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -11,11 +11,8 @@ import {
 } from "recharts";
 import {
   computePerQuick,
-  encodePerInputs,
   formatEuro,
   PROFIL_LABELS,
-  PER_MSG_REQUEST,
-  PER_MSG_VALUES,
   type PerProfil,
   type PerQuickInputs,
 } from "@/lib/per-quick";
@@ -25,7 +22,7 @@ const PROFILS: PerProfil[] = ["prudent", "equilibre", "dynamique"];
 interface PerQuickSimProps {
   /** Valeurs pré-remplies (mode connecté : priorité Découverte > Simulation). */
   prefill?: Partial<PerQuickInputs>;
-  /** Présent = mode CONNECTÉ : code en évidence + bouton « Présenter au client ». */
+  /** Présent = mode CONNECTÉ : code client en évidence (pas le nom). */
   client?: { personId: number; code: string | null };
 }
 
@@ -45,12 +42,9 @@ const BASE: PerQuickInputs = {
  * Pipedrive.
  */
 export default function PerQuickSim({ prefill, client }: PerQuickSimProps) {
-  const [inputs, setInputs] = useState<PerQuickInputs>({ ...BASE, ...prefill });
-
-  // Ref tenue à jour : la fenêtre principale répond aux demandes « Actualiser » de
-  // l'onglet présentation avec ses entrées COURANTES (pas un état figé).
-  const inputsRef = useRef(inputs);
-  inputsRef.current = inputs;
+  const initial = useMemo<PerQuickInputs>(() => ({ ...BASE, ...prefill }), [prefill]);
+  const [inputs, setInputs] = useState<PerQuickInputs>(initial);
+  useEffect(() => setInputs(initial), [initial]);
 
   const result = useMemo(() => computePerQuick(inputs), [inputs]);
 
@@ -60,31 +54,6 @@ export default function PerQuickSim({ prefill, client }: PerQuickSimProps) {
   function setNum(key: keyof PerQuickInputs, raw: string) {
     const n = parseFloat(raw.replace(",", "."));
     set(key, (Number.isFinite(n) ? n : 0) as PerQuickInputs[typeof key]);
-  }
-
-  // Mode connecté : répond aux requêtes de l'onglet présentation (window.opener).
-  useEffect(() => {
-    if (!client) return;
-    function onMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== PER_MSG_REQUEST) return;
-      const source = event.source as WindowProxy | null;
-      source?.postMessage(
-        { type: PER_MSG_VALUES, payload: inputsRef.current },
-        event.origin
-      );
-    }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [client]);
-
-  function presenter() {
-    if (!client) return;
-    const params = encodePerInputs(inputsRef.current);
-    if (client.code) params.set("cc", client.code);
-    // Pas de features ni "noopener" : on veut un vrai onglet ET conserver
-    // window.opener côté présentation (requis pour « Actualiser » via postMessage).
-    window.open(`/presentation-per/${client.personId}?${params.toString()}`, "_blank");
   }
 
   return (
@@ -176,23 +145,6 @@ export default function PerQuickSim({ prefill, client }: PerQuickSimProps) {
           </ResponsiveContainer>
         </div>
       </section>
-
-      {client && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={presenter}
-            className="inline-flex items-center gap-2 rounded-[50px] bg-cervus-gold px-6 py-3 text-sm font-medium text-cervus-bronze transition-colors hover:bg-cervus-gold-dark"
-          >
-            {/* icône présentation */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M2 3h20v12H2z" />
-              <path d="M12 15v6M8 21h8" />
-            </svg>
-            Présenter au client
-          </button>
-        </div>
-      )}
 
       <p className="text-[11px] leading-relaxed text-cervus-bronze/40">
         Estimation pédagogique indicative, non contractuelle. Calcul à titre

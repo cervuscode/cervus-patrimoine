@@ -19,6 +19,7 @@ import {
   type PerQuickInputs,
 } from "@/lib/per-quick";
 import TauxSlider from "./TauxSlider";
+import CoupleToggle from "./CoupleToggle";
 import { useRdvClient } from "./RdvClientProvider";
 import { perQuickDraft } from "@/lib/sim-history";
 import KeepResultButton from "./KeepResultButton";
@@ -121,6 +122,12 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
         <Field label="Parts fiscales">
           <NumberInput value={inputs.parts} step="0.25" onChange={(v) => setNum("parts", v)} />
         </Field>
+        {/* Mode autonome : reconstruit partsBase pour la TMI effective (plafonnement QF). */}
+        {!client && (
+          <Field label="Situation du foyer">
+            <CoupleToggle value={!!inputs.couple} onChange={(c) => set("couple", c)} />
+          </Field>
+        )}
         <Field label="Versement mensuel (€)">
           <NumberInput value={inputs.versementMensuel} onChange={(v) => setNum("versementMensuel", v)} />
         </Field>
@@ -159,6 +166,10 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
         <Stat label="Économie d'impôt / an" value={formatEuro(result.economieFiscale)} highlight />
         <Stat label="Capital projeté" value={formatEuro(result.capitalFinal)} />
       </section>
+      <p className="-mt-2 text-[11px] leading-relaxed text-cervus-bronze/40">
+        TMI effective (intègre le plafonnement du quotient familial) — peut différer
+        de la tranche affichée sur l&apos;avis d&apos;imposition.
+      </p>
 
       {/* Capture manuelle dans la note de synthèse (mode connecté uniquement). */}
       {client && (

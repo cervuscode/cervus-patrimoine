@@ -72,6 +72,15 @@ describe("comparateur-av-per — Option B (effort net égal)", () => {
     expect(r.facteurLevier).toBeCloseTo(1 / 0.59, 5);
   });
 
+  it("TMI effective : `marie` reconstruit partsBase (plafonnement QF, bug 11/30)", () => {
+    // 45 000 €, 2 parts. Parent seul 2 enfants (marie false → base 1) → TMI 30 %
+    // (plafonnement actif) ; couple 0 enfant (marie true → base 2) → TMI 11 %.
+    const seul = computeComparateur(inputs({ ...base, revenuImposable: 45000, parts: 2, marie: false }));
+    const couple = computeComparateur(inputs({ ...base, revenuImposable: 45000, parts: 2, marie: true }));
+    expect(seul.tmi).toBe(30);
+    expect(couple.tmi).toBe(11);
+  });
+
   it("apport initial net majoré comme l'effort mensuel (même facteur)", () => {
     const r = computeComparateur(
       inputs({ revenuImposable: 60000, trancheSortie: 30, effortNetMensuel: 0, effortNetInitial: 7000, horizon: 20, profil: "equilibre", marie: false })

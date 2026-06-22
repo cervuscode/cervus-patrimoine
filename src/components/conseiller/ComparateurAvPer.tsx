@@ -179,7 +179,9 @@ export default function ComparateurAvPer({ prefill, client }: ComparateurAvPerPr
         Comparaison pédagogique indicative, non contractuelle. Hypothèse « effort net égal » :
         l&apos;avantage fiscal du PER est intégré dès le versement (effort majoré de l&apos;économie
         d&apos;impôt). Rendement identique des deux côtés, capital net après fiscalité de sortie
-        (barème 2026). Aucune donnée n&apos;est enregistrée depuis cet outil.
+        (barème 2026). TMI effective (intègre le plafonnement du quotient familial) — peut
+        différer de la tranche de l&apos;avis d&apos;imposition. Aucune donnée n&apos;est
+        enregistrée depuis cet outil.
       </p>
     </div>
   );

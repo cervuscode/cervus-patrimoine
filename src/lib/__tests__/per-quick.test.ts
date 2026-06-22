@@ -26,9 +26,24 @@ const base: PerQuickInputs = {
 };
 
 describe("computePerQuick — câblage fiscal-engine", () => {
-  it("TMI = calculerTMI(R, parts, parts) (taux marginal au quotient)", () => {
+  it("TMI effective : partsBase reconstruit depuis `couple` (défaut personne seule)", () => {
+    // base.parts = 2, couple absent → partsBase 1 (personne seule, ex. parent 2 enfants)
     const r = computePerQuick(base);
-    expect(r.tmi).toBe(calculerTMI(60000, 2, 2));
+    expect(r.tmi).toBe(calculerTMI(60000, 1, 2));
+  });
+
+  it("toggle couple : base 2 (couple) vs base 1 (seul) à parts identiques", () => {
+    // 45 000 €, 2 parts : couple 0 enfant (base 2) → 11 % ; parent seul 2 enfants
+    // (base 1) → 30 % (plafonnement du quotient familial actif). C'est le bug corrigé.
+    const seul = computePerQuick({ ...base, revenuImposable: 45000, parts: 2, couple: false });
+    const couple = computePerQuick({ ...base, revenuImposable: 45000, parts: 2, couple: true });
+    expect(seul.tmi).toBe(30);
+    expect(couple.tmi).toBe(11);
+  });
+
+  it("opts.tmi (connecté) prime sur le calcul local", () => {
+    const r = computePerQuick({ ...base, couple: false }, { tmi: 41 });
+    expect(r.tmi).toBe(41);
   });
 
   it("économie fiscale = economieFiscaleAnnuelle(versement, TMI)", () => {

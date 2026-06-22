@@ -1,5 +1,6 @@
 import {
   computePerSortie,
+  defaultTrancheSortie,
   ligneConversionLaPlusProche,
   fractionImposableRente,
   decodePerSortieInputs,
@@ -7,6 +8,17 @@ import {
   PFU_TAUX,
   type PerSortieInputs,
 } from "../per-sortie";
+
+describe("defaultTrancheSortie — TMI effective via le toggle couple", () => {
+  it("45 000 € / 2 parts : seul (base 1) → 30 % ; couple (base 2) → 11 %", () => {
+    expect(defaultTrancheSortie(45000, 2, false)).toBe(30); // plafonnement QF actif
+    expect(defaultTrancheSortie(45000, 2, true)).toBe(11); // couple, aucun plafonnement
+  });
+
+  it("revenu nul → 0", () => {
+    expect(defaultTrancheSortie(0, 1)).toBe(0);
+  });
+});
 
 // Câblage : consommation seule de fiscal-engine (déjà couvert par ses 76 tests).
 // Cas de référence : vm=300, vi=5000, h=20 ans, profil équilibré (4 %), tranche 30 %.

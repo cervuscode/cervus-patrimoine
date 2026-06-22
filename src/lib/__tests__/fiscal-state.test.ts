@@ -6,12 +6,19 @@ import {
 import { calculerParts, calculerRevenuImposable, calculerTMI } from "../fiscal-engine";
 
 describe("computeFiscalState — priorité champ explicite", () => {
-  it("revenu & parts explicites prioritaires ; TMI = calculerTMI(R, parts, parts)", () => {
-    const fs = computeFiscalState({ revenuImposable: 60000, partsFiscales: 2 });
+  it("parts explicites = TOTAL ; partsBase reconstruit du statut (couple → 2)", () => {
+    const fs = computeFiscalState({ revenuImposable: 60000, partsFiscales: 2, statutMarital: "Marié(e)" });
     expect(fs.revenuNetImposable).toBe(60000);
-    expect(fs.partsBase).toBe(2);
+    expect(fs.partsBase).toBe(2); // couple
     expect(fs.partsTotal).toBe(2);
     expect(fs.tmi).toBe(calculerTMI(60000, 2, 2));
+  });
+
+  it("parts explicites sans statut → personne seule (partsBase 1)", () => {
+    const fs = computeFiscalState({ revenuImposable: 60000, partsFiscales: 2 });
+    expect(fs.partsBase).toBe(1); // défaut célibataire
+    expect(fs.partsTotal).toBe(2);
+    expect(fs.tmi).toBe(calculerTMI(60000, 1, 2));
   });
 
   it("repli revenu : calculerRevenuImposable depuis salaire mensuel si revenu absent", () => {
@@ -31,6 +38,33 @@ describe("computeFiscalState — priorité champ explicite", () => {
 
   it("revenu nul → TMI 0", () => {
     expect(computeFiscalState({}).tmi).toBe(0);
+  });
+});
+
+describe("TMI effective — plafonnement du quotient familial (non-régression bug 11/30)", () => {
+  it("célibataire 2 enfants 45 000 € → TMI 30 % (plafonnement actif)", () => {
+    const fs = computeFiscalState({ revenuImposable: 45000, statutMarital: "Célibataire", nbEnfants: 2 });
+    expect(fs.partsBase).toBe(1);
+    expect(fs.partsTotal).toBe(2);
+    expect(fs.tmi).toBe(30); // ⚠️ le bug affichait 11 %
+  });
+
+  it("célibataire 2 enfants 40 000 € → TMI 11 % (plafonnement pas encore actif — borne)", () => {
+    const fs = computeFiscalState({ revenuImposable: 40000, statutMarital: "Célibataire", nbEnfants: 2 });
+    expect(fs.tmi).toBe(11);
+  });
+
+  it("couple 0 enfant 45 000 € (2 parts) → TMI 11 % (aucun plafonnement)", () => {
+    const fs = computeFiscalState({ revenuImposable: 45000, statutMarital: "Marié(e)", nbEnfants: 0 });
+    expect(fs.partsBase).toBe(2);
+    expect(fs.partsTotal).toBe(2);
+    expect(fs.tmi).toBe(11);
+  });
+
+  it("parts explicites 2 + statut célibataire 45 000 € → TMI 30 % (base 1 reconstruite)", () => {
+    const fs = computeFiscalState({ revenuImposable: 45000, partsFiscales: 2, statutMarital: "Célibataire" });
+    expect(fs.partsBase).toBe(1);
+    expect(fs.tmi).toBe(30);
   });
 });
 

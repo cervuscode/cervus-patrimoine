@@ -95,6 +95,12 @@ export interface PerSortieInputs {
   taux?: number;
   trancheSortie: number; // 0 | 11 | 30 | 41 | 45
   ageConversion: AgeConversion; // 64 | 67
+  /**
+   * Foyer en couple (marié/pacsé) ? Mode autonome uniquement : reconstruit
+   * partsBase pour le défaut de tranche de sortie (defaultTrancheSortie).
+   * Ignoré en connecté (TMI/parts viennent de la fiche). Hors encode/decode.
+   */
+  couple?: boolean;
 }
 
 export interface Sortie1Result {
@@ -150,11 +156,16 @@ function num(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** TMI courante du foyer — sert de défaut à la tranche de sortie (consommation seule). */
-export function defaultTrancheSortie(revenuImposable: number, parts: number): number {
+/**
+ * TMI courante du foyer — sert de défaut à la tranche de sortie (consommation seule).
+ * `couple` (mode autonome) reconstruit partsBase (2 si couple, sinon 1) pour que
+ * calculerTMI détecte le plafonnement du quotient familial (TMI effective).
+ */
+export function defaultTrancheSortie(revenuImposable: number, parts: number, couple = false): number {
   const r = Math.max(0, num(revenuImposable));
   const p = Math.max(1, num(parts, 1));
-  return r > 0 ? calculerTMI(r, p, p) : 0;
+  const partsBase = Math.min(couple ? 2 : 1, p);
+  return r > 0 ? calculerTMI(r, partsBase, p) : 0;
 }
 
 export const DEFAULT_PER_SORTIE_INPUTS: PerSortieInputs = {

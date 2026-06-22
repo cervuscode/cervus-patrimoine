@@ -101,8 +101,9 @@ export default function ReferenceFiscale() {
             </div>
             <p className="mt-1 text-[11px] text-cervus-bronze/50">
               {lookup.interpole
-                ? "Valeur de référence interpolée entre deux colonnes — vérification croisée, calcul réel via le simulateur."
-                : "Valeur de référence du tableau."}
+                ? "Impôt net interpolé entre deux colonnes ; TMI effective calculée au revenu exact (plafonnement du quotient familial inclus)."
+                : "Valeur de référence du tableau ; TMI effective calculée au revenu exact."}
+              {" "}Peut différer de la tranche affichée sur l&apos;avis d&apos;imposition.
             </p>
           </div>
         ) : (

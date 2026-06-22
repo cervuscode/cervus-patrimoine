@@ -16,6 +16,7 @@ import {
   type PerSortieInputs,
 } from "@/lib/per-sortie";
 import TauxSlider from "./TauxSlider";
+import CoupleToggle from "./CoupleToggle";
 import { useRdvClient } from "./RdvClientProvider";
 import { perFullDraft } from "@/lib/sim-history";
 import KeepResultButton from "./KeepResultButton";
@@ -53,7 +54,7 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
     const merged = { ...BASE, ...prefill };
     // Défaut tranche de sortie = TMI courante si non fournie par le prefill.
     if (prefill?.trancheSortie == null) {
-      merged.trancheSortie = defaultTrancheSortie(merged.revenuImposable, merged.parts);
+      merged.trancheSortie = defaultTrancheSortie(merged.revenuImposable, merged.parts, merged.couple);
     }
     // Taux par défaut = celui du profil si non fourni par le prefill (Lot I).
     if (prefill?.taux == null) merged.taux = TAUX_PAR_PROFIL[merged.profil];
@@ -93,6 +94,15 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
   function selectProfil(p: PerProfil) {
     setInputs((prev) => ({ ...prev, profil: p, taux: TAUX_PAR_PROFIL[p] }));
   }
+  // Mode autonome : changer la situation du foyer ré-aligne le défaut de tranche de
+  // sortie sur la TMI effective correspondante (partsBase reconstruit).
+  function selectCouple(couple: boolean) {
+    setInputs((prev) => ({
+      ...prev,
+      couple,
+      trancheSortie: defaultTrancheSortie(prev.revenuImposable, prev.parts, couple),
+    }));
+  }
   function setNum(key: keyof PerSortieInputs, raw: string) {
     const n = parseFloat(raw.replace(",", "."));
     set(key, (Number.isFinite(n) ? n : 0) as PerSortieInputs[typeof key]);
@@ -124,6 +134,12 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
         <Field label="Année de naissance">
           <NumberInput value={inputs.anneeNaissance} onChange={(v) => setNum("anneeNaissance", v)} />
         </Field>
+        {/* Mode autonome : reconstruit partsBase pour la TMI effective (plafonnement QF). */}
+        {!client && (
+          <Field label="Situation du foyer">
+            <CoupleToggle value={!!inputs.couple} onChange={selectCouple} />
+          </Field>
+        )}
       </section>
 
       {/* Hypothèses d'accumulation */}

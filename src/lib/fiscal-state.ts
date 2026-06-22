@@ -106,9 +106,13 @@ export function computeFiscalState(src: FiscalSource): FiscalState {
   let partsBase: number;
   let partsTotal: number;
   if (pos(src.partsFiscales)) {
-    // Valeur explicite du conseiller : convention partsBase = partsTotal.
-    partsBase = src.partsFiscales;
-    partsTotal = src.partsFiscales;
+    // Valeur explicite du conseiller pour le TOTAL. On reconstruit partsBase
+    // depuis le statut marital (1 = personne seule, 2 = couple) afin de
+    // conserver l'écart base↔total : c'est lui qui permet à calculerTMI/impotReel
+    // de détecter le plafonnement du quotient familial. Sans ça (base = total),
+    // la TMI s'effondrerait à la tranche du quotient (bug 11 % au lieu de 30 %).
+    partsBase = calculerParts(mapStatutToParts(src.statutMarital), 0).partsBase;
+    partsTotal = Math.max(src.partsFiscales, partsBase);
   } else {
     const p = calculerParts(
       mapStatutToParts(src.statutMarital),

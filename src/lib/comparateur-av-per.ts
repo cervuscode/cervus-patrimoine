@@ -129,11 +129,15 @@ export function computeComparateur(
   const profil: PerProfil = input.profil in TAUX_PAR_PROFIL ? input.profil : "equilibre";
   const taux = TAUX_PAR_PROFIL[profil];
 
+  // TMI EFFECTIVE : partsBase reconstruit depuis `marie` (couple = 2, sinon 1) afin
+  // que calculerTMI détecte le plafonnement du quotient familial. En connecté,
+  // opts.tmi (= fiscalState.tmi déjà correct) prime.
+  const partsBase = Math.min(input.marie ? 2 : 1, parts);
   const tmi =
     opts?.tmi != null
       ? opts.tmi
       : revenuImposable > 0
-        ? calculerTMI(revenuImposable, parts, parts)
+        ? calculerTMI(revenuImposable, partsBase, parts)
         : 0;
   const trancheSortie = num(input.trancheSortie);
 

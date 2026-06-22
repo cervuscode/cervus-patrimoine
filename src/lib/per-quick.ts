@@ -58,6 +58,13 @@ export interface PerQuickInputs {
   horizon: number;
   profil: PerProfil;
   /**
+   * Foyer en couple (marié/pacsé) ? Sert UNIQUEMENT en mode autonome à
+   * reconstruire partsBase (2 si couple, sinon 1) pour que calculerTMI détecte
+   * le plafonnement du quotient familial. Absent → personne seule (partsBase 1).
+   * Ignoré en mode connecté (la TMI vient de opts.tmi). Hors encode/decode.
+   */
+  couple?: boolean;
+  /**
    * Taux de rendement annuel (décimal, ex. 0.04). Optionnel (Lot I) : hypothèse
    * ajustable au slider. Absent → défaut = TAUX_PAR_PROFIL[profil].
    */
@@ -109,13 +116,16 @@ export function computePerQuick(input: PerQuickInputs, opts?: { tmi?: number }):
   const profil: PerProfil = input.profil in TAUX_PAR_PROFIL ? input.profil : "equilibre";
   const taux = resolveTaux(profil, input.taux);
 
-  // TMI au quotient R/parts (partsBase = partsTotal → pas d'avantage QF : on veut le
-  // taux marginal, pas l'impôt total). Définition standard de la TMI.
+  // TMI EFFECTIVE : marginal réel incluant le plafonnement du quotient familial.
+  // partsBase reconstruit depuis `couple` (2 si couple, sinon 1), partsTotal = parts.
+  // L'écart base↔total laisse calculerTMI/impotReel détecter le plafonnement.
+  // En connecté, opts.tmi (= fiscalState.tmi déjà correct) prime.
+  const partsBase = Math.min(input.couple ? 2 : 1, parts);
   const tmi =
     opts?.tmi != null
       ? opts.tmi
       : revenuImposable > 0
-        ? calculerTMI(revenuImposable, parts, parts)
+        ? calculerTMI(revenuImposable, partsBase, parts)
         : 0;
   const economieFiscale = economieFiscaleAnnuelle(versementMensuel, tmi);
   const { capitalFinal, courbe } = projectionPER(

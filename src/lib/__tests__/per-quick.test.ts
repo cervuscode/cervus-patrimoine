@@ -1,7 +1,10 @@
 import {
   computePerQuick,
+  computePlafondPER,
   decodePerInputs,
   encodePerInputs,
+  PER_PLANCHER,
+  PER_PLAFOND_MAX,
   TAUX_PAR_PROFIL,
   DEFAULT_PER_INPUTS,
   type PerQuickInputs,
@@ -95,6 +98,40 @@ describe("computePerQuick — câblage fiscal-engine", () => {
   it("profil inconnu → équilibré par défaut", () => {
     const r = computePerQuick({ ...base, profil: "bidon" as unknown as PerQuickInputs["profil"] });
     expect(r.taux).toBe(TAUX_PAR_PROFIL.equilibre);
+  });
+});
+
+describe("computePlafondPER — plafond de déductibilité (DGFiP, PASS 2025)", () => {
+  it("plancher PASS appliqué quand 10 % du revenu < 4 710 €", () => {
+    const r = computePlafondPER(20000, 0); // 10 % = 2 000 < 4 710
+    expect(r.plafond).toBe(PER_PLANCHER); // 4 710
+    expect(r.plancherApplique).toBe(true);
+  });
+
+  it("zone normale : plafond = 10 % du revenu pro", () => {
+    expect(computePlafondPER(100000, 0).plafond).toBe(10000);
+  });
+
+  it("plafond 8×PASS appliqué quand 10 % du revenu > 37 680 €", () => {
+    const r = computePlafondPER(500000, 0); // 10 % = 50 000 > 37 680
+    expect(r.plafond).toBe(PER_PLAFOND_MAX); // 37 680
+    expect(r.plafondMaxApplique).toBe(true);
+  });
+
+  it("exclusion du foncier de l'assiette (revenu 120k − foncier 20k → 10 000, pas 12 000)", () => {
+    const proNet = 120000 - 20000;
+    expect(computePlafondPER(proNet, 0).plafond).toBe(10000);
+    expect(computePlafondPER(120000, 0).plafond).toBe(12000); // sans exclusion (contre-exemple)
+  });
+
+  it("dépassement : versement annuel > plafond → flag + montant", () => {
+    const r = computePlafondPER(100000, 15000); // plafond 10 000
+    expect(r.depassement).toBe(true);
+    expect(r.depassementMontant).toBe(5000);
+  });
+
+  it("pas de dépassement quand le versement reste dans le plafond", () => {
+    expect(computePlafondPER(100000, 8000).depassement).toBe(false);
   });
 });
 

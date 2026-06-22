@@ -20,6 +20,7 @@ import {
 } from "@/lib/per-quick";
 import TauxSlider from "./TauxSlider";
 import CoupleToggle from "./CoupleToggle";
+import PlafondPerAlert from "./PlafondPerAlert";
 import { useRdvClient } from "./RdvClientProvider";
 import { perQuickDraft } from "@/lib/sim-history";
 import KeepResultButton from "./KeepResultButton";
@@ -69,7 +70,7 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
 
   // Lot 3 : capture MANUELLE dans l'historique de session (mode connecté uniquement).
   // Le conseiller clique « Garder ce résultat » → ajout de la variante courante.
-  const { recordSim } = useRdvClient();
+  const { recordSim, contributionsHR } = useRdvClient();
   function keep() {
     recordSim(
       perQuickDraft(
@@ -170,6 +171,20 @@ export default function PerQuickSim({ prefill, client, fiscalTmi }: PerQuickSimP
         TMI effective (intègre le plafonnement du quotient familial) — peut différer
         de la tranche affichée sur l&apos;avis d&apos;imposition.
       </p>
+      {client && contributionsHR.concerne && (
+        <p className="-mt-3 text-[11px] leading-relaxed text-cervus-gold-light/80">
+          Hors CEHR/CDHR — voir le panneau pour l&apos;estimation complète.
+        </p>
+      )}
+
+      {/* Plafond de déductibilité PER (outil conseiller, alerte non bloquante). */}
+      {(inputs.versementMensuel > 0 || inputs.versementInitial > 0) && (
+        <PlafondPerAlert
+          revenuImposable={inputs.revenuImposable}
+          foncier={inputs.foncier}
+          versementAnnuel={inputs.versementMensuel * 12 + inputs.versementInitial}
+        />
+      )}
 
       {/* Capture manuelle dans la note de synthèse (mode connecté uniquement). */}
       {client && (

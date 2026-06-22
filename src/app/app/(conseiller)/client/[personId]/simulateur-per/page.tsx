@@ -96,6 +96,8 @@ export default async function SimulateurPerConnectePage({
       versementInitial: deal ? pickNum(deal.fields.versementInitial) : undefined,
       horizon: horizon && horizon > 0 ? horizon : undefined,
       profil: deal ? pickProfil(deal.fields.profil) : undefined,
+      // Foncier exclu de l'assiette du plafond de déductibilité PER (conforme DGFiP).
+      foncier: deal ? pickNum(deal.fields.foncier) : undefined,
     };
     // Retire les undefined pour laisser les défauts de PerQuickSim s'appliquer.
     prefill = Object.fromEntries(

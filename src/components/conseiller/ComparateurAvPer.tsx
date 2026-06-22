@@ -43,7 +43,7 @@ export default function ComparateurAvPer({ prefill, client }: ComparateurAvPerPr
   const result = useMemo(() => computeComparateur(inputs), [inputs]);
   const verdict = verdictComparateur(result);
 
-  const { recordSim } = useRdvClient();
+  const { recordSim, contributionsHR } = useRdvClient();
   function keep() {
     recordSim(
       comparateurDraft(
@@ -150,6 +150,11 @@ export default function ComparateurAvPer({ prefill, client }: ComparateurAvPerPr
           )}{" "}
           · versement assurance-vie <b className="text-cervus-bronze">{formatEuro(inputs.effortNetMensuel)}/mois</b>.
         </p>
+        {client && contributionsHR.concerne && (
+          <p className="mt-2 text-[11px] leading-relaxed text-cervus-gold-light/80">
+            Hors CEHR/CDHR — voir le panneau pour l&apos;estimation complète.
+          </p>
+        )}
       </section>
 
       {/* Visuel comparatif */}

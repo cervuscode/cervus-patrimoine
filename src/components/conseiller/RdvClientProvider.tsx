@@ -10,6 +10,12 @@ import {
 } from "react";
 import { RDV_FIELDS, SECTION_LABELS, SECTION_ORDER } from "@/lib/rdv-fields";
 import { computeFiscalState, type FiscalState } from "@/lib/fiscal-state";
+import { impotReel } from "@/lib/fiscal-engine";
+import {
+  approximerRFR,
+  computeContributionsHautsRevenus,
+  type ContributionsResult,
+} from "@/lib/contributions-hauts-revenus";
 import {
   formatSyntheseNote,
   signatureOf,
@@ -78,6 +84,10 @@ interface RdvClientContextValue {
   save: () => Promise<boolean>;
   /** État fiscal partagé (Lot 2) : revenu net, parts, TMI calculés UNE FOIS. */
   fiscalState: FiscalState;
+  /** Contributions hauts revenus (Chantier C) : CEHR + CDHR dérivées de fiscalState + RFR. */
+  contributionsHR: ContributionsResult;
+  /** Patrimoine financier (Chantier D) : encours par enveloppe (pour Lot 9). */
+  patrimoineFinancier: PatrimoineFinancier;
   /** Historique de session des simulations consultées (Lot 3) — en mémoire seul. */
   simHistory: SimRecord[];
   /** Capture auto d'une variante (dédup consécutif) ; appelé par les simulateurs connectés. */
@@ -85,6 +95,17 @@ interface RdvClientContextValue {
   /** Compile Découverte + historique → note HTML, écrit sur le deal actif. */
   generateSyntheseNote: () => Promise<boolean>;
   generatingNote: boolean;
+}
+
+/** Encours du patrimoine financier par enveloppe (€). Consommable par le Lot 9. */
+export interface PatrimoineFinancier {
+  encoursAv: number;
+  encoursPea: number;
+  livretsReglementes: number;
+  livretsBoostes: number;
+  cto: number;
+  crypto: number;
+  autreEpargne: number;
 }
 
 const Ctx = createContext<RdvClientContextValue | null>(null);
@@ -238,6 +259,50 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
       bic: nd("bic"),
     });
   }, [personDraft, dealDraft]);
+
+  // ── Contributions hauts revenus (Chantier C) — CEHR + CDHR, dérivées de l'état
+  // fiscal partagé. RFR = override « RFR réel » s'il est saisi, sinon approximation
+  // (= revenu net imposable). IR recalculé via fiscal-engine (lecture seule).
+  // PAC = nombre d'enfants (proxy, cf. décision C.0). Pur mémoire, jamais sauvegardé.
+  const contributionsHR = useMemo<ContributionsResult>(() => {
+    const rfrReel = parseFloat(String(personDraft["rfrReel"] ?? "").replace(",", "."));
+    const rfrReelValide = Number.isFinite(rfrReel) && rfrReel > 0;
+    const rfr = rfrReelValide
+      ? rfrReel
+      : approximerRFR({ revenuNetImposable: fiscalState.revenuNetImposable });
+    const ir =
+      fiscalState.revenuNetImposable > 0
+        ? Math.round(
+            impotReel(fiscalState.revenuNetImposable, fiscalState.partsBase, fiscalState.partsTotal)
+          )
+        : 0;
+    const nbEnfants = parseFloat(String(personDraft["nbEnfants"] ?? "").replace(",", "."));
+    return computeContributionsHautsRevenus({
+      rfr,
+      rfrEstime: !rfrReelValide,
+      ir,
+      couple: fiscalState.partsBase === 2,
+      personnesCharge: Number.isFinite(nbEnfants) ? nbEnfants : 0,
+    });
+  }, [personDraft, fiscalState]);
+
+  // ── Patrimoine financier (Chantier D) — encours par enveloppe, exposés pour le
+  // futur Lot 9 (Pyramide de l'épargne). Nombres parsés depuis les drafts Person.
+  const patrimoineFinancier = useMemo<PatrimoineFinancier>(() => {
+    const n = (id: string): number => {
+      const v = parseFloat(String(personDraft[id] ?? "").replace(",", "."));
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    };
+    return {
+      encoursAv: n("encoursAv"),
+      encoursPea: n("encoursPea"),
+      livretsReglementes: n("livretsReglementes"),
+      livretsBoostes: n("livretsBoostes"),
+      cto: n("cto"),
+      crypto: n("crypto"),
+      autreEpargne: n("autreEpargne"),
+    };
+  }, [personDraft]);
 
   const save = useCallback(async (): Promise<boolean> => {
     if (!client) return false;
@@ -395,6 +460,8 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     setNotes,
     save,
     fiscalState,
+    contributionsHR,
+    patrimoineFinancier,
     simHistory,
     recordSim,
     generateSyntheseNote,

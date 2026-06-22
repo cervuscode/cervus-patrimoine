@@ -97,6 +97,8 @@ export default async function SimulateurPerCompletConnectePage({
       profil: deal ? pickProfil(deal.fields.profil) : undefined,
       // Tranche de sortie par défaut = TMI partagée (Lot 2).
       trancheSortie: fiscal.revenuNetImposable > 0 ? fiscal.tmi : undefined,
+      // Foncier exclu de l'assiette du plafond de déductibilité PER (conforme DGFiP).
+      foncier: deal ? pickNum(deal.fields.foncier) : undefined,
     };
     prefill = Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== undefined)

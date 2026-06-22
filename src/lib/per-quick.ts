@@ -40,6 +40,55 @@ export function clampTaux(t: number): number {
   return Math.min(TAUX_MAX, Math.max(TAUX_MIN, t));
 }
 
+// ── Plafond de déductibilité PER (épargne retraite) ───────────────────────────
+// Source DGFiP (docs/dgfip-source/chap-perp.m règle 31015, tgvI.m) :
+//   plafond = max( min(10 % × revenus_pro_nets, 10 % × 8 × PASS), 10 % × PASS )
+// Constantes du moteur DGFiP (revenus 2024, PASS 2024 = 46 368) : TX_PERPPLAF=10 %,
+// LIM_PERPMIN=4637, LIM_PERPMAX=37094. ⚠️ MISES À JOUR pour le millésime Cervus
+// (revenus 2025) avec le PASS 2025 = 47 100 € → plancher 4 710, plafond 37 680.
+// OUTIL CONSEILLER UNIQUEMENT (jamais le site public). Alerte non bloquante.
+export const PASS_2025 = 47100;
+export const PER_PLAFOND_TAUX = 0.1;
+export const PER_PLANCHER = 4710; // 10 % × PASS 2025
+export const PER_PLAFOND_MAX = 37680; // 10 % × 8 × PASS 2025
+
+export interface PlafondPERResult {
+  /** Plafond annuel de déduction (€). */
+  plafond: number;
+  /** Assiette retenue = revenus professionnels nets (revenu imposable − foncier). */
+  assietteProNet: number;
+  /** Versement annuel comparé (mensuel × 12 + apport initial de l'année). */
+  versementAnnuel: number;
+  /** `true` = plancher PASS appliqué (assiette faible/nulle). */
+  plancherApplique: boolean;
+  /** `true` = plafond 8×PASS appliqué (assiette très élevée). */
+  plafondMaxApplique: boolean;
+  /** `true` = versement annuel > plafond (déclenche l'alerte non bloquante). */
+  depassement: boolean;
+  depassementMontant: number;
+}
+
+/**
+ * Plafond PER pur (consommation seule des constantes DGFiP mises à jour). `revenuProNet`
+ * = revenus professionnels nets (foncier exclu — conforme à l'assiette DGFiP). Ne calcule
+ * PAS les reliquats des 3 années précédentes (non disponibles) : mention UI seulement.
+ */
+export function computePlafondPER(revenuProNet: number, versementAnnuel: number): PlafondPERResult {
+  const assiette = Math.max(0, num(revenuProNet));
+  const dixPourcent = assiette * PER_PLAFOND_TAUX;
+  const plafond = Math.max(PER_PLANCHER, Math.min(dixPourcent, PER_PLAFOND_MAX));
+  const va = Math.max(0, num(versementAnnuel));
+  return {
+    plafond,
+    assietteProNet: assiette,
+    versementAnnuel: va,
+    plancherApplique: dixPourcent <= PER_PLANCHER,
+    plafondMaxApplique: dixPourcent >= PER_PLAFOND_MAX,
+    depassement: va > plafond,
+    depassementMontant: Math.max(0, va - plafond),
+  };
+}
+
 /** Taux effectif : valeur du slider si fournie (clampée), sinon défaut du profil. */
 export function resolveTaux(profil: PerProfil, taux?: number): number {
   return taux != null && Number.isFinite(taux) ? clampTaux(taux) : TAUX_PAR_PROFIL[profil];
@@ -64,6 +113,12 @@ export interface PerQuickInputs {
    * Ignoré en mode connecté (la TMI vient de opts.tmi). Hors encode/decode.
    */
   couple?: boolean;
+  /**
+   * Revenu foncier (€/an), exclu de l'assiette du plafond de déductibilité PER
+   * (conforme DGFiP : assiette = revenus professionnels nets). Optionnel, défaut 0.
+   * Hors encode/decode (info conseiller).
+   */
+  foncier?: number;
   /**
    * Taux de rendement annuel (décimal, ex. 0.04). Optionnel (Lot I) : hypothèse
    * ajustable au slider. Absent → défaut = TAUX_PAR_PROFIL[profil].

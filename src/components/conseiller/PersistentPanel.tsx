@@ -7,6 +7,7 @@ import ClientCodeBadge from "./ClientCodeBadge";
 import DiscoverySections from "./DiscoverySections";
 import SaveBar from "./SaveBar";
 import SyntheseNoteButton from "./SyntheseNoteButton";
+import ContributionsHautsRevenusPanel from "./ContributionsHautsRevenusPanel";
 
 /**
  * Panneau persistant (« petite tête »), monté globalement dans le layout conseiller.
@@ -95,6 +96,8 @@ export default function PersistentPanel() {
                       {Math.round(fiscalState.revenuNetImposable).toLocaleString("fr-FR")} €
                     </p>
                   )}
+                  {/* Bloc CEHR/CDHR (Chantier C) — visible uniquement si RFR > seuil. */}
+                  <ContributionsHautsRevenusPanel />
                   <DiscoverySections compact />
                 </div>
               )}

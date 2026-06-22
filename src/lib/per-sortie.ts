@@ -20,6 +20,8 @@
 
 import { calculerTMI, impotReel, projectionPER } from "./fiscal-engine";
 import { resolveTaux, TAUX_PAR_PROFIL, type PerProfil } from "./per-quick";
+// Plafond de déductibilité PER : source unique (per-quick), réutilisé tel quel ici.
+export { computePlafondPER, PASS_2025, PER_PLANCHER, PER_PLAFOND_MAX, type PlafondPERResult } from "./per-quick";
 
 // ── Constantes fiscalité de sortie ────────────────────────────────────────────
 export const PFU_TAUX = 0.3; // 12,8 % IR + 17,2 % PS
@@ -101,6 +103,11 @@ export interface PerSortieInputs {
    * Ignoré en connecté (TMI/parts viennent de la fiche). Hors encode/decode.
    */
   couple?: boolean;
+  /**
+   * Revenu foncier (€/an), exclu de l'assiette du plafond de déductibilité PER.
+   * Optionnel, défaut 0. Hors encode/decode (info conseiller).
+   */
+  foncier?: number;
 }
 
 export interface Sortie1Result {

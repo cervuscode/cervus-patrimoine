@@ -26,7 +26,7 @@ export interface RdvFieldDef {
   entity: FieldEntity;
   kind: FieldKind;
   /** Section logique pour le regroupement visuel. */
-  section: "situation" | "professionnel" | "revenus" | "profil" | "epargne" | "notes";
+  section: "situation" | "professionnel" | "revenus" | "profil" | "epargne" | "patrimoine" | "notes";
   /** Nom exact du champ "Simulation" (lecture seule). Absent si pas de miroir. */
   simName?: string;
   /** Nom exact du champ "Découverte RDV" (éditable). */
@@ -34,7 +34,7 @@ export interface RdvFieldDef {
 }
 
 /**
- * Les 21 champs éditables de la vue client (hors identité/code, gérés à part).
+ * Les 27 champs éditables de la vue client (hors identité/code, gérés à part).
  * L'ordre définit l'ordre d'affichage par section.
  */
 export const RDV_FIELDS: RdvFieldDef[] = [
@@ -58,6 +58,8 @@ export const RDV_FIELDS: RdvFieldDef[] = [
   { id: "bic", label: "BIC", entity: "deal", kind: "money", section: "revenus", simName: "BIC", decName: "BIC (Découverte RDV)" },
   { id: "tmi", label: "TMI", entity: "person", kind: "number", section: "revenus", simName: "TMI", decName: "TMI (Découverte RDV)" },
   { id: "ageRetraite", label: "Âge retraite", entity: "person", kind: "number", section: "revenus", simName: "Âge retraite", decName: "Âge retraite (Découverte RDV)" },
+  // RFR réel (avis d'imposition) — override optionnel du RFR approximatif pour CEHR/CDHR (Chantier C).
+  { id: "rfrReel", label: "RFR réel (avis d'imposition)", entity: "person", kind: "money", section: "revenus", decName: "RFR réel (avis d'imposition) (Découverte RDV)" },
 
   // ── Profil investisseur ────────────────────────────────────────────────────
   { id: "profil", label: "Profil investisseur", entity: "deal", kind: "text", section: "profil", simName: "Profil investisseur", decName: "Profil investisseur (Découverte RDV)" },
@@ -65,9 +67,19 @@ export const RDV_FIELDS: RdvFieldDef[] = [
   // ── Épargne existante ──────────────────────────────────────────────────────
   { id: "versementInitial", label: "Versement PER initial", entity: "deal", kind: "money", section: "epargne", simName: "Versement initial", decName: "Versement initial (Découverte RDV)" },
   { id: "versementMensuel", label: "Versement PER mensuel", entity: "deal", kind: "money", section: "epargne", simName: "Versement mensuel", decName: "Versement mensuel (Découverte RDV)" },
-  { id: "avExistante", label: "AV existante", entity: "person", kind: "money", section: "epargne", decName: "AV existante (Découverte RDV)" },
-  { id: "autreEpargne", label: "Autre épargne", entity: "person", kind: "money", section: "epargne", decName: "Autre épargne (Découverte RDV)" },
   { id: "immobilier", label: "Immobilier", entity: "person", kind: "money", section: "epargne", decName: "Immobilier (Découverte RDV)" },
+
+  // ── Patrimoine financier (Chantier D) — enveloppes par stock (encours global).
+  // Entité Person (global par client). Découverte-only (aucun miroir Simulation).
+  // Consommables par le futur Lot 9 (Pyramide de l'épargne) via useRdvClient().
+  { id: "encoursAv", label: "Encours AV total", entity: "person", kind: "money", section: "patrimoine", decName: "Encours AV total (Découverte RDV)" },
+  { id: "encoursPea", label: "Encours PEA", entity: "person", kind: "money", section: "patrimoine", decName: "Encours PEA (Découverte RDV)" },
+  { id: "livretsReglementes", label: "Livrets réglementés", entity: "person", kind: "money", section: "patrimoine", decName: "Livrets réglementés (Découverte RDV)" },
+  { id: "livretsBoostes", label: "Livrets boostés / fiscalisés", entity: "person", kind: "money", section: "patrimoine", decName: "Livrets boostés / fiscalisés (Découverte RDV)" },
+  { id: "cto", label: "Compte-titres ordinaire", entity: "person", kind: "money", section: "patrimoine", decName: "Compte-titres ordinaire (Découverte RDV)" },
+  { id: "crypto", label: "Crypto-actifs", entity: "person", kind: "money", section: "patrimoine", decName: "Crypto-actifs (Découverte RDV)" },
+  // Résiduel relabellisé (ancien « Autre épargne ») — decName Pipedrive inchangé (zéro migration).
+  { id: "autreEpargne", label: "Autre épargne financière", entity: "person", kind: "money", section: "patrimoine", decName: "Autre épargne (Découverte RDV)" },
 ];
 
 /** Champ Notes libres (Person) — traité à part (masqué par défaut, MD §4.2). */
@@ -87,6 +99,7 @@ export const SECTION_LABELS: Record<RdvFieldDef["section"], string> = {
   revenus: "Revenus",
   profil: "Profil investisseur",
   epargne: "Épargne existante",
+  patrimoine: "Patrimoine financier",
   notes: "Notes",
 };
 
@@ -97,6 +110,7 @@ export const SECTION_ORDER: RdvFieldDef["section"][] = [
   "revenus",
   "profil",
   "epargne",
+  "patrimoine",
 ];
 
 export function fieldsBySection(section: RdvFieldDef["section"]): RdvFieldDef[] {

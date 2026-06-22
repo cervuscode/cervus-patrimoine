@@ -17,6 +17,7 @@ import {
 } from "@/lib/per-sortie";
 import TauxSlider from "./TauxSlider";
 import CoupleToggle from "./CoupleToggle";
+import PlafondPerAlert from "./PlafondPerAlert";
 import { useRdvClient } from "./RdvClientProvider";
 import { perFullDraft } from "@/lib/sim-history";
 import KeepResultButton from "./KeepResultButton";
@@ -69,7 +70,7 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
   const conv64Indispo = ligne.taux64 == null;
 
   // Lot 3 : capture MANUELLE dans l'historique de session (mode connecté uniquement).
-  const { recordSim } = useRdvClient();
+  const { recordSim, contributionsHR } = useRdvClient();
   function keep() {
     recordSim(
       perFullDraft(
@@ -192,6 +193,20 @@ export default function PerFullSim({ prefill, client }: PerFullSimProps) {
         <Stat label="Versements cumulés" value={formatEuro(result.versementsCumules)} />
         <Stat label="Plus-value" value={formatEuro(result.plusValue)} />
       </section>
+
+      {/* Plafond de déductibilité PER (outil conseiller, alerte non bloquante). */}
+      {(inputs.versementMensuel > 0 || inputs.versementInitial > 0) && (
+        <PlafondPerAlert
+          revenuImposable={inputs.revenuImposable}
+          foncier={inputs.foncier}
+          versementAnnuel={inputs.versementMensuel * 12 + inputs.versementInitial}
+        />
+      )}
+      {client && contributionsHR.concerne && (
+        <p className="-mt-2 text-[11px] leading-relaxed text-cervus-gold-light/80">
+          Hors CEHR/CDHR — voir le panneau pour l&apos;estimation complète.
+        </p>
+      )}
 
       {/* Capture manuelle dans la note de synthèse (mode connecté uniquement). */}
       {client && (

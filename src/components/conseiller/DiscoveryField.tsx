@@ -9,6 +9,11 @@ import { useRdvClient } from "./RdvClientProvider";
 // (orthographe garantie → lecture pickProfil en correspondance directe).
 const PROFIL_OPTIONS = [PROFIL_LABELS.prudent, PROFIL_LABELS.equilibre, PROFIL_LABELS.dynamique];
 
+// Sous-texte d'aide par champ (optionnel).
+const FIELD_HINTS: Record<string, string> = {
+  rfrReel: "Optionnel — si connu, remplace l'estimation automatique (CEHR/CDHR).",
+};
+
 const STATE_BADGE: Record<string, { text: string; cls: string } | null> = {
   vide: null,
   prefill: { text: "pré-rempli (Simulation)", cls: "text-cervus-gold-light" },
@@ -64,6 +69,9 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
           className="w-full rounded-lg border border-cervus-gold/30 bg-cervus-dark/60 px-3 py-2 text-sm text-cervus-bronze placeholder-cervus-bronze/30 focus:border-cervus-gold focus:outline-none"
           placeholder="—"
         />
+      )}
+      {FIELD_HINTS[fieldId] && (
+        <p className="text-[10px] text-cervus-bronze/40">{FIELD_HINTS[fieldId]}</p>
       )}
       {showSim && (
         <p className="text-[10px] text-cervus-bronze/40">

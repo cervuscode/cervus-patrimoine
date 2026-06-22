@@ -100,6 +100,25 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "versementPer",
     ],
   },
+  {
+    id: "comparateur-av-per",
+    label: "Comparateur AV / PER",
+    description: "À effort net égal, quel produit est avantagé selon votre tranche.",
+    autonomousHref: "/simulateur-comparateur-av-per",
+    clientHref: (personId) => `/client/${personId}/simulateur-comparateur-av-per`,
+    available: true,
+    // Identité = revenu/parts (de la fiche, rafraîchissables en présentation, comme
+    // les vues PER) ; le reste est hypothèse. La TMI partagée pilote l'effet de levier.
+    identityKeys: ["revenuImposable", "parts"],
+    hypothesisKeys: [
+      "effortNetMensuel",
+      "effortNetInitial",
+      "horizon",
+      "profil",
+      "trancheSortie",
+      "marie",
+    ],
+  },
 ];
 
 export function getConseillerSim(id: string): ConseillerSim | undefined {

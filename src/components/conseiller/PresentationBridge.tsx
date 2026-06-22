@@ -12,6 +12,7 @@ import {
   type HypoValues,
 } from "@/lib/presentation-bridge";
 import { normalizeGarde, normalizeStatutLabel } from "@/lib/impot-sim";
+import { mapStatutToParts } from "@/lib/fiscal-state";
 import type { SimRecordDraft } from "@/lib/sim-history";
 
 function toNum(v: string, fallback = 0): number {
@@ -23,6 +24,10 @@ function toProfil(v: string): PerProfil {
   if (s.includes("prudent")) return "prudent";
   if (s.includes("dynam")) return "dynamique";
   return "equilibre";
+}
+function estMarie(statut: string): boolean {
+  const s = mapStatutToParts(statut);
+  return s === "marie" || s === "pacse";
 }
 
 /**
@@ -75,7 +80,8 @@ export default function PresentationBridge() {
           (draft.simId === "per-quick" ||
             draft.simId === "per-full" ||
             draft.simId === "impot" ||
-            draft.simId === "reduction-impot")
+            draft.simId === "reduction-impot" ||
+            draft.simId === "comparateur-av-per")
         ) {
           recordSimRef.current(draft);
         }
@@ -123,6 +129,17 @@ export default function PresentationBridge() {
         demiPartHandicap: false,
         revenuImposable: fiscalState.revenuNetImposable,
         versementPer: toNum(getValue("versementInitial")),
+      },
+      // Hypothèses du comparateur AV / PER (Lot 7) — revenu/parts/TMI viennent de
+      // l'identité. Effort net = versements de la fiche ; tranche de sortie = TMI
+      // partagée par défaut ; marié dérivé du statut.
+      comparateur: {
+        effortNetMensuel: toNum(getValue("versementMensuel")),
+        effortNetInitial: toNum(getValue("versementInitial")),
+        horizon: horizonCalc > 0 ? horizonCalc : 20,
+        profil,
+        trancheSortie: fiscalState.tmi,
+        marie: estMarie(getValue("statutMarital")),
       },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

@@ -101,6 +101,16 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
           </svg>
           Illustration réduction d&apos;impôt
         </Link>
+        <Link
+          href={`/client/${initial.personId}/simulateur-comparateur-av-per`}
+          className="inline-flex items-center gap-2 rounded-[50px] border border-cervus-gold/40 px-4 py-2 text-sm font-medium text-cervus-bronze hover:bg-cervus-gold/10"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 3v18h18" />
+            <path d="M8 17V9M16 17V5" />
+          </svg>
+          Comparateur AV / PER
+        </Link>
       </div>
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}

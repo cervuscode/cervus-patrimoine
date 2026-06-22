@@ -105,14 +105,43 @@ export interface ReductionRecord {
   };
 }
 
-export type SimRecord = PerQuickRecord | PerFullRecord | ImpotRecord | ReductionRecord;
+export interface ComparateurRecord {
+  id: string;
+  ts: number;
+  simId: "comparateur-av-per";
+  label: "Comparateur AV / PER";
+  inputs: {
+    effortNetMensuel: number;
+    effortNetInitial: number;
+    horizon: number;
+    profil: PerProfil;
+    trancheSortie: number;
+    marie: boolean;
+  };
+  result: {
+    tmi: number;
+    perNet: number;
+    avNet: number;
+    gagnant: "per" | "av" | "egal";
+    ecart: number;
+    ecartPct: number;
+  };
+}
+
+export type SimRecord =
+  | PerQuickRecord
+  | PerFullRecord
+  | ImpotRecord
+  | ReductionRecord
+  | ComparateurRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
   | Omit<PerQuickRecord, "id" | "ts">
   | Omit<PerFullRecord, "id" | "ts">
   | Omit<ImpotRecord, "id" | "ts">
-  | Omit<ReductionRecord, "id" | "ts">;
+  | Omit<ReductionRecord, "id" | "ts">
+  | Omit<ComparateurRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -255,6 +284,46 @@ export function reductionDraft(
   };
 }
 
+export function comparateurDraft(
+  inputs: {
+    effortNetMensuel: number;
+    effortNetInitial: number;
+    horizon: number;
+    profil: PerProfil;
+    trancheSortie: number;
+    marie: boolean;
+  },
+  result: {
+    tmi: number;
+    per: { capitalNet: number };
+    av: { capitalNetSans: number };
+    gagnant: "per" | "av" | "egal";
+    ecart: number;
+    ecartPct: number;
+  }
+): Omit<ComparateurRecord, "id" | "ts"> {
+  return {
+    simId: "comparateur-av-per",
+    label: "Comparateur AV / PER",
+    inputs: {
+      effortNetMensuel: inputs.effortNetMensuel,
+      effortNetInitial: inputs.effortNetInitial,
+      horizon: inputs.horizon,
+      profil: inputs.profil,
+      trancheSortie: inputs.trancheSortie,
+      marie: inputs.marie,
+    },
+    result: {
+      tmi: result.tmi,
+      perNet: result.per.capitalNet,
+      avNet: result.av.capitalNetSans,
+      gagnant: result.gagnant,
+      ecart: result.ecart,
+      ecartPct: result.ecartPct,
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -297,6 +366,21 @@ export function signatureOf(rec: SimRecordDraft): string {
       Math.round(i.revenuImposable),
       Math.round(i.versementPer),
       Math.round(rec.result.economie),
+    ].join("|");
+  }
+  if (rec.simId === "comparateur-av-per") {
+    const i = rec.inputs;
+    return [
+      "cp",
+      Math.round(i.effortNetMensuel),
+      Math.round(i.effortNetInitial),
+      Math.round(i.horizon),
+      i.profil,
+      Math.round(i.trancheSortie),
+      i.marie ? "m" : "",
+      rec.result.gagnant,
+      Math.round(rec.result.perNet),
+      Math.round(rec.result.avNet),
     ].join("|");
   }
   const i = rec.inputs;
@@ -384,6 +468,23 @@ export function summarizeRecord(rec: SimRecord): string {
       `→ impôt ${formatEuro(r.impotAvant)} → ${formatEuro(r.impotApres)}, ` +
       `économie ${formatEuro(r.economie)}/an` +
       (r.tmiAvant !== r.tmiApres ? ` (TMI ${r.tmiAvant} % → ${r.tmiApres} %)` : "")
+    );
+  }
+  if (rec.simId === "comparateur-av-per") {
+    const i = rec.inputs;
+    const r = rec.result;
+    const verdict =
+      r.gagnant === "per"
+        ? "avantage PER"
+        : r.gagnant === "av"
+          ? "avantage assurance-vie"
+          : "quasi-équivalents (souplesse AV)";
+    return (
+      `<b>Comparateur AV / PER</b> — effort net ${formatEuro(i.effortNetMensuel)}/mois` +
+      (i.effortNetInitial > 0 ? `, apport initial ${formatEuro(i.effortNetInitial)}` : "") +
+      `, horizon ${Math.round(i.horizon)} ans, profil ${PROFIL_LABELS[i.profil]}, TMI ${r.tmi} % ` +
+      `→ PER net ${formatEuro(r.perNet)} vs AV net ${formatEuro(r.avNet)} ` +
+      `(${verdict}, écart ${formatEuro(r.ecart)})`
     );
   }
   const i = rec.inputs;

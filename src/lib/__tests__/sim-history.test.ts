@@ -1,4 +1,5 @@
 import {
+  comparateurDraft,
   formatSyntheseNote,
   impotDraft,
   perFullDraft,
@@ -6,12 +7,30 @@ import {
   reductionDraft,
   signatureOf,
   summarizeRecord,
+  type ComparateurRecord,
   type ImpotRecord,
   type PerFullRecord,
   type PerQuickRecord,
   type ReductionRecord,
   type SimRecord,
 } from "../sim-history";
+
+const comparateur = (over: Partial<ComparateurRecord["inputs"]> = {}): ComparateurRecord => ({
+  id: "c",
+  ts: 0,
+  simId: "comparateur-av-per",
+  label: "Comparateur AV / PER",
+  inputs: {
+    effortNetMensuel: 210,
+    effortNetInitial: 0,
+    horizon: 20,
+    profil: "equilibre",
+    trancheSortie: 30,
+    marie: false,
+    ...over,
+  },
+  result: { tmi: 30, perNet: 76407, avNet: 70328, gagnant: "per", ecart: 6079, ecartPct: 8 },
+});
 
 const reduction = (over: Partial<ReductionRecord["inputs"]> = {}): ReductionRecord => ({
   id: "r",
@@ -154,6 +173,13 @@ describe("signatureOf — dédup", () => {
     expect(signatureOf(reduction())).not.toBe(signatureOf(impot()));
     expect(signatureOf(reduction())).not.toBe(signatureOf(quick()));
   });
+
+  it("comparateur AV/PER : un champ changé → signature différente, ne collisionne pas", () => {
+    expect(signatureOf(comparateur())).toBe(signatureOf(comparateur()));
+    expect(signatureOf(comparateur({ effortNetMensuel: 300 }))).not.toBe(signatureOf(comparateur()));
+    expect(signatureOf(comparateur())).not.toBe(signatureOf(reduction()));
+    expect(signatureOf(comparateur())).not.toBe(signatureOf(quick()));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -203,6 +229,19 @@ describe("summarizeRecord", () => {
     expect(changeTmi).toContain("TMI 30 % → 11 %");
   });
 
+  it("Comparateur AV/PER — effort net, TMI, nets PER vs AV + verdict", () => {
+    const s = summarizeRecord(comparateur());
+    expect(s).toContain("Comparateur AV / PER");
+    expect(s).toContain("effort net");
+    expect(s).toContain("TMI 30 %");
+    expect(s).toContain("avantage PER");
+    const egal = summarizeRecord({
+      ...comparateur(),
+      result: { tmi: 11, perNet: 70855, avNet: 70328, gagnant: "egal", ecart: 527, ecartPct: 0.7 },
+    });
+    expect(egal).toContain("quasi-équivalents");
+  });
+
   it("Impôt — demi-part invalidité mentionnée, plafonnement omis si inactif", () => {
     const s = summarizeRecord(
       impot({ demiPartHandicap: true, nbEnfants: 0 })
@@ -247,6 +286,34 @@ describe("reductionDraft — builder", () => {
     expect(d.result.impotApres).toBe(9304);
     expect(d.result.economie).toBe(1800);
     expect(d.label).toBe("Réduction d'impôt PER");
+  });
+});
+
+describe("comparateurDraft — builder", () => {
+  it("mappe entrées + résultats (nets PER/AV, gagnant, écart)", () => {
+    const d = comparateurDraft(
+      {
+        effortNetMensuel: 210,
+        effortNetInitial: 0,
+        horizon: 20,
+        profil: "equilibre",
+        trancheSortie: 30,
+        marie: false,
+      },
+      {
+        tmi: 30,
+        per: { capitalNet: 76407 },
+        av: { capitalNetSans: 70328 },
+        gagnant: "per",
+        ecart: 6079,
+        ecartPct: 8,
+      }
+    );
+    expect(d.simId).toBe("comparateur-av-per");
+    expect(d.inputs.effortNetMensuel).toBe(210);
+    expect(d.result.perNet).toBe(76407);
+    expect(d.result.avNet).toBe(70328);
+    expect(d.result.gagnant).toBe("per");
   });
 });
 

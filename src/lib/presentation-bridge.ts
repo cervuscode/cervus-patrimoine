@@ -14,6 +14,7 @@ import type { AgeConversion } from "./per-sortie";
 import type { SimRecordDraft } from "./sim-history";
 import { DEFAULT_IMPOT_INPUTS, type GardeRegime, type ImpotInputs } from "./impot-sim";
 import { DEFAULT_REDUCTION_INPUTS, type ReductionInputs } from "./reduction-impot";
+import { DEFAULT_COMPARATEUR_INPUTS, type ComparateurInputs } from "./comparateur-av-per";
 
 export interface ClientIdentity {
   revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
@@ -45,7 +46,17 @@ export interface HypoValues {
    * hypothèse, n'utilise PAS `ClientIdentity`.
    */
   reduction: ReductionInputs;
+  /**
+   * Hypothèses du « Comparateur AV / PER » (Lot 7). Sous-objet dédié (additif,
+   * IGNORÉ par les autres vues). Ne porte QUE les hypothèses : revenu/parts/TMI
+   * viennent de `ClientIdentity` (rafraîchissables via Actualiser, comme les vues
+   * PER). `marie` (abattement AV) est ici car éditable.
+   */
+  comparateur: ComparateurHypo;
 }
+
+/** Portion « hypothèses » du comparateur (revenu/parts viennent de l'identité). */
+export type ComparateurHypo = Omit<ComparateurInputs, "revenuImposable" | "parts">;
 
 export const DEFAULT_IDENTITY: ClientIdentity = {
   revenuImposable: 0,
@@ -64,6 +75,14 @@ export const DEFAULT_HYPO: HypoValues = {
   ageConversion: 67,
   impot: DEFAULT_IMPOT_INPUTS,
   reduction: DEFAULT_REDUCTION_INPUTS,
+  comparateur: {
+    marie: DEFAULT_COMPARATEUR_INPUTS.marie,
+    effortNetMensuel: DEFAULT_COMPARATEUR_INPUTS.effortNetMensuel,
+    effortNetInitial: DEFAULT_COMPARATEUR_INPUTS.effortNetInitial,
+    horizon: DEFAULT_COMPARATEUR_INPUTS.horizon,
+    profil: DEFAULT_COMPARATEUR_INPUTS.profil,
+    trancheSortie: DEFAULT_COMPARATEUR_INPUTS.trancheSortie,
+  },
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -129,6 +148,13 @@ export function encodePresentationParams(
     xh: hypo.reduction.demiPartHandicap ? "1" : "0",
     xr: String(hypo.reduction.revenuImposable),
     xv: String(hypo.reduction.versementPer),
+    // Hypothèses du comparateur AV / PER (Lot 7) — revenu/parts viennent de l'identité.
+    cem: String(hypo.comparateur.effortNetMensuel),
+    cei: String(hypo.comparateur.effortNetInitial),
+    ch: String(hypo.comparateur.horizon),
+    cpr: hypo.comparateur.profil,
+    cts: String(hypo.comparateur.trancheSortie),
+    cma: hypo.comparateur.marie ? "1" : "0",
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -183,6 +209,14 @@ export function decodePresentationParams(
         demiPartHandicap: get("xh") === "1",
         revenuImposable: num(get("xr")),
         versementPer: num(get("xv")),
+      },
+      comparateur: {
+        effortNetMensuel: num(get("cem")),
+        effortNetInitial: num(get("cei")),
+        horizon: num(get("ch"), 20),
+        profil: asProfil(get("cpr")),
+        trancheSortie: num(get("cts")),
+        marie: get("cma") === "1",
       },
     },
     code: get("cc") ?? null,

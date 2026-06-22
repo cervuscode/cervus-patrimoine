@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { RdvClientProvider } from "@/components/conseiller/RdvClientProvider";
-import PersistentPanel from "@/components/conseiller/PersistentPanel";
 import ConseillerSessionShell from "@/components/conseiller/ConseillerSessionShell";
 
 // noindex en défense en profondeur (le root layout l'impose déjà globalement,
@@ -15,18 +14,15 @@ export const metadata: Metadata = {
 export default async function ConseillerLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Contexte + panneau persistant montés UNIQUEMENT pour une session valide :
-  // la page /login (non authentifiée) ne doit jamais afficher le panneau.
+  // Contexte monté UNIQUEMENT pour une session valide : la page /login
+  // (non authentifiée) ne doit jamais hydrater le contexte client.
   const session = await getServerSession(authOptions);
 
   return (
     <div className="min-h-screen bg-cervus-dark text-cervus-bronze font-inter">
       {session ? (
         <ConseillerSessionShell>
-          <RdvClientProvider>
-            {children}
-            <PersistentPanel />
-          </RdvClientProvider>
+          <RdvClientProvider>{children}</RdvClientProvider>
         </ConseillerSessionShell>
       ) : (
         children

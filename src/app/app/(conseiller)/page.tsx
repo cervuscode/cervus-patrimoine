@@ -13,7 +13,7 @@ export default async function ConseillerHomePage() {
   const identite = session.user?.name ?? session.user?.email ?? "Conseiller";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-12 pb-28 sm:px-6 sm:py-16">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6 sm:py-16">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <p className="text-sm uppercase tracking-[0.2em] text-cervus-gold-light">

@@ -43,7 +43,7 @@ export default function ReferenceFiscale() {
   }, [versement]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-6 pb-28 sm:px-6 sm:py-10">
+    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
       <header className="flex flex-col gap-2">
         <span className="text-xs uppercase tracking-[0.2em] text-cervus-gold-light">Consultation</span>
         <h1 className="font-cormorant text-3xl font-semibold text-cervus-bronze sm:text-4xl">

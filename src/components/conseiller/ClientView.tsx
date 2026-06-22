@@ -6,13 +6,20 @@ import { useRdvClient, type ClientView as ClientViewData } from "./RdvClientProv
 import DealSelector from "./DealSelector";
 import ClientCodeBadge from "./ClientCodeBadge";
 import GenerateCodeBox from "./GenerateCodeBox";
-import DiscoverySections from "./DiscoverySections";
+import { DiscoverySection, NotesSection } from "./DiscoverySections";
+import SyntheseFiscale from "./SyntheseFiscale";
+import SyntheseNoteButton from "./SyntheseNoteButton";
 import SaveBar from "./SaveBar";
 import PresentationBridge from "./PresentationBridge";
 
 /**
- * Vue client complète (page). Reçoit le snapshot serveur `initial` et hydrate le
- * contexte partagé (le panneau persistant lit le même état → synchro instantanée).
+ * Vue client complète (page) — fiche unique de pilotage du RDV (refonte : l'ancien
+ * panneau persistant a été supprimé, tout son contenu vit désormais ici).
+ * Reçoit le snapshot serveur `initial` et hydrate le contexte partagé.
+ *
+ * Ordre de la fiche : en-tête (code/deal/présentations) → Notes → Situation →
+ * Professionnel → Revenus → Synthèse fiscale (+ CEHR/CDHR) → Profil → Épargne →
+ * Patrimoine → note de synthèse → Enregistrer.
  */
 export default function ClientView({ initial }: { initial: ClientViewData }) {
   const { setClient, activeDeal, activeDealId } = useRdvClient();
@@ -27,8 +34,8 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
   const needsCode = activeDealId != null && activeDeal != null && !activeDeal.code;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 pb-28 sm:px-6 sm:py-10">
-      {/* En-tête : code en évidence, identité masquée par défaut (partage d'écran) */}
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10">
+      {/* 1 — En-tête : code en évidence, identité masquée par défaut (partage d'écran) */}
       <header className="flex flex-col gap-3">
         {codeForActive ? (
           <ClientCodeBadge code={codeForActive} />
@@ -115,10 +122,29 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}
 
-      <DiscoverySections />
+      {/* 2 — Notes remontées en tête des sections (mécanisme œil/flou inchangé). */}
+      <NotesSection />
 
-      {/* Barre d'enregistrement (également dans le panneau persistant) */}
-      <div className="sticky bottom-16 z-30 mt-2 rounded-2xl border border-cervus-gold/30 bg-cervus-dark/95 p-3 backdrop-blur">
+      {/* 3 → 5 — Situation, Professionnel, Revenus */}
+      <DiscoverySection section="situation" />
+      <DiscoverySection section="professionnel" />
+      <DiscoverySection section="revenus" />
+
+      {/* 6 + 7 — Encadré fiscal synthèse (intègre CEHR/CDHR si concerné). */}
+      <SyntheseFiscale />
+
+      {/* Profil investisseur, puis 8 — Épargne, 9 — Patrimoine financier */}
+      <DiscoverySection section="profil" />
+      <DiscoverySection section="epargne" />
+      <DiscoverySection section="patrimoine" />
+
+      {/* 10 — Note de synthèse de RDV + indicateur nb simulations capturées. */}
+      <div className="rounded-2xl border border-cervus-gold/30 bg-cervus-dark/40 p-4">
+        <SyntheseNoteButton />
+      </div>
+
+      {/* 11 — Barre d'enregistrement, tout en bas. */}
+      <div className="sticky bottom-0 z-30 mt-2 rounded-2xl border border-cervus-gold/30 bg-cervus-dark/95 p-3 backdrop-blur">
         <SaveBar />
       </div>
     </div>

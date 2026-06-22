@@ -9,7 +9,7 @@
  * Consomme `fiscal-engine.ts` en LECTURE SEULE. Ne le modifie jamais.
  */
 
-import { calculerParts, calculerRevenuImposable, calculerTMI } from "./fiscal-engine";
+import { calculerParts, calculerRevenuImposable, calculerTMI, impotBrut, impotReel } from "./fiscal-engine";
 
 export type StatutParts =
   | "celibataire"
@@ -125,4 +125,27 @@ export function computeFiscalState(src: FiscalSource): FiscalState {
   const tmi = revenuNetImposable > 0 ? calculerTMI(revenuNetImposable, partsBase, partsTotal) : 0;
 
   return { revenuNetImposable, partsBase, partsTotal, tmi };
+}
+
+/**
+ * Plafonnement du quotient familial actif ? (lecture seule du moteur — zéro ajout).
+ * Vrai ⟺ l'avantage QF est capé → au-delà du plafond l'impôt suit le barème
+ * `partsBase` (même logique que la TMI effective). Sert à choisir la base de
+ * décomposition par tranche : sinon les seuils ×partsTotal sont trop larges et la
+ * tranche marginale réelle (ex. 45 %) disparaît de l'affichage.
+ *
+ * Détection : non plafonné → `impotReel = applyDecote(impotBrut(R, partsTotal))`,
+ * donc ≤ `impotBrut(R, partsTotal)` ; plafonné → `impotBrut(R, partsBase) − plafond`,
+ * strictement au-dessus. Le `+1` absorbe le bruit flottant (la décote ne fait que
+ * réduire → jamais de faux positif).
+ */
+export function plafonnementQuotientActif(state: FiscalState): boolean {
+  const { revenuNetImposable: R, partsBase, partsTotal } = state;
+  if (R <= 0 || partsTotal === partsBase) return false;
+  return impotReel(R, partsBase, partsTotal) > impotBrut(R, partsTotal) + 1;
+}
+
+/** Base de parts pour la décomposition par tranche, cohérente avec la TMI affichée. */
+export function partsPourDecomposition(state: FiscalState): number {
+  return plafonnementQuotientActif(state) ? state.partsBase : state.partsTotal;
 }

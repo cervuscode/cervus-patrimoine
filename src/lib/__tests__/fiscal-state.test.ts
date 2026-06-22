@@ -1,9 +1,12 @@
 import {
   computeFiscalState,
   mapStatutToParts,
+  partsPourDecomposition,
+  plafonnementQuotientActif,
   STATUT_MARITAL_OPTIONS,
 } from "../fiscal-state";
 import { calculerParts, calculerRevenuImposable, calculerTMI } from "../fiscal-engine";
+import { decoupeParTranche } from "../reduction-impot";
 
 describe("computeFiscalState — priorité champ explicite", () => {
   it("parts explicites = TOTAL ; partsBase reconstruit du statut (couple → 2)", () => {
@@ -65,6 +68,49 @@ describe("TMI effective — plafonnement du quotient familial (non-régression b
     const fs = computeFiscalState({ revenuImposable: 45000, partsFiscales: 2, statutMarital: "Célibataire" });
     expect(fs.partsBase).toBe(1);
     expect(fs.tmi).toBe(30);
+  });
+});
+
+describe("partsPourDecomposition — base de tranche cohérente avec la TMI", () => {
+  it("single 2 enfants 300 000 € (plafonnement actif) → décomposition sur partsBase, chip 45 % présente", () => {
+    const fs = computeFiscalState({ revenuImposable: 300000, statutMarital: "Divorcé(e)", nbEnfants: 2 });
+    expect(fs.partsBase).toBe(1);
+    expect(fs.partsTotal).toBe(2);
+    expect(fs.tmi).toBe(45);
+    expect(plafonnementQuotientActif(fs)).toBe(true);
+    expect(partsPourDecomposition(fs)).toBe(1); // ⚠️ partsBase, pas partsTotal (=2)
+
+    const slices = decoupeParTranche(fs.revenuNetImposable, partsPourDecomposition(fs));
+    // La tranche 45 % réapparaît (avec partsTotal=2 elle était masquée).
+    expect(slices.some((s) => s.taux === 0.45 && s.montant > 0)).toBe(true);
+    // La tranche marginale haute = la TMI affichée.
+    expect(slices[slices.length - 1].taux).toBe(0.45);
+    // La somme des chips reste le revenu (invariant de la décomposition).
+    const somme = slices.reduce((a, s) => a + s.montant, 0);
+    expect(Math.round(somme)).toBe(300000);
+  });
+
+  it("couple revenu modéré (45 000 €, 2 parts, pas de plafonnement) → décomposition sur partsTotal", () => {
+    const fs = computeFiscalState({ revenuImposable: 45000, statutMarital: "Marié(e)", nbEnfants: 0 });
+    expect(fs.partsBase).toBe(2);
+    expect(fs.partsTotal).toBe(2);
+    expect(plafonnementQuotientActif(fs)).toBe(false);
+    expect(partsPourDecomposition(fs)).toBe(2); // partsTotal — quotient pleinement appliqué
+  });
+
+  it("couple AVEC enfants sans plafonnement (70 000 €, 3 parts) → partsTotal conservé", () => {
+    const fs = computeFiscalState({ revenuImposable: 70000, statutMarital: "Marié(e)", nbEnfants: 2 });
+    expect(fs.partsBase).toBe(2);
+    expect(fs.partsTotal).toBe(3);
+    expect(plafonnementQuotientActif(fs)).toBe(false); // avantage QF sous le plafond
+    expect(partsPourDecomposition(fs)).toBe(3);
+  });
+
+  it("revenu nul / parts identiques → pas de plafonnement, partsTotal", () => {
+    expect(plafonnementQuotientActif(computeFiscalState({}))).toBe(false);
+    const fs = computeFiscalState({ revenuImposable: 50000, statutMarital: "Célibataire", nbEnfants: 0 });
+    expect(plafonnementQuotientActif(fs)).toBe(false);
+    expect(partsPourDecomposition(fs)).toBe(fs.partsTotal);
   });
 });
 

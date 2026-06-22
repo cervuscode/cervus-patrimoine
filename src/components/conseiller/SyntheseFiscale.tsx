@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRdvClient } from "./RdvClientProvider";
 import { impotReel } from "@/lib/fiscal-engine";
+import { partsPourDecomposition } from "@/lib/fiscal-state";
 import { decoupeParTranche } from "@/lib/reduction-impot";
 
 /**
@@ -31,7 +32,10 @@ export default function SyntheseFiscale() {
   const { revenuNetImposable, partsBase, partsTotal, tmi } = fiscalState;
   const impotNet = Math.round(impotReel(revenuNetImposable, partsBase, partsTotal));
   const tauxMoyen = revenuNetImposable > 0 ? (impotNet / revenuNetImposable) * 100 : 0;
-  const slices = decoupeParTranche(revenuNetImposable, partsTotal);
+  // Décomposition par tranche sur la base de parts cohérente avec la TMI : quand le
+  // plafonnement du quotient familial mord, on décompose sur partsBase (sinon les
+  // seuils ×partsTotal masquent la tranche marginale réelle, ex. 45 %).
+  const slices = decoupeParTranche(revenuNetImposable, partsPourDecomposition(fiscalState));
 
   // CEHR/CDHR — repris à l'identique de l'ancien ContributionsHautsRevenusPanel.
   const concerne = contributionsHR.concerne;

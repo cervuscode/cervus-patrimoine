@@ -128,12 +128,34 @@ export interface ComparateurRecord {
   };
 }
 
+export interface PyramideRecord {
+  id: string;
+  ts: number;
+  simId: "pyramide-epargne";
+  label: "Pyramide de l'épargne";
+  inputs: {
+    capaciteEpargneMensuelle: number;
+  };
+  result: {
+    patrimoineTotal: number;
+    /** Niveaux base → sommet (precaution … dynamique). */
+    niveaux: Array<{
+      key: string;
+      label: string;
+      montantReel: number;
+      pctTotal: number;
+      statut: string;
+    }>;
+  };
+}
+
 export type SimRecord =
   | PerQuickRecord
   | PerFullRecord
   | ImpotRecord
   | ReductionRecord
-  | ComparateurRecord;
+  | ComparateurRecord
+  | PyramideRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
@@ -141,7 +163,8 @@ export type SimRecordDraft =
   | Omit<PerFullRecord, "id" | "ts">
   | Omit<ImpotRecord, "id" | "ts">
   | Omit<ReductionRecord, "id" | "ts">
-  | Omit<ComparateurRecord, "id" | "ts">;
+  | Omit<ComparateurRecord, "id" | "ts">
+  | Omit<PyramideRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -324,6 +347,36 @@ export function comparateurDraft(
   };
 }
 
+export function pyramideDraft(
+  inputs: { capaciteEpargneMensuelle: number },
+  result: {
+    patrimoineTotal: number;
+    niveaux: Array<{
+      key: string;
+      label: string;
+      montantReel: number;
+      pctTotal: number;
+      statut: string;
+    }>;
+  }
+): Omit<PyramideRecord, "id" | "ts"> {
+  return {
+    simId: "pyramide-epargne",
+    label: "Pyramide de l'épargne",
+    inputs: { capaciteEpargneMensuelle: inputs.capaciteEpargneMensuelle },
+    result: {
+      patrimoineTotal: result.patrimoineTotal,
+      niveaux: result.niveaux.map((n) => ({
+        key: n.key,
+        label: n.label,
+        montantReel: n.montantReel,
+        pctTotal: n.pctTotal,
+        statut: n.statut,
+      })),
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -383,6 +436,14 @@ export function signatureOf(rec: SimRecordDraft): string {
       Math.round(rec.result.avNet),
     ].join("|");
   }
+  if (rec.simId === "pyramide-epargne") {
+    return [
+      "py",
+      Math.round(rec.inputs.capaciteEpargneMensuelle),
+      Math.round(rec.result.patrimoineTotal),
+      ...rec.result.niveaux.map((n) => Math.round(n.montantReel)),
+    ].join("|");
+  }
   const i = rec.inputs;
   return [
     "pf",
@@ -430,6 +491,11 @@ function formatNombre(n: number): string {
 
 function fmtTaux(t: number): string {
   return `${(t * 100).toFixed(t * 100 % 1 === 0 ? 0 : 1).replace(".", ",")} %`;
+}
+
+/** Pourcentage d'une fraction 0..1 (ex. 0,254 → « 25 % »). */
+function fmtPct(p: number): string {
+  return `${Math.round(p * 100)} %`;
 }
 
 /** Résumé une ligne d'une simulation (hypothèses → résultats). */
@@ -486,6 +552,15 @@ export function summarizeRecord(rec: SimRecord): string {
       `→ PER net ${formatEuro(r.perNet)} vs AV net ${formatEuro(r.avNet)} ` +
       `(${verdict}, écart ${formatEuro(r.ecart)})`
     );
+  }
+  if (rec.simId === "pyramide-epargne") {
+    const r = rec.result;
+    const marque = (s: string): string =>
+      s === "sur" ? " (sur-représenté)" : s === "sous" ? " (sous-représenté)" : "";
+    const lignes = r.niveaux
+      .map((n) => `${n.label.toLowerCase()} ${formatEuro(n.montantReel)} (${fmtPct(n.pctTotal)})${marque(n.statut)}`)
+      .join(", ");
+    return `<b>Pyramide de l'épargne</b> — patrimoine ${formatEuro(r.patrimoineTotal)} → ${lignes}`;
   }
   const i = rec.inputs;
   const r = rec.result;

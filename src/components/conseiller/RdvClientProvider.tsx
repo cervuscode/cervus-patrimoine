@@ -104,15 +104,21 @@ interface RdvClientContextValue {
   generatingNote: boolean;
 }
 
-/** Encours du patrimoine financier par enveloppe (€). Consommable par le Lot 9. */
+/** Encours du patrimoine financier par enveloppe (€). Consommé par le Lot 9. */
 export interface PatrimoineFinancier {
   encoursAv: number;
+  /** Part fonds euros de l'AV (Lot 9) ; UC = encoursAv − encoursFondsEuros. */
+  encoursFondsEuros: number;
   encoursPea: number;
+  /** Encours PER détenu (Lot 9). */
+  encoursPer: number;
   livretsReglementes: number;
   livretsBoostes: number;
   cto: number;
   crypto: number;
   autreEpargne: number;
+  /** Capacité d'épargne mensuelle nette (Lot 9) — base de la cible de précaution. */
+  capaciteEpargneMensuelle: number;
 }
 
 const Ctx = createContext<RdvClientContextValue | null>(null);
@@ -302,12 +308,15 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     };
     return {
       encoursAv: n("encoursAv"),
+      encoursFondsEuros: n("encoursFondsEuros"),
       encoursPea: n("encoursPea"),
+      encoursPer: n("encoursPer"),
       livretsReglementes: n("livretsReglementes"),
       livretsBoostes: n("livretsBoostes"),
       cto: n("cto"),
       crypto: n("crypto"),
       autreEpargne: n("autreEpargne"),
+      capaciteEpargneMensuelle: n("capaciteEpargneMensuelle"),
     };
   }, [personDraft]);
 

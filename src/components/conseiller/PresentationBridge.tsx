@@ -38,7 +38,8 @@ function estMarie(statut: string): boolean {
  *      (donc une correction faite dans le panneau est rapatriée par « Actualiser »).
  */
 export default function PresentationBridge() {
-  const { client, activeDeal, getValue, fiscalState, recordSim } = useRdvClient();
+  const { client, activeDeal, getValue, fiscalState, patrimoineFinancier, recordSim } =
+    useRdvClient();
   const personId = client?.personId ?? null;
   // recordSim est stable (useCallback []), mais on le passe par ref car le listener
   // est monté une seule fois ([] deps) et doit toujours appeler la version courante.
@@ -81,7 +82,8 @@ export default function PresentationBridge() {
             draft.simId === "per-full" ||
             draft.simId === "impot" ||
             draft.simId === "reduction-impot" ||
-            draft.simId === "comparateur-av-per")
+            draft.simId === "comparateur-av-per" ||
+            draft.simId === "pyramide-epargne")
         ) {
           recordSimRef.current(draft);
         }
@@ -140,6 +142,20 @@ export default function PresentationBridge() {
         profil,
         trancheSortie: fiscalState.tmi,
         marie: estMarie(getValue("statutMarital")),
+      },
+      // Hypothèses de la pyramide de l'épargne (Lot 9) — encours seedés depuis le
+      // patrimoine financier de la fiche. Tout reste éditable en présentation.
+      pyramide: {
+        livretsReglementes: patrimoineFinancier.livretsReglementes,
+        livretsBoostes: patrimoineFinancier.livretsBoostes,
+        autreEpargne: patrimoineFinancier.autreEpargne,
+        encoursFondsEuros: patrimoineFinancier.encoursFondsEuros,
+        encoursAv: patrimoineFinancier.encoursAv,
+        encoursPea: patrimoineFinancier.encoursPea,
+        encoursPer: patrimoineFinancier.encoursPer,
+        cto: patrimoineFinancier.cto,
+        crypto: patrimoineFinancier.crypto,
+        capaciteEpargneMensuelle: patrimoineFinancier.capaciteEpargneMensuelle,
       },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

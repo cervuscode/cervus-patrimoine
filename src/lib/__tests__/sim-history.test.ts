@@ -4,6 +4,7 @@ import {
   impotDraft,
   perFullDraft,
   perQuickDraft,
+  pyramideDraft,
   reductionDraft,
   signatureOf,
   summarizeRecord,
@@ -11,9 +12,29 @@ import {
   type ImpotRecord,
   type PerFullRecord,
   type PerQuickRecord,
+  type PyramideRecord,
   type ReductionRecord,
   type SimRecord,
 } from "../sim-history";
+import { computePyramide, DEFAULT_PYRAMIDE_INPUTS } from "../pyramide-epargne";
+
+const pyramide = (over: Partial<PyramideRecord["result"]> = {}): PyramideRecord => ({
+  id: "p",
+  ts: 0,
+  simId: "pyramide-epargne",
+  label: "Pyramide de l'épargne",
+  inputs: { capaciteEpargneMensuelle: 1000 },
+  result: {
+    patrimoineTotal: 100000,
+    niveaux: [
+      { key: "precaution", label: "PRÉCAUTION", montantReel: 60000, pctTotal: 0.6, statut: "sur" },
+      { key: "projet", label: "PROJET", montantReel: 10000, pctTotal: 0.1, statut: "sous" },
+      { key: "longTerme", label: "LONG TERME", montantReel: 25000, pctTotal: 0.25, statut: "ok" },
+      { key: "dynamique", label: "DYNAMIQUE", montantReel: 5000, pctTotal: 0.05, statut: "ok" },
+    ],
+    ...over,
+  },
+});
 
 const comparateur = (over: Partial<ComparateurRecord["inputs"]> = {}): ComparateurRecord => ({
   id: "c",
@@ -180,6 +201,21 @@ describe("signatureOf — dédup", () => {
     expect(signatureOf(comparateur())).not.toBe(signatureOf(reduction()));
     expect(signatureOf(comparateur())).not.toBe(signatureOf(quick()));
   });
+
+  it("pyramide-epargne identique = même signature, montant changé = différente", () => {
+    expect(signatureOf(pyramide())).toBe(signatureOf(pyramide()));
+    const autre = pyramide({
+      patrimoineTotal: 120000,
+      niveaux: [
+        { key: "precaution", label: "PRÉCAUTION", montantReel: 80000, pctTotal: 0.66, statut: "sur" },
+        { key: "projet", label: "PROJET", montantReel: 10000, pctTotal: 0.08, statut: "sous" },
+        { key: "longTerme", label: "LONG TERME", montantReel: 25000, pctTotal: 0.21, statut: "ok" },
+        { key: "dynamique", label: "DYNAMIQUE", montantReel: 5000, pctTotal: 0.04, statut: "ok" },
+      ],
+    });
+    expect(signatureOf(autre)).not.toBe(signatureOf(pyramide()));
+    expect(signatureOf(pyramide())).not.toBe(signatureOf(comparateur()));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -247,6 +283,35 @@ describe("summarizeRecord", () => {
       impot({ demiPartHandicap: true, nbEnfants: 0 })
     );
     expect(s).toContain("demi-part invalidité");
+  });
+
+  it("Pyramide — total, répartition par niveau et marquage des sur/sous-représentés", () => {
+    const s = summarizeRecord(pyramide());
+    expect(s).toContain("Pyramide de l'épargne");
+    expect(s).toContain("patrimoine");
+    expect(s).toContain("précaution");
+    expect(s).toContain("(sur-représenté)");
+    expect(s).toContain("(sous-représenté)");
+  });
+});
+
+describe("pyramideDraft — builder", () => {
+  it("mappe capacité + résultat réel (computePyramide) vers un enregistrement réduit", () => {
+    const result = computePyramide({
+      ...DEFAULT_PYRAMIDE_INPUTS,
+      capaciteEpargneMensuelle: 1500,
+      livretsReglementes: 30000,
+      encoursAv: 20000,
+    });
+    const d = pyramideDraft({ capaciteEpargneMensuelle: 1500 }, result);
+    expect(d.simId).toBe("pyramide-epargne");
+    expect(d.inputs.capaciteEpargneMensuelle).toBe(1500);
+    expect(d.result.patrimoineTotal).toBe(result.patrimoineTotal);
+    expect(d.result.niveaux).toHaveLength(4);
+    // Le draft ne conserve QUE les clés réduites (pas color/cibleMontant/etc.).
+    expect(Object.keys(d.result.niveaux[0]).sort()).toEqual(
+      ["key", "label", "montantReel", "pctTotal", "statut"].sort()
+    );
   });
 });
 

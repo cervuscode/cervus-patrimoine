@@ -16,6 +16,7 @@ import PerFullPresentation from "./presentation/PerFullPresentation";
 import ImpotPresentation from "./presentation/ImpotPresentation";
 import ReductionPresentation from "./presentation/ReductionPresentation";
 import ComparateurPresentation from "./presentation/ComparateurPresentation";
+import PyramidePresentation from "./presentation/PyramidePresentation";
 
 // Map id de simulateur → vue de présentation. Ajouter un simulateur présentable =
 // ajouter une entrée ici (+ son entrée dans le registre conseiller-sims.ts).
@@ -33,6 +34,7 @@ const VIEWS: Record<string, PresentationView> = {
   impot: ImpotPresentation,
   "reduction-impot": ReductionPresentation,
   "comparateur-av-per": ComparateurPresentation,
+  "pyramide-epargne": PyramidePresentation,
 };
 
 // Simulateurs réellement présentables (disponibles + ayant une vue).

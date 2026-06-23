@@ -14,6 +14,7 @@ import type { AgeConversion } from "./per-sortie";
 import type { SimRecordDraft } from "./sim-history";
 import { DEFAULT_IMPOT_INPUTS, type GardeRegime, type ImpotInputs } from "./impot-sim";
 import { DEFAULT_REDUCTION_INPUTS, type ReductionInputs } from "./reduction-impot";
+import { DEFAULT_PYRAMIDE_INPUTS, type PyramideInputs } from "./pyramide-epargne";
 import { DEFAULT_COMPARATEUR_INPUTS, type ComparateurInputs } from "./comparateur-av-per";
 
 export interface ClientIdentity {
@@ -53,6 +54,12 @@ export interface HypoValues {
    * PER). `marie` (abattement AV) est ici car éditable.
    */
   comparateur: ComparateurHypo;
+  /**
+   * Hypothèses de la « Pyramide de l'épargne » (Lot 9). Sous-objet dédié (additif,
+   * IGNORÉ par les autres vues). Comme l'impôt/réduction : tout est hypothèse (les
+   * encours), n'utilise PAS `ClientIdentity` (« Actualiser » sans effet sur l'onglet).
+   */
+  pyramide: PyramideInputs;
 }
 
 /** Portion « hypothèses » du comparateur (revenu/parts viennent de l'identité). */
@@ -83,6 +90,7 @@ export const DEFAULT_HYPO: HypoValues = {
     profil: DEFAULT_COMPARATEUR_INPUTS.profil,
     trancheSortie: DEFAULT_COMPARATEUR_INPUTS.trancheSortie,
   },
+  pyramide: DEFAULT_PYRAMIDE_INPUTS,
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -155,6 +163,17 @@ export function encodePresentationParams(
     cpr: hypo.comparateur.profil,
     cts: String(hypo.comparateur.trancheSortie),
     cma: hypo.comparateur.marie ? "1" : "0",
+    // Hypothèses de la pyramide de l'épargne (Lot 9) — encours par enveloppe.
+    yl1: String(hypo.pyramide.livretsReglementes),
+    yl2: String(hypo.pyramide.livretsBoostes),
+    yae: String(hypo.pyramide.autreEpargne),
+    yfe: String(hypo.pyramide.encoursFondsEuros),
+    yav: String(hypo.pyramide.encoursAv),
+    ype: String(hypo.pyramide.encoursPea),
+    ypr: String(hypo.pyramide.encoursPer),
+    yct: String(hypo.pyramide.cto),
+    ycr: String(hypo.pyramide.crypto),
+    ycap: String(hypo.pyramide.capaciteEpargneMensuelle),
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -217,6 +236,18 @@ export function decodePresentationParams(
         profil: asProfil(get("cpr")),
         trancheSortie: num(get("cts")),
         marie: get("cma") === "1",
+      },
+      pyramide: {
+        livretsReglementes: num(get("yl1")),
+        livretsBoostes: num(get("yl2")),
+        autreEpargne: num(get("yae")),
+        encoursFondsEuros: num(get("yfe")),
+        encoursAv: num(get("yav")),
+        encoursPea: num(get("ype")),
+        encoursPer: num(get("ypr")),
+        cto: num(get("yct")),
+        crypto: num(get("ycr")),
+        capaciteEpargneMensuelle: num(get("ycap")),
       },
     },
     code: get("cc") ?? null,

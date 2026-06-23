@@ -9,6 +9,7 @@ import GenerateCodeBox from "./GenerateCodeBox";
 import { DiscoverySection, NotesSection } from "./DiscoverySections";
 import SyntheseFiscale from "./SyntheseFiscale";
 import PlafondVersementPER from "./PlafondVersementPER";
+import PyramideEpargneBloc from "./PyramideEpargneBloc";
 import SyntheseNoteButton from "./SyntheseNoteButton";
 import SaveBar from "./SaveBar";
 import PresentationBridge from "./PresentationBridge";
@@ -119,6 +120,16 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
           </svg>
           Comparateur AV / PER
         </Link>
+        <Link
+          href={`/client/${initial.personId}/simulateur-pyramide-epargne`}
+          className="inline-flex items-center gap-2 rounded-[50px] border border-cervus-gold/40 px-4 py-2 text-sm font-medium text-cervus-bronze hover:bg-cervus-gold/10"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 3 2 20h20L12 3z" />
+            <path d="M7 13h10M9.5 8.5h5" />
+          </svg>
+          Pyramide de l&apos;épargne
+        </Link>
       </div>
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}
@@ -139,6 +150,7 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
       <DiscoverySection section="epargne" />
       <PlafondVersementPER />
       <DiscoverySection section="patrimoine" />
+      <PyramideEpargneBloc />
 
       {/* 10 — Note de synthèse de RDV + indicateur nb simulations capturées. */}
       <div className="rounded-2xl border border-cervus-gold/30 bg-cervus-dark/40 p-4">

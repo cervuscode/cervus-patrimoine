@@ -40,7 +40,7 @@ export interface RdvFieldDef {
 }
 
 /**
- * Les 27 champs éditables de la vue client (hors identité/code, gérés à part).
+ * Les 30 champs éditables de la vue client (hors identité/code, gérés à part).
  * L'ordre définit l'ordre d'affichage par section.
  */
 export const RDV_FIELDS: RdvFieldDef[] = [
@@ -79,17 +79,26 @@ export const RDV_FIELDS: RdvFieldDef[] = [
   // (hiddenInDiscovery), pas comme DiscoveryField. Champ Pipedrive créé à la main.
   { id: "estTNS", label: "Est TNS", entity: "person", kind: "text", section: "epargne", decName: "Est TNS (Découverte RDV)", hiddenInDiscovery: true },
 
-  // ── Patrimoine financier (Chantier D) — enveloppes par stock (encours global).
+  // ── Patrimoine financier (Chantier D + Lot 9) — enveloppes par stock (encours global).
   // Entité Person (global par client). Découverte-only (aucun miroir Simulation).
-  // Consommables par le futur Lot 9 (Pyramide de l'épargne) via useRdvClient().
+  // Consommables par le Lot 9 (Pyramide de l'épargne) via useRdvClient().
   { id: "encoursAv", label: "Encours AV total", entity: "person", kind: "money", section: "patrimoine", decName: "Encours AV total (Découverte RDV)" },
+  // Lot 9 : part FONDS EUROS de l'AV (capital garanti). L'AV en UC se déduit :
+  // encoursAv − encoursFondsEuros. Champ Pipedrive créé à la main (Person, monetary).
+  { id: "encoursFondsEuros", label: "Encours AV fonds euros", entity: "person", kind: "money", section: "patrimoine", decName: "Encours AV fonds euros (Découverte RDV)" },
   { id: "encoursPea", label: "Encours PEA", entity: "person", kind: "money", section: "patrimoine", decName: "Encours PEA (Découverte RDV)" },
+  // Lot 9 : encours PER détenu (stock), distinct du versement de scénario
+  // (versementInitial/Mensuel = Deal). Champ Pipedrive créé à la main (Person, monetary).
+  { id: "encoursPer", label: "Encours PER", entity: "person", kind: "money", section: "patrimoine", decName: "Encours PER (Découverte RDV)" },
   { id: "livretsReglementes", label: "Livrets réglementés", entity: "person", kind: "money", section: "patrimoine", decName: "Livrets réglementés (Découverte RDV)" },
   { id: "livretsBoostes", label: "Livrets boostés / fiscalisés", entity: "person", kind: "money", section: "patrimoine", decName: "Livrets boostés / fiscalisés (Découverte RDV)" },
   { id: "cto", label: "Compte-titres ordinaire", entity: "person", kind: "money", section: "patrimoine", decName: "Compte-titres ordinaire (Découverte RDV)" },
   { id: "crypto", label: "Crypto-actifs", entity: "person", kind: "money", section: "patrimoine", decName: "Crypto-actifs (Découverte RDV)" },
   // Résiduel relabellisé (ancien « Autre épargne ») — decName Pipedrive inchangé (zéro migration).
   { id: "autreEpargne", label: "Autre épargne financière", entity: "person", kind: "money", section: "patrimoine", decName: "Autre épargne (Découverte RDV)" },
+  // Lot 9 : capacité d'épargne mensuelle nette — sert à la cible de précaution
+  // (6 × capacité). Flux (pas un stock) mais affiché en section patrimoine. Créé à la main.
+  { id: "capaciteEpargneMensuelle", label: "Capacité d'épargne mensuelle", entity: "person", kind: "money", section: "patrimoine", decName: "Capacité d'épargne mensuelle (Découverte RDV)" },
 ];
 
 /** Champ Notes libres (Person) — traité à part (masqué par défaut, MD §4.2). */

@@ -119,6 +119,30 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "marie",
     ],
   },
+  {
+    id: "pyramide-epargne",
+    label: "Pyramide de l'épargne",
+    description: "Répartition réelle du patrimoine vs cible : précaution → dynamique.",
+    autonomousHref: "/simulateur-pyramide-epargne",
+    clientHref: (personId) => `/client/${personId}/simulateur-pyramide-epargne`,
+    available: true,
+    // Comme les Lots 4/6 : tout est « hypothèse » (les encours), aucun champ figé.
+    // `identityKeys` vide (purement documentaire). En connecté, simple pré-remplissage
+    // depuis le patrimoine financier de la fiche.
+    identityKeys: [],
+    hypothesisKeys: [
+      "livretsReglementes",
+      "livretsBoostes",
+      "autreEpargne",
+      "encoursFondsEuros",
+      "encoursAv",
+      "encoursPea",
+      "encoursPer",
+      "cto",
+      "crypto",
+      "capaciteEpargneMensuelle",
+    ],
+  },
 ];
 
 export function getConseillerSim(id: string): ConseillerSim | undefined {

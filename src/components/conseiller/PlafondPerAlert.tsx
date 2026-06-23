@@ -1,7 +1,7 @@
 "use client";
 
-import { computePlafondPER } from "@/lib/per-quick";
-import { formatEuro } from "@/lib/per-quick";
+import type { ReactNode } from "react";
+import { computePlafondPER, formatEuro } from "@/lib/per-quick";
 
 /**
  * Plafond de déductibilité PER — affichage informatif + alerte NON BLOQUANTE.
@@ -9,20 +9,37 @@ import { formatEuro } from "@/lib/per-quick";
  * saisir n'importe quel versement : l'alerte informe, elle ne bloque pas et ne plafonne
  * rien. Reliquats des 3 années précédentes : mentionnés, jamais calculés (non dispo).
  *
- * `revenuImposable` − `foncier` = assiette professionnelle (conforme DGFiP).
+ * Deux modes :
+ *  • Par défaut (simulateurs PER) : `revenuImposable` − `foncier` = assiette salariée,
+ *    le plafond salarié est calculé en interne via `computePlafondPER`.
+ *  • `plafondOverride` (fiche client, Lot 8) : plafond déjà calculé en amont (cumul
+ *    salarié + TNS) → comparé tel quel au versement. `footnote` remplace le bas de bloc.
  * `versementAnnuel` = versement mensuel × 12 + apport initial.
  */
 export default function PlafondPerAlert({
-  revenuImposable,
+  revenuImposable = 0,
   foncier = 0,
   versementAnnuel,
+  plafondOverride,
+  footnote,
 }: {
-  revenuImposable: number;
+  revenuImposable?: number;
   foncier?: number;
   versementAnnuel: number;
+  plafondOverride?: number;
+  footnote?: ReactNode;
 }) {
-  const proNet = Math.max(0, (revenuImposable || 0) - (foncier || 0));
-  const r = computePlafondPER(proNet, versementAnnuel);
+  const va = Math.max(0, versementAnnuel || 0);
+  const plafond =
+    plafondOverride != null
+      ? plafondOverride
+      : computePlafondPER(Math.max(0, (revenuImposable || 0) - (foncier || 0)), va).plafond;
+  const r = {
+    plafond,
+    versementAnnuel: va,
+    depassement: va > plafond,
+    depassementMontant: Math.max(0, va - plafond),
+  };
 
   return (
     <section
@@ -50,10 +67,14 @@ export default function PlafondPerAlert({
         </p>
       )}
       <p className="mt-2 text-[11px] leading-relaxed text-cervus-bronze/40">
-        Plafond = max(10 % des revenus pro nets ; 10 % du PASS), dans la limite de 10 % de
-        8 PASS (PASS 2025). Assiette hors revenus fonciers. Ce plafond peut être augmenté des
-        <b> reliquats non utilisés des 3 années précédentes</b> (figurant sur l&apos;avis
-        d&apos;imposition) — non pris en compte ici.
+        {footnote ?? (
+          <>
+            Plafond = max(10 % des revenus pro nets ; 10 % du PASS), dans la limite de 10 % de
+            8 PASS (PASS 2026). Assiette hors revenus fonciers. Ce plafond peut être augmenté des
+            <b> reliquats non utilisés des 3 années précédentes</b> (figurant sur l&apos;avis
+            d&apos;imposition) — non pris en compte ici.
+          </>
+        )}
       </p>
     </section>
   );

@@ -12,7 +12,8 @@ import NotesField from "./NotesField";
  */
 export function DiscoverySection({ section }: { section: RdvFieldDef["section"] }) {
   const { activeDealId } = useRdvClient();
-  const fields = fieldsBySection(section);
+  // Exclut les champs rendus par un bloc dédié (ex. estTNS → bloc « Plafond de versement PER »).
+  const fields = fieldsBySection(section).filter((f) => !f.hiddenInDiscovery);
   const hasDealField = fields.some((f) => f.entity === "deal");
 
   return (

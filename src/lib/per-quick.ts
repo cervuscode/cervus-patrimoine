@@ -44,13 +44,24 @@ export function clampTaux(t: number): number {
 // Source DGFiP (docs/dgfip-source/chap-perp.m règle 31015, tgvI.m) :
 //   plafond = max( min(10 % × revenus_pro_nets, 10 % × 8 × PASS), 10 % × PASS )
 // Constantes du moteur DGFiP (revenus 2024, PASS 2024 = 46 368) : TX_PERPPLAF=10 %,
-// LIM_PERPMIN=4637, LIM_PERPMAX=37094. ⚠️ MISES À JOUR pour le millésime Cervus
-// (revenus 2025) avec le PASS 2025 = 47 100 € → plancher 4 710, plafond 37 680.
+// LIM_PERPMIN=4637, LIM_PERPMAX=37094 — vérifiées : 10 % × 46 368 = 4 636,8 ≈ 4 637 et
+// 10 % × 8 × 46 368 = 37 094,4 ≈ 37 094 (le millésime DGFiP cale bien le plafond sur le
+// PASS de l'année de revenus).
+//
+// ⚠️ MILLÉSIME CERVUS = VERSEMENTS 2026 → PASS 2026 = 48 060 € :
+//   plancher 4 806 €, plafond 38 448 €.
+// CHOIX ASSUMÉ (pédagogique/indicatif) : on applique le PASS de l'année de VERSEMENT.
+//  • TNS / Madelin (art. 154 bis) : la déduction se calcule sur le bénéfice de l'année
+//    même du versement → versements 2026 = PASS 2026, strictement correct.
+//  • Salarié (art. 163 quatervingts) : le plafond officiel de l'avis est calculé sur les
+//    revenus N-1 avec le PASS N-1 (donc versements 2026 → techniquement PASS 2025). On
+//    retient ici PASS 2026 comme ESTIMATION PROSPECTIVE de la capacité de l'année courante,
+//    cohérent avec l'usage indicatif de l'outil (qui ne calcule déjà pas les reliquats N-3).
 // OUTIL CONSEILLER UNIQUEMENT (jamais le site public). Alerte non bloquante.
-export const PASS_2025 = 47100;
+export const PASS_2026 = 48060;
 export const PER_PLAFOND_TAUX = 0.1;
-export const PER_PLANCHER = 4710; // 10 % × PASS 2025
-export const PER_PLAFOND_MAX = 37680; // 10 % × 8 × PASS 2025
+export const PER_PLANCHER = 4806; // 10 % × PASS 2026
+export const PER_PLAFOND_MAX = 38448; // 10 % × 8 × PASS 2026
 
 export interface PlafondPERResult {
   /** Plafond annuel de déduction (€). */

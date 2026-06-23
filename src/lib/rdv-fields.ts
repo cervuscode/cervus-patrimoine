@@ -31,6 +31,12 @@ export interface RdvFieldDef {
   simName?: string;
   /** Nom exact du champ "Découverte RDV" (éditable). */
   decName: string;
+  /**
+   * `true` = champ NON rendu comme `DiscoveryField` dans sa section (lecture/écriture/
+   * hydratation/save héritées de la machinerie RDV_FIELDS, mais rendu par un bloc dédié).
+   * Ex. `estTNS` (Lot 8) : affiché par le switch du bloc « Plafond de versement PER ».
+   */
+  hiddenInDiscovery?: boolean;
 }
 
 /**
@@ -68,6 +74,10 @@ export const RDV_FIELDS: RdvFieldDef[] = [
   { id: "versementInitial", label: "Versement PER initial", entity: "deal", kind: "money", section: "epargne", simName: "Versement initial", decName: "Versement initial (Découverte RDV)" },
   { id: "versementMensuel", label: "Versement PER mensuel", entity: "deal", kind: "money", section: "epargne", simName: "Versement mensuel", decName: "Versement mensuel (Découverte RDV)" },
   { id: "immobilier", label: "Immobilier", entity: "person", kind: "money", section: "epargne", decName: "Immobilier (Découverte RDV)" },
+  // Statut TNS (Lot 8) — déclencheur du plafond Madelin. Stocké en texte "Oui"/vide
+  // (Pipedrive n'a pas de booléen natif). Rendu par le bloc « Plafond de versement PER »
+  // (hiddenInDiscovery), pas comme DiscoveryField. Champ Pipedrive créé à la main.
+  { id: "estTNS", label: "Est TNS", entity: "person", kind: "text", section: "epargne", decName: "Est TNS (Découverte RDV)", hiddenInDiscovery: true },
 
   // ── Patrimoine financier (Chantier D) — enveloppes par stock (encours global).
   // Entité Person (global par client). Découverte-only (aucun miroir Simulation).

@@ -21,7 +21,7 @@
 import { calculerTMI, impotReel, projectionPER } from "./fiscal-engine";
 import { resolveTaux, TAUX_PAR_PROFIL, type PerProfil } from "./per-quick";
 // Plafond de déductibilité PER : source unique (per-quick), réutilisé tel quel ici.
-export { computePlafondPER, PASS_2025, PER_PLANCHER, PER_PLAFOND_MAX, type PlafondPERResult } from "./per-quick";
+export { computePlafondPER, PASS_2026, PER_PLANCHER, PER_PLAFOND_MAX, type PlafondPERResult } from "./per-quick";
 
 // ── Constantes fiscalité de sortie ────────────────────────────────────────────
 export const PFU_TAUX = 0.3; // 12,8 % IR + 17,2 % PS

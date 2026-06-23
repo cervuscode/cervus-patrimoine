@@ -8,6 +8,7 @@ import ClientCodeBadge from "./ClientCodeBadge";
 import GenerateCodeBox from "./GenerateCodeBox";
 import { DiscoverySection, NotesSection } from "./DiscoverySections";
 import SyntheseFiscale from "./SyntheseFiscale";
+import PlafondVersementPER from "./PlafondVersementPER";
 import SyntheseNoteButton from "./SyntheseNoteButton";
 import SaveBar from "./SaveBar";
 import PresentationBridge from "./PresentationBridge";
@@ -133,9 +134,10 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
       {/* 6 + 7 — Encadré fiscal synthèse (intègre CEHR/CDHR si concerné). */}
       <SyntheseFiscale />
 
-      {/* Profil investisseur, puis 8 — Épargne, 9 — Patrimoine financier */}
+      {/* Profil investisseur, puis 8 — Épargne, plafond PER, 9 — Patrimoine financier */}
       <DiscoverySection section="profil" />
       <DiscoverySection section="epargne" />
+      <PlafondVersementPER />
       <DiscoverySection section="patrimoine" />
 
       {/* 10 — Note de synthèse de RDV + indicateur nb simulations capturées. */}

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { RDV_FIELDS, SECTION_LABELS, SECTION_ORDER } from "@/lib/rdv-fields";
 import { computeFiscalState, type FiscalState } from "@/lib/fiscal-state";
+import { computePlafondTotal, type PlafondTotalResult } from "@/lib/plafond-per";
 import { impotReel } from "@/lib/fiscal-engine";
 import {
   approximerRFR,
@@ -88,6 +89,12 @@ interface RdvClientContextValue {
   contributionsHR: ContributionsResult;
   /** Patrimoine financier (Chantier D) : encours par enveloppe (pour Lot 9). */
   patrimoineFinancier: PatrimoineFinancier;
+  /** Plafonds de déductibilité PER (Lot 8) : salarié + TNS/Madelin + cumul. */
+  plafondPER: PlafondTotalResult;
+  /** `true` si le client est marqué TNS (switch du bloc « Plafond de versement PER »). */
+  estTNS: boolean;
+  /** Bascule le statut TNS (écrit "Oui"/vide dans le champ Découverte `estTNS`). */
+  setEstTNS: (value: boolean) => void;
   /** Historique de session des simulations consultées (Lot 3) — en mémoire seul. */
   simHistory: SimRecord[];
   /** Capture auto d'une variante (dédup consécutif) ; appelé par les simulateurs connectés. */
@@ -304,6 +311,30 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     };
   }, [personDraft]);
 
+  // ── Plafonds de déductibilité PER (Lot 8) — salarié + TNS/Madelin + cumul.
+  // Assiette salariée = revenu net imposable (fiscalState) − foncier. Assiette TNS =
+  // BNC + BIC. Déclencheur TNS = switch `estTNS`. Recalcul auto à chaque changement des
+  // sources (revenu, foncier, BNC, BIC, switch). Pur mémoire, jamais sauvegardé.
+  const estTNS = (personDraft["estTNS"] ?? "") === "Oui";
+  const plafondPER = useMemo<PlafondTotalResult>(() => {
+    const nd = (id: string): number => {
+      const v = parseFloat(String(dealDraft[id] ?? "").replace(",", "."));
+      return Number.isFinite(v) ? v : 0;
+    };
+    return computePlafondTotal({
+      revenuImposable: fiscalState.revenuNetImposable,
+      foncier: nd("foncier"),
+      bnc: nd("bnc"),
+      bic: nd("bic"),
+      estTNS,
+    });
+  }, [fiscalState, dealDraft, estTNS]);
+
+  const setEstTNS = useCallback(
+    (val: boolean) => setValue("estTNS", val ? "Oui" : ""),
+    [setValue]
+  );
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!client) return false;
     if (!hasUnsavedChanges) return true;
@@ -462,6 +493,9 @@ export function RdvClientProvider({ children }: { children: ReactNode }) {
     fiscalState,
     contributionsHR,
     patrimoineFinancier,
+    plafondPER,
+    estTNS,
+    setEstTNS,
     simHistory,
     recordSim,
     generateSyntheseNote,

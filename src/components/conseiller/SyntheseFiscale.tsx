@@ -26,7 +26,7 @@ function chipText(color: string): string {
 }
 
 export default function SyntheseFiscale() {
-  const { client, fiscalState, contributionsHR } = useRdvClient();
+  const { client, fiscalState, contributionsHR, plafondPER } = useRdvClient();
   if (!client || fiscalState.revenuNetImposable <= 0) return null;
 
   const { revenuNetImposable, partsBase, partsTotal, tmi } = fiscalState;
@@ -114,6 +114,21 @@ export default function SyntheseFiscale() {
           )}
         </div>
       )}
+
+      {/* Plafond PER disponible — chiffre clé utile en RDV (détail dans le bloc Épargne). */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-t border-cervus-gold/20 pt-3 text-xs">
+        <span className="text-cervus-bronze/60">Plafond PER disponible</span>
+        <span className="text-cervus-bronze/90">
+          {plafondPER.estTNS ? (
+            <>
+              {euro(plafondPER.plafondSalarie)} salarié + {euro(plafondPER.plafondTNS)} TNS ={" "}
+              <b className="text-cervus-bronze">{euro(plafondPER.plafondTotal)}</b> total
+            </>
+          ) : (
+            <b className="text-cervus-bronze">{euro(plafondPER.plafondTotal)}</b>
+          )}
+        </span>
+      </div>
     </section>
   );
 }

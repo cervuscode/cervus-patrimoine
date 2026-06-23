@@ -101,10 +101,10 @@ describe("computePerQuick — câblage fiscal-engine", () => {
   });
 });
 
-describe("computePlafondPER — plafond de déductibilité (DGFiP, PASS 2025)", () => {
-  it("plancher PASS appliqué quand 10 % du revenu < 4 710 €", () => {
-    const r = computePlafondPER(20000, 0); // 10 % = 2 000 < 4 710
-    expect(r.plafond).toBe(PER_PLANCHER); // 4 710
+describe("computePlafondPER — plafond de déductibilité (DGFiP, PASS 2026)", () => {
+  it("plancher PASS appliqué quand 10 % du revenu < 4 806 €", () => {
+    const r = computePlafondPER(20000, 0); // 10 % = 2 000 < 4 806
+    expect(r.plafond).toBe(PER_PLANCHER); // 4 806
     expect(r.plancherApplique).toBe(true);
   });
 
@@ -112,9 +112,9 @@ describe("computePlafondPER — plafond de déductibilité (DGFiP, PASS 2025)", 
     expect(computePlafondPER(100000, 0).plafond).toBe(10000);
   });
 
-  it("plafond 8×PASS appliqué quand 10 % du revenu > 37 680 €", () => {
-    const r = computePlafondPER(500000, 0); // 10 % = 50 000 > 37 680
-    expect(r.plafond).toBe(PER_PLAFOND_MAX); // 37 680
+  it("plafond 8×PASS appliqué quand 10 % du revenu > 38 448 €", () => {
+    const r = computePlafondPER(500000, 0); // 10 % = 50 000 > 38 448
+    expect(r.plafond).toBe(PER_PLAFOND_MAX); // 38 448
     expect(r.plafondMaxApplique).toBe(true);
   });
 

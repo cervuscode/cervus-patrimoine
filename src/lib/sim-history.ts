@@ -149,13 +149,34 @@ export interface PyramideRecord {
   };
 }
 
+export interface ResilienceRecord {
+  id: string;
+  ts: number;
+  simId: "resilience-marches";
+  label: "Résilience des marchés";
+  inputs: {
+    versementInitial: number;
+    versementMensuel: number;
+    horizon: number;
+  };
+  result: {
+    totalVerse: number;
+    finalPrudent: number;
+    finalEquilibre: number;
+    finalDynamique: number;
+    finalLivretA: number;
+    finalFondsEuros: number;
+  };
+}
+
 export type SimRecord =
   | PerQuickRecord
   | PerFullRecord
   | ImpotRecord
   | ReductionRecord
   | ComparateurRecord
-  | PyramideRecord;
+  | PyramideRecord
+  | ResilienceRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
@@ -164,7 +185,8 @@ export type SimRecordDraft =
   | Omit<ImpotRecord, "id" | "ts">
   | Omit<ReductionRecord, "id" | "ts">
   | Omit<ComparateurRecord, "id" | "ts">
-  | Omit<PyramideRecord, "id" | "ts">;
+  | Omit<PyramideRecord, "id" | "ts">
+  | Omit<ResilienceRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -377,6 +399,38 @@ export function pyramideDraft(
   };
 }
 
+export function resilienceDraft(
+  inputs: { versementInitial: number; versementMensuel: number; horizon: number },
+  result: {
+    totalVerse: number;
+    finals: {
+      prudent?: number;
+      equilibre?: number;
+      dynamique?: number;
+      livretA?: number;
+      fondsEuros?: number;
+    };
+  }
+): Omit<ResilienceRecord, "id" | "ts"> {
+  return {
+    simId: "resilience-marches",
+    label: "Résilience des marchés",
+    inputs: {
+      versementInitial: inputs.versementInitial,
+      versementMensuel: inputs.versementMensuel,
+      horizon: inputs.horizon,
+    },
+    result: {
+      totalVerse: result.totalVerse,
+      finalPrudent: result.finals.prudent ?? 0,
+      finalEquilibre: result.finals.equilibre ?? 0,
+      finalDynamique: result.finals.dynamique ?? 0,
+      finalLivretA: result.finals.livretA ?? 0,
+      finalFondsEuros: result.finals.fondsEuros ?? 0,
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -442,6 +496,19 @@ export function signatureOf(rec: SimRecordDraft): string {
       Math.round(rec.inputs.capaciteEpargneMensuelle),
       Math.round(rec.result.patrimoineTotal),
       ...rec.result.niveaux.map((n) => Math.round(n.montantReel)),
+    ].join("|");
+  }
+  if (rec.simId === "resilience-marches") {
+    const i = rec.inputs;
+    const r = rec.result;
+    return [
+      "rm",
+      Math.round(i.versementInitial),
+      Math.round(i.versementMensuel),
+      Math.round(i.horizon),
+      Math.round(r.finalPrudent),
+      Math.round(r.finalEquilibre),
+      Math.round(r.finalDynamique),
     ].join("|");
   }
   const i = rec.inputs;
@@ -561,6 +628,18 @@ export function summarizeRecord(rec: SimRecord): string {
       .map((n) => `${n.label.toLowerCase()} ${formatEuro(n.montantReel)} (${fmtPct(n.pctTotal)})${marque(n.statut)}`)
       .join(", ");
     return `<b>Pyramide de l'épargne</b> — patrimoine ${formatEuro(r.patrimoineTotal)} → ${lignes}`;
+  }
+  if (rec.simId === "resilience-marches") {
+    const i = rec.inputs;
+    const r = rec.result;
+    return (
+      `<b>Résilience des marchés</b> — projection ${formatEuro(i.versementMensuel)}/mois` +
+      (i.versementInitial > 0 ? `, apport initial ${formatEuro(i.versementInitial)}` : "") +
+      `, horizon ${Math.round(i.horizon)} ans (versé ${formatEuro(r.totalVerse)}) ` +
+      `→ Prudent ${formatEuro(r.finalPrudent)}, Équilibré ${formatEuro(r.finalEquilibre)}, ` +
+      `Dynamique ${formatEuro(r.finalDynamique)} · Livret A ${formatEuro(r.finalLivretA)}, ` +
+      `fonds euros ${formatEuro(r.finalFondsEuros)}`
+    );
   }
   const i = rec.inputs;
   const r = rec.result;

@@ -9,6 +9,19 @@ import { useRdvClient } from "./RdvClientProvider";
 // (orthographe garantie → lecture pickProfil en correspondance directe).
 const PROFIL_OPTIONS = [PROFIL_LABELS.prudent, PROFIL_LABELS.equilibre, PROFIL_LABELS.dynamique];
 
+// Statut professionnel (Lot 10) — même pattern que statut marital / profil : menu
+// déroulant côté outil, champ Pipedrive reste texte libre (orthographe garantie).
+// Un ancien « Indépendant » (Simulation) s'affiche vide → re-sélection en RDV.
+const STATUT_PRO_OPTIONS = [
+  "Salarié",
+  "TNS",
+  "Dirigeant salarié",
+  "Profession libérale",
+  "Fonctionnaire",
+  "Retraité",
+  "Sans activité",
+];
+
 // Sous-texte d'aide par champ (optionnel).
 const FIELD_HINTS: Record<string, string> = {
   rfrReel: "Optionnel — si connu, remplace l'estimation automatique (CEHR/CDHR).",
@@ -42,7 +55,7 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
       {/* Menus déroulants à valeurs fixes (Lot 2 / H) → orthographe garantie écrite
           dans le champ texte libre Pipedrive → lecture fiable (correspondance directe).
           Statut marital + Profil investisseur. */}
-      {fieldId === "statutMarital" || fieldId === "profil" ? (
+      {fieldId === "statutMarital" || fieldId === "profil" || fieldId === "statutPro" ? (
         <select
           id={`f-${fieldId}`}
           value={getValue(fieldId)}
@@ -52,7 +65,9 @@ export default function DiscoveryField({ fieldId }: { fieldId: string }) {
           <option value="" className="bg-cervus-dark">—</option>
           {(fieldId === "statutMarital"
             ? STATUT_MARITAL_OPTIONS.map((o) => o.label)
-            : PROFIL_OPTIONS
+            : fieldId === "statutPro"
+              ? STATUT_PRO_OPTIONS
+              : PROFIL_OPTIONS
           ).map((label) => (
             <option key={label} value={label} className="bg-cervus-dark">
               {label}

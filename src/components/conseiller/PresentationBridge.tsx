@@ -83,7 +83,8 @@ export default function PresentationBridge() {
             draft.simId === "impot" ||
             draft.simId === "reduction-impot" ||
             draft.simId === "comparateur-av-per" ||
-            draft.simId === "pyramide-epargne")
+            draft.simId === "pyramide-epargne" ||
+            draft.simId === "resilience-marches")
         ) {
           recordSimRef.current(draft);
         }
@@ -156,6 +157,13 @@ export default function PresentationBridge() {
         cto: patrimoineFinancier.cto,
         crypto: patrimoineFinancier.crypto,
         capaciteEpargneMensuelle: patrimoineFinancier.capaciteEpargneMensuelle,
+      },
+      // Hypothèses de « Résilience des marchés » (Lot 10), graphique 3 — versements
+      // de la fiche + horizon dérivé (âge retraite − âge courant). Éditable en présentation.
+      resilience: {
+        versementInitial: toNum(getValue("versementInitial")),
+        versementMensuel: toNum(getValue("versementMensuel")) || 200,
+        horizon: horizonCalc > 0 ? horizonCalc : 20,
       },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

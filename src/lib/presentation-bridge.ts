@@ -15,6 +15,7 @@ import type { SimRecordDraft } from "./sim-history";
 import { DEFAULT_IMPOT_INPUTS, type GardeRegime, type ImpotInputs } from "./impot-sim";
 import { DEFAULT_REDUCTION_INPUTS, type ReductionInputs } from "./reduction-impot";
 import { DEFAULT_PYRAMIDE_INPUTS, type PyramideInputs } from "./pyramide-epargne";
+import { DEFAULT_RESILIENCE_INPUTS, type ResilienceInputs } from "./resilience-marches";
 import { DEFAULT_COMPARATEUR_INPUTS, type ComparateurInputs } from "./comparateur-av-per";
 
 export interface ClientIdentity {
@@ -60,6 +61,12 @@ export interface HypoValues {
    * encours), n'utilise PAS `ClientIdentity` (« Actualiser » sans effet sur l'onglet).
    */
   pyramide: PyramideInputs;
+  /**
+   * Hypothèses de « Résilience des marchés » (Lot 10) — paramètres du graphique 3
+   * (versements futurs). Sous-objet dédié (additif, IGNORÉ par les autres vues).
+   * Tout est hypothèse, n'utilise PAS `ClientIdentity` (« Actualiser » sans effet).
+   */
+  resilience: ResilienceInputs;
 }
 
 /** Portion « hypothèses » du comparateur (revenu/parts viennent de l'identité). */
@@ -91,6 +98,7 @@ export const DEFAULT_HYPO: HypoValues = {
     trancheSortie: DEFAULT_COMPARATEUR_INPUTS.trancheSortie,
   },
   pyramide: DEFAULT_PYRAMIDE_INPUTS,
+  resilience: DEFAULT_RESILIENCE_INPUTS,
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -174,6 +182,10 @@ export function encodePresentationParams(
     yct: String(hypo.pyramide.cto),
     ycr: String(hypo.pyramide.crypto),
     ycap: String(hypo.pyramide.capaciteEpargneMensuelle),
+    // Hypothèses de « Résilience des marchés » (Lot 10) — graphique 3.
+    rvi: String(hypo.resilience.versementInitial),
+    rvm: String(hypo.resilience.versementMensuel),
+    rh: String(hypo.resilience.horizon),
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -248,6 +260,11 @@ export function decodePresentationParams(
         cto: num(get("yct")),
         crypto: num(get("ycr")),
         capaciteEpargneMensuelle: num(get("ycap")),
+      },
+      resilience: {
+        versementInitial: num(get("rvi")),
+        versementMensuel: num(get("rvm"), 200),
+        horizon: num(get("rh"), 20),
       },
     },
     code: get("cc") ?? null,

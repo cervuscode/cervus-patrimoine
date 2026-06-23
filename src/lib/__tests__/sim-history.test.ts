@@ -6,6 +6,7 @@ import {
   perQuickDraft,
   pyramideDraft,
   reductionDraft,
+  resilienceDraft,
   signatureOf,
   summarizeRecord,
   type ComparateurRecord,
@@ -14,8 +15,25 @@ import {
   type PerQuickRecord,
   type PyramideRecord,
   type ReductionRecord,
+  type ResilienceRecord,
   type SimRecord,
 } from "../sim-history";
+
+const resilience = (over: Partial<ResilienceRecord["inputs"]> = {}): ResilienceRecord => ({
+  id: "rm",
+  ts: 0,
+  simId: "resilience-marches",
+  label: "Résilience des marchés",
+  inputs: { versementInitial: 10000, versementMensuel: 200, horizon: 20, ...over },
+  result: {
+    totalVerse: 58000,
+    finalPrudent: 85000,
+    finalEquilibre: 98000,
+    finalDynamique: 114000,
+    finalLivretA: 72000,
+    finalFondsEuros: 79000,
+  },
+});
 import { computePyramide, DEFAULT_PYRAMIDE_INPUTS } from "../pyramide-epargne";
 
 const pyramide = (over: Partial<PyramideRecord["result"]> = {}): PyramideRecord => ({
@@ -216,6 +234,12 @@ describe("signatureOf — dédup", () => {
     expect(signatureOf(autre)).not.toBe(signatureOf(pyramide()));
     expect(signatureOf(pyramide())).not.toBe(signatureOf(comparateur()));
   });
+
+  it("resilience-marches identique = même signature, versement changé = différente", () => {
+    expect(signatureOf(resilience())).toBe(signatureOf(resilience()));
+    expect(signatureOf(resilience({ versementMensuel: 400 }))).not.toBe(signatureOf(resilience()));
+    expect(signatureOf(resilience())).not.toBe(signatureOf(pyramide()));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -292,6 +316,30 @@ describe("summarizeRecord", () => {
     expect(s).toContain("précaution");
     expect(s).toContain("(sur-représenté)");
     expect(s).toContain("(sous-représenté)");
+  });
+
+  it("Résilience des marchés — versements, total versé et capitaux finaux des profils", () => {
+    const s = summarizeRecord(resilience());
+    expect(s).toContain("Résilience des marchés");
+    expect(s).toContain("apport initial");
+    expect(s).toContain("horizon 20 ans");
+    expect(s).toContain("Prudent");
+    expect(s).toContain("Dynamique");
+    expect(s).toContain("Livret A");
+  });
+});
+
+describe("resilienceDraft — builder", () => {
+  it("mappe versements + capitaux finaux (avec valeurs manquantes → 0)", () => {
+    const d = resilienceDraft(
+      { versementInitial: 5000, versementMensuel: 150, horizon: 15 },
+      { totalVerse: 32000, finals: { prudent: 40000, equilibre: 44000, dynamique: 49000, livretA: 36000 } }
+    );
+    expect(d.simId).toBe("resilience-marches");
+    expect(d.inputs.versementMensuel).toBe(150);
+    expect(d.result.totalVerse).toBe(32000);
+    expect(d.result.finalDynamique).toBe(49000);
+    expect(d.result.finalFondsEuros).toBe(0); // absent → 0
   });
 });
 

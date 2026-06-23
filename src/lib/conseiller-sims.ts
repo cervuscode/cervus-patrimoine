@@ -143,6 +143,18 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
       "capaciteEpargneMensuelle",
     ],
   },
+  {
+    id: "resilience-marches",
+    label: "Résilience des marchés",
+    description: "MSCI, S&P 500, Livret A, fonds euros depuis 1970 + projections.",
+    autonomousHref: "/simulateur-resilience-marches",
+    clientHref: (personId) => `/client/${personId}/simulateur-resilience-marches`,
+    available: true,
+    // Tout est « hypothèse » (graphique 3) ; graphes 1/2 historiques figés.
+    // `identityKeys` vide (purement documentaire).
+    identityKeys: [],
+    hypothesisKeys: ["versementMensuel", "versementInitial", "horizon"],
+  },
 ];
 
 export function getConseillerSim(id: string): ConseillerSim | undefined {

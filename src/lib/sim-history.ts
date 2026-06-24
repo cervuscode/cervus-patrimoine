@@ -15,6 +15,15 @@
  */
 
 import { PROFIL_LABELS, formatEuro, type PerProfil } from "./per-quick";
+import type { AVProfil } from "./av-engine";
+
+/** Libellés des profils AV (4 valeurs, dont « responsable », absent des profils PER). */
+const AV_PROFIL_LABELS: Record<AVProfil, string> = {
+  prudent: "Prudent",
+  equilibre: "Équilibré",
+  responsable: "Responsable",
+  dynamique: "Dynamique",
+};
 
 // ── Type d'enregistrement ─────────────────────────────────────────────────────
 export interface PerQuickRecord {
@@ -170,6 +179,28 @@ export interface ResilienceRecord {
   };
 }
 
+export interface AvRecord {
+  id: string;
+  ts: number;
+  simId: "av";
+  label: "Assurance-vie";
+  inputs: {
+    versementInitial: number;
+    versementMensuel: number;
+    dureeAnnees: number;
+    profil: AVProfil;
+    marie: boolean;
+  };
+  result: {
+    capitalFinalBrut: number;
+    capitalNet: number;
+    capitalNetOptimise: number;
+    gainOptimisation: number;
+    optimisationUtile: boolean;
+    totalVerse: number;
+  };
+}
+
 export type SimRecord =
   | PerQuickRecord
   | PerFullRecord
@@ -177,7 +208,8 @@ export type SimRecord =
   | ReductionRecord
   | ComparateurRecord
   | PyramideRecord
-  | ResilienceRecord;
+  | ResilienceRecord
+  | AvRecord;
 
 /** Enregistrement candidat (sans id/ts, ajoutés par le contexte à la capture). */
 export type SimRecordDraft =
@@ -187,7 +219,8 @@ export type SimRecordDraft =
   | Omit<ReductionRecord, "id" | "ts">
   | Omit<ComparateurRecord, "id" | "ts">
   | Omit<PyramideRecord, "id" | "ts">
-  | Omit<ResilienceRecord, "id" | "ts">;
+  | Omit<ResilienceRecord, "id" | "ts">
+  | Omit<AvRecord, "id" | "ts">;
 
 // ── Builders result → draft (source UNIQUE du mapping) ─────────────────────────
 // Utilisés par les simulateurs connectés (PerQuickSim/PerFullSim) ET les vues de
@@ -434,6 +467,44 @@ export function resilienceDraft(
   };
 }
 
+export function avDraft(
+  inputs: {
+    versementInitial: number;
+    versementMensuel: number;
+    dureeAnnees: number;
+    profil: AVProfil;
+    marie: boolean;
+  },
+  result: {
+    capitalFinalBrut: number;
+    capitalNet: number;
+    capitalNetOptimise: number;
+    gainOptimisation: number;
+    optimisationUtile: boolean;
+    totalVerse: number;
+  }
+): Omit<AvRecord, "id" | "ts"> {
+  return {
+    simId: "av",
+    label: "Assurance-vie",
+    inputs: {
+      versementInitial: inputs.versementInitial,
+      versementMensuel: inputs.versementMensuel,
+      dureeAnnees: inputs.dureeAnnees,
+      profil: inputs.profil,
+      marie: inputs.marie,
+    },
+    result: {
+      capitalFinalBrut: result.capitalFinalBrut,
+      capitalNet: result.capitalNet,
+      capitalNetOptimise: result.capitalNetOptimise,
+      gainOptimisation: result.gainOptimisation,
+      optimisationUtile: result.optimisationUtile,
+      totalVerse: result.totalVerse,
+    },
+  };
+}
+
 // ── Dédup ─────────────────────────────────────────────────────────────────────
 /**
  * Signature stable d'une variante = simId + hypothèses arrondies + résultat clé.
@@ -512,6 +583,19 @@ export function signatureOf(rec: SimRecordDraft): string {
       Math.round(r.finalPrudent),
       Math.round(r.finalEquilibre),
       Math.round(r.finalDynamique),
+    ].join("|");
+  }
+  if (rec.simId === "av") {
+    const i = rec.inputs;
+    return [
+      "av",
+      Math.round(i.versementInitial),
+      Math.round(i.versementMensuel),
+      Math.round(i.dureeAnnees),
+      i.profil,
+      i.marie ? "m" : "",
+      Math.round(rec.result.capitalNet),
+      Math.round(rec.result.capitalNetOptimise),
     ].join("|");
   }
   const i = rec.inputs;
@@ -642,6 +726,20 @@ export function summarizeRecord(rec: SimRecord): string {
       `→ MSCI World ${formatEuro(r.finalMsci)} · Prudent ${formatEuro(r.finalPrudent)}, ` +
       `Équilibré ${formatEuro(r.finalEquilibre)}, Dynamique ${formatEuro(r.finalDynamique)} · ` +
       `Livret A ${formatEuro(r.finalLivretA)}, fonds euros ${formatEuro(r.finalFondsEuros)}`
+    );
+  }
+  if (rec.simId === "av") {
+    const i = rec.inputs;
+    const r = rec.result;
+    return (
+      `<b>Assurance-vie</b> — versement ${formatEuro(i.versementMensuel)}/mois` +
+      (i.versementInitial > 0 ? `, apport initial ${formatEuro(i.versementInitial)}` : "") +
+      `, horizon ${Math.round(i.dureeAnnees)} ans, profil ${AV_PROFIL_LABELS[i.profil]} ` +
+      `→ capital brut ${formatEuro(r.capitalFinalBrut)}, net ${formatEuro(r.capitalNet)}, ` +
+      `net optimisé ${formatEuro(r.capitalNetOptimise)}` +
+      (r.optimisationUtile && r.gainOptimisation > 0
+        ? ` (gain optimisation +${formatEuro(r.gainOptimisation)})`
+        : "")
     );
   }
   const i = rec.inputs;

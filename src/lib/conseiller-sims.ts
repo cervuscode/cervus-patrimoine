@@ -120,6 +120,19 @@ export const CONSEILLER_SIMS: ConseillerSim[] = [
     ],
   },
   {
+    id: "av",
+    label: "Simulateur Assurance-vie",
+    description: "Évolution d'un contrat AV et capital net projeté au terme.",
+    autonomousHref: "/simulateur-assurance-vie",
+    clientHref: (personId) => `/client/${personId}/simulateur-assurance-vie`,
+    available: true,
+    // Comme les Lots 4/6/9 : tout est « hypothèse » (les 5 paramètres du contrat),
+    // aucun champ figé. `identityKeys` vide (purement documentaire). En connecté,
+    // simple pré-remplissage depuis les versements / profil / statut de la fiche.
+    identityKeys: [],
+    hypothesisKeys: ["versementInitial", "versementMensuel", "dureeAnnees", "profil", "marie"],
+  },
+  {
     id: "pyramide-epargne",
     label: "Pyramide de l'épargne",
     description: "Répartition réelle du patrimoine vs cible : précaution → dynamique.",

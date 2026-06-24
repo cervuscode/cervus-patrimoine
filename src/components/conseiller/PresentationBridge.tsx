@@ -12,6 +12,7 @@ import {
   type HypoValues,
 } from "@/lib/presentation-bridge";
 import { normalizeGarde, normalizeStatutLabel } from "@/lib/impot-sim";
+import { normalizeAvProfil } from "@/lib/av-sim";
 import { mapStatutToParts } from "@/lib/fiscal-state";
 import type { SimRecordDraft } from "@/lib/sim-history";
 
@@ -84,7 +85,8 @@ export default function PresentationBridge() {
             draft.simId === "reduction-impot" ||
             draft.simId === "comparateur-av-per" ||
             draft.simId === "pyramide-epargne" ||
-            draft.simId === "resilience-marches")
+            draft.simId === "resilience-marches" ||
+            draft.simId === "av")
         ) {
           recordSimRef.current(draft);
         }
@@ -164,6 +166,15 @@ export default function PresentationBridge() {
         versementInitial: toNum(getValue("versementInitial")),
         versementMensuel: toNum(getValue("versementMensuel")) || 200,
         horizon: horizonCalc > 0 ? horizonCalc : 20,
+      },
+      // Hypothèses du simulateur Assurance-vie standalone — versements / profil /
+      // statut de la fiche, durée par défaut 15 ans. Éditable en présentation.
+      av: {
+        versementInitial: toNum(getValue("versementInitial")),
+        versementMensuel: toNum(getValue("versementMensuel")),
+        dureeAnnees: horizonCalc > 0 ? horizonCalc : 15,
+        profil: normalizeAvProfil(getValue("profil")),
+        marie: estMarie(getValue("statutMarital")),
       },
     };
     const code = activeDeal?.code ?? client?.deals.find((d) => d.code)?.code ?? null;

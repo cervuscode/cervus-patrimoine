@@ -7,8 +7,10 @@ import {
   pyramideDraft,
   reductionDraft,
   resilienceDraft,
+  avDraft,
   signatureOf,
   summarizeRecord,
+  type AvRecord,
   type ComparateurRecord,
   type ImpotRecord,
   type PerFullRecord,
@@ -18,6 +20,22 @@ import {
   type ResilienceRecord,
   type SimRecord,
 } from "../sim-history";
+
+const av = (over: Partial<AvRecord["inputs"]> = {}): AvRecord => ({
+  id: "av",
+  ts: 0,
+  simId: "av",
+  label: "Assurance-vie",
+  inputs: { versementInitial: 10000, versementMensuel: 200, dureeAnnees: 20, profil: "responsable", marie: false, ...over },
+  result: {
+    capitalFinalBrut: 94680,
+    capitalNet: 85965,
+    capitalNetOptimise: 87074,
+    gainOptimisation: 1109,
+    optimisationUtile: true,
+    totalVerse: 58000,
+  },
+});
 
 const resilience = (over: Partial<ResilienceRecord["inputs"]> = {}): ResilienceRecord => ({
   id: "rm",
@@ -241,6 +259,13 @@ describe("signatureOf — dédup", () => {
     expect(signatureOf(resilience({ versementMensuel: 400 }))).not.toBe(signatureOf(resilience()));
     expect(signatureOf(resilience())).not.toBe(signatureOf(pyramide()));
   });
+
+  it("av identique = même signature, versement/durée changé = différente", () => {
+    expect(signatureOf(av())).toBe(signatureOf(av()));
+    expect(signatureOf(av({ versementMensuel: 400 }))).not.toBe(signatureOf(av()));
+    expect(signatureOf(av({ dureeAnnees: 25 }))).not.toBe(signatureOf(av()));
+    expect(signatureOf(av())).not.toBe(signatureOf(resilience()));
+  });
 });
 
 describe("summarizeRecord", () => {
@@ -328,6 +353,54 @@ describe("summarizeRecord", () => {
     expect(s).toContain("Prudent");
     expect(s).toContain("Dynamique");
     expect(s).toContain("Livret A");
+  });
+
+  it("Assurance-vie — versements, profil, 3 capitaux + gain optimisation (libellé pudique)", () => {
+    const s = summarizeRecord(av());
+    expect(s).toContain("Assurance-vie");
+    expect(s).toContain("apport initial");
+    expect(s).toContain("horizon 20 ans");
+    expect(s).toContain("Responsable");
+    expect(s).toContain("capital brut");
+    expect(s).toContain("net optimisé");
+    expect(s).toContain("gain optimisation");
+    // Vocabulaire confidentiel jamais exposé.
+    expect(s).not.toContain("purge");
+    expect(s).not.toContain("rachat");
+    expect(s).not.toContain("Cervus");
+  });
+
+  it("Assurance-vie — gain optimisation omis si non significatif", () => {
+    const s = summarizeRecord(
+      av({}) // base utile
+    );
+    expect(s).toContain("gain optimisation");
+    const sansGain = summarizeRecord({
+      ...av(),
+      result: { ...av().result, optimisationUtile: false, gainOptimisation: 0 },
+    });
+    expect(sansGain).not.toContain("gain optimisation");
+  });
+});
+
+describe("avDraft — builder", () => {
+  it("mappe entrées + résultats (3 capitaux, gain, total versé)", () => {
+    const d = avDraft(
+      { versementInitial: 10000, versementMensuel: 200, dureeAnnees: 20, profil: "responsable", marie: false },
+      {
+        capitalFinalBrut: 94680,
+        capitalNet: 85965,
+        capitalNetOptimise: 87074,
+        gainOptimisation: 1109,
+        optimisationUtile: true,
+        totalVerse: 58000,
+      }
+    );
+    expect(d.simId).toBe("av");
+    expect(d.label).toBe("Assurance-vie");
+    expect(d.inputs.profil).toBe("responsable");
+    expect(d.result.capitalNetOptimise).toBe(87074);
+    expect(d.result.optimisationUtile).toBe(true);
   });
 });
 

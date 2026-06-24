@@ -17,6 +17,7 @@ import { DEFAULT_REDUCTION_INPUTS, type ReductionInputs } from "./reduction-impo
 import { DEFAULT_PYRAMIDE_INPUTS, type PyramideInputs } from "./pyramide-epargne";
 import { DEFAULT_RESILIENCE_INPUTS, type ResilienceInputs } from "./resilience-marches";
 import { DEFAULT_COMPARATEUR_INPUTS, type ComparateurInputs } from "./comparateur-av-per";
+import { DEFAULT_AV_INPUTS, asAvProfil, type AvSimInputs } from "./av-sim";
 
 export interface ClientIdentity {
   revenuImposable: number; // = revenu net imposable de l'état fiscal partagé (Lot 2)
@@ -67,6 +68,12 @@ export interface HypoValues {
    * Tout est hypothèse, n'utilise PAS `ClientIdentity` (« Actualiser » sans effet).
    */
   resilience: ResilienceInputs;
+  /**
+   * Hypothèses du « Simulateur Assurance-vie » standalone. Sous-objet dédié (additif,
+   * IGNORÉ par les autres vues). Comme l'impôt / la pyramide : tout est hypothèse (les
+   * 5 paramètres du contrat), n'utilise PAS `ClientIdentity` (« Actualiser » sans effet).
+   */
+  av: AvSimInputs;
 }
 
 /** Portion « hypothèses » du comparateur (revenu/parts viennent de l'identité). */
@@ -99,6 +106,7 @@ export const DEFAULT_HYPO: HypoValues = {
   },
   pyramide: DEFAULT_PYRAMIDE_INPUTS,
   resilience: DEFAULT_RESILIENCE_INPUTS,
+  av: DEFAULT_AV_INPUTS,
 };
 
 // ── Protocole postMessage (étendu avec simId) ─────────────────────────────────
@@ -186,6 +194,12 @@ export function encodePresentationParams(
     rvi: String(hypo.resilience.versementInitial),
     rvm: String(hypo.resilience.versementMensuel),
     rh: String(hypo.resilience.horizon),
+    // Hypothèses du simulateur Assurance-vie standalone.
+    avi: String(hypo.av.versementInitial),
+    avm: String(hypo.av.versementMensuel),
+    avd: String(hypo.av.dureeAnnees),
+    avp: hypo.av.profil,
+    avma: hypo.av.marie ? "1" : "0",
     sim: activeSim,
   });
   if (code) p.set("cc", code);
@@ -265,6 +279,13 @@ export function decodePresentationParams(
         versementInitial: num(get("rvi")),
         versementMensuel: num(get("rvm"), 200),
         horizon: num(get("rh"), 20),
+      },
+      av: {
+        versementInitial: num(get("avi")),
+        versementMensuel: num(get("avm")),
+        dureeAnnees: num(get("avd"), 15),
+        profil: asAvProfil(get("avp")),
+        marie: get("avma") === "1",
       },
     },
     code: get("cc") ?? null,

@@ -20,6 +20,7 @@ import {
   LIVRET_A_NOW,
   LIVRET_A_RATES,
   MSCI_WORLD,
+  MSCI_WORLD_NET,
   PROFIL_RATES,
   SP500,
   type SerieKey,
@@ -239,7 +240,12 @@ export interface ContributionResult extends ChartData {
 }
 
 /** Taux annuel fixe (%) de chaque série du graphique 3. */
-export const G3_RATES: Record<"prudent" | "equilibre" | "dynamique" | "livretA" | "fondsEuros", number> = {
+export const G3_RATES: Record<
+  "msci" | "prudent" | "equilibre" | "dynamique" | "livretA" | "fondsEuros",
+  number
+> = {
+  // MSCI World à taux fixe = moyenne annualisée nette de frais (référence actions).
+  msci: MSCI_WORLD_NET,
   prudent: PROFIL_RATES.prudent,
   equilibre: PROFIL_RATES.equilibre,
   dynamique: PROFIL_RATES.dynamique,
@@ -274,7 +280,8 @@ export function buildContribution(opts: ContributionOpts): ContributionResult {
   const initial = Math.max(0, opts.versementInitial);
   const monthly = Math.max(0, opts.versementMensuel);
 
-  const series: SerieKey[] = ["prudent", "equilibre", "dynamique", "livretA", "fondsEuros"];
+  // MSCI World (référence actions, taux fixe net) en tête, puis profils, sûrs.
+  const series: SerieKey[] = ["msci", "prudent", "equilibre", "dynamique", "livretA", "fondsEuros"];
   const maps: Partial<Record<SerieKey, Map<number, number>>> = {};
   for (const k of series) maps[k] = projectMonthly(G3_RATES[k as keyof typeof G3_RATES], initial, monthly, horizonAnnees);
 

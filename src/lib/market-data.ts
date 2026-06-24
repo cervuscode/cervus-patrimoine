@@ -93,6 +93,8 @@ export const FONDS_EUROS_START = 1994;
 /** Taux fixes ACTUELS pour la projection du graphique 3 (%). */
 export const LIVRET_A_NOW = 1.5; // taux en vigueur depuis le 1er février 2026
 export const FONDS_EUROS_NOW = 2.5; // moyenne marché 2024-2025
+// Moyenne annualisée MSCI World 1985-2025, nette de 1% frais de gestion — validé Auguste Dechery
+export const MSCI_WORLD_NET = 7.4;
 
 /** Taux annuels constants des profils de gestion (%). */
 export const PROFIL_RATES = { prudent: 3, equilibre: 4, dynamique: 5 } as const;
@@ -112,8 +114,10 @@ export type SerieKey =
 export const SERIE_META: Record<SerieKey, { label: string; color: string }> = {
   msci: { label: "MSCI World", color: "#795D48" },
   sp500: { label: "S&P 500", color: "#a07d62" },
-  livretA: { label: "Livret A", color: "#5D4738" },
-  fondsEuros: { label: "Fonds euros", color: "#c4862c" },
+  // Livret A / Fonds euros HORS charte (bleu/vert) pour se détacher nettement des
+  // actions (bronze) et des profils (crème→bronze) sur fond sombre — lisibilité Lot 10.
+  livretA: { label: "Livret A", color: "#4a90d9" },
+  fondsEuros: { label: "Fonds euros", color: "#46b07a" },
   prudent: { label: "Prudent (3 %)", color: "#cbb9a8" },
   equilibre: { label: "Équilibré (4 %)", color: "#b08d5b" },
   dynamique: { label: "Dynamique (5 %)", color: "#6f5236" },

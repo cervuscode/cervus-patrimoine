@@ -9,6 +9,8 @@ import {
 } from "@/lib/resilience-marches";
 import {
   FONDS_EUROS_ANNOTATION,
+  HIST_END,
+  HIST_START,
   SERIE_META,
   SOURCE_MENTION,
   type SerieKey,
@@ -48,12 +50,10 @@ export default function ResiliencePresentation({
   const [base100, setBase100] = useState(true);
   const [withProfils, setWithProfils] = useState(false);
   const hist = useMemo(() => buildHistorical({ base100, includeProfils: withProfils }), [base100, withProfils]);
-  const [visG1, setVisG1] = useState<Set<SerieKey>>(
-    new Set<SerieKey>(["msci", "sp500", "livretA", "fondsEuros", "prudent", "equilibre", "dynamique"])
-  );
+  const [visG1, setVisG1] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   const lump = useMemo(() => buildLumpSum({ amount: 10000, years: 20 }), []);
-  const [visG2, setVisG2] = useState<Set<SerieKey>>(new Set<SerieKey>(lump.series));
+  const [visG2, setVisG2] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   const contrib = useMemo(
     () =>
@@ -64,7 +64,7 @@ export default function ResiliencePresentation({
       }),
     [r]
   );
-  const [visG3, setVisG3] = useState<Set<SerieKey>>(new Set<SerieKey>(contrib.series));
+  const [visG3, setVisG3] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   function setRes<K extends keyof ResilienceInputs>(key: K, value: ResilienceInputs[K]) {
     onHypo("resilience", { ...r, [key]: value });
@@ -92,7 +92,7 @@ export default function ResiliencePresentation({
           <Pill active={!base100} onClick={() => setBase100(false)}>Valeur nominale</Pill>
           <Pill active={withProfils} onClick={() => setWithProfils((v) => !v)}>Profils théoriques</Pill>
         </div>
-        <MarchesChart rows={hist.rows} series={hist.series} visibleKeys={visG1} valueKind="indice" />
+        <MarchesChart rows={hist.rows} series={hist.series} visibleKeys={visG1} valueKind="indice" xDomain={[HIST_START, HIST_END]} />
         <SeriesToggles series={hist.series} visibleKeys={visG1} onToggle={(k) => setVisG1((s) => toggleKey(s, k))} />
         <p className="text-[11px] text-cervus-bronze/45">{FONDS_EUROS_ANNOTATION}</p>
         <p className="text-[10px] leading-relaxed text-cervus-bronze/35">{SOURCE_MENTION}</p>
@@ -104,7 +104,7 @@ export default function ResiliencePresentation({
         <p className="text-xs text-cervus-bronze/50">
           {formatEuro(lump.amount)} placés en {lump.startYear}, suivis jusqu&apos;en {lump.endYear}.
         </p>
-        <MarchesChart rows={lump.rows} series={lump.series} visibleKeys={visG2} valueKind="euro" />
+        <MarchesChart rows={lump.rows} series={lump.series} visibleKeys={visG2} valueKind="euro" xDomain={[lump.startYear, lump.endYear]} />
         <Finals series={lump.series} finals={lump.finals} visible={visG2} />
         <SeriesToggles series={lump.series} visibleKeys={visG2} onToggle={(k) => setVisG2((s) => toggleKey(s, k))} />
         <p className="text-[10px] leading-relaxed text-cervus-bronze/35">{SOURCE_MENTION}</p>
@@ -118,7 +118,7 @@ export default function ResiliencePresentation({
           <HypoNumber label="Versement mensuel" value={r.versementMensuel} onChange={(v) => setRes("versementMensuel", v)} suffix="€" />
           <HypoNumber label="Horizon (années)" value={r.horizon} onChange={(v) => setRes("horizon", v)} />
         </div>
-        <MarchesChart rows={contrib.rows} series={contrib.series} visibleKeys={visG3} valueKind="euro" xSuffix="ans" />
+        <MarchesChart rows={contrib.rows} series={contrib.series} visibleKeys={visG3} valueKind="euro" xSuffix="ans" xDomain={[0, Math.max(1, Math.round(r.horizon))]} />
         <p className="text-xs text-cervus-bronze/55">
           Total versé sur {Math.round(r.horizon)} ans : {formatEuro(contrib.totalVerse)}.
         </p>

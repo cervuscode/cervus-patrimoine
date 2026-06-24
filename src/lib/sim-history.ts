@@ -161,6 +161,7 @@ export interface ResilienceRecord {
   };
   result: {
     totalVerse: number;
+    finalMsci: number;
     finalPrudent: number;
     finalEquilibre: number;
     finalDynamique: number;
@@ -404,6 +405,7 @@ export function resilienceDraft(
   result: {
     totalVerse: number;
     finals: {
+      msci?: number;
       prudent?: number;
       equilibre?: number;
       dynamique?: number;
@@ -422,6 +424,7 @@ export function resilienceDraft(
     },
     result: {
       totalVerse: result.totalVerse,
+      finalMsci: result.finals.msci ?? 0,
       finalPrudent: result.finals.prudent ?? 0,
       finalEquilibre: result.finals.equilibre ?? 0,
       finalDynamique: result.finals.dynamique ?? 0,
@@ -636,9 +639,9 @@ export function summarizeRecord(rec: SimRecord): string {
       `<b>Résilience des marchés</b> — projection ${formatEuro(i.versementMensuel)}/mois` +
       (i.versementInitial > 0 ? `, apport initial ${formatEuro(i.versementInitial)}` : "") +
       `, horizon ${Math.round(i.horizon)} ans (versé ${formatEuro(r.totalVerse)}) ` +
-      `→ Prudent ${formatEuro(r.finalPrudent)}, Équilibré ${formatEuro(r.finalEquilibre)}, ` +
-      `Dynamique ${formatEuro(r.finalDynamique)} · Livret A ${formatEuro(r.finalLivretA)}, ` +
-      `fonds euros ${formatEuro(r.finalFondsEuros)}`
+      `→ MSCI World ${formatEuro(r.finalMsci)} · Prudent ${formatEuro(r.finalPrudent)}, ` +
+      `Équilibré ${formatEuro(r.finalEquilibre)}, Dynamique ${formatEuro(r.finalDynamique)} · ` +
+      `Livret A ${formatEuro(r.finalLivretA)}, fonds euros ${formatEuro(r.finalFondsEuros)}`
     );
   }
   const i = rec.inputs;

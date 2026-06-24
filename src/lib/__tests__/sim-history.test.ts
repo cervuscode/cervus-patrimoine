@@ -27,6 +27,7 @@ const resilience = (over: Partial<ResilienceRecord["inputs"]> = {}): ResilienceR
   inputs: { versementInitial: 10000, versementMensuel: 200, horizon: 20, ...over },
   result: {
     totalVerse: 58000,
+    finalMsci: 132000,
     finalPrudent: 85000,
     finalEquilibre: 98000,
     finalDynamique: 114000,
@@ -323,6 +324,7 @@ describe("summarizeRecord", () => {
     expect(s).toContain("Résilience des marchés");
     expect(s).toContain("apport initial");
     expect(s).toContain("horizon 20 ans");
+    expect(s).toContain("MSCI World");
     expect(s).toContain("Prudent");
     expect(s).toContain("Dynamique");
     expect(s).toContain("Livret A");
@@ -333,11 +335,12 @@ describe("resilienceDraft — builder", () => {
   it("mappe versements + capitaux finaux (avec valeurs manquantes → 0)", () => {
     const d = resilienceDraft(
       { versementInitial: 5000, versementMensuel: 150, horizon: 15 },
-      { totalVerse: 32000, finals: { prudent: 40000, equilibre: 44000, dynamique: 49000, livretA: 36000 } }
+      { totalVerse: 32000, finals: { msci: 60000, prudent: 40000, equilibre: 44000, dynamique: 49000, livretA: 36000 } }
     );
     expect(d.simId).toBe("resilience-marches");
     expect(d.inputs.versementMensuel).toBe(150);
     expect(d.result.totalVerse).toBe(32000);
+    expect(d.result.finalMsci).toBe(60000);
     expect(d.result.finalDynamique).toBe(49000);
     expect(d.result.finalFondsEuros).toBe(0); // absent → 0
   });

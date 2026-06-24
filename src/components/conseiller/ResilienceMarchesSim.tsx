@@ -10,6 +10,8 @@ import {
 } from "@/lib/resilience-marches";
 import {
   FONDS_EUROS_ANNOTATION,
+  HIST_END,
+  HIST_START,
   SERIE_META,
   SOURCE_MENTION,
   type SerieKey,
@@ -54,13 +56,12 @@ export default function ResilienceMarchesSim({ prefill, client }: ResilienceMarc
     () => buildHistorical({ base100, includeProfils: withProfils }),
     [base100, withProfils]
   );
-  const [visG1, setVisG1] = useState<Set<SerieKey>>(
-    new Set<SerieKey>(["msci", "sp500", "livretA", "fondsEuros", "prudent", "equilibre", "dynamique"])
-  );
+  // Aucune série cochée par défaut (Lot 10 fix) — le conseiller active à la demande.
+  const [visG1, setVisG1] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   // Graphique 2 — capital unique investi il y a 20 ans
   const lump = useMemo(() => buildLumpSum({ amount: 10000, years: 20 }), []);
-  const [visG2, setVisG2] = useState<Set<SerieKey>>(new Set<SerieKey>(lump.series));
+  const [visG2, setVisG2] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   // Graphique 3 — projection de versements
   const [g3, setG3] = useState<ResilienceInputs>(initial);
@@ -73,7 +74,7 @@ export default function ResilienceMarchesSim({ prefill, client }: ResilienceMarc
       }),
     [g3]
   );
-  const [visG3, setVisG3] = useState<Set<SerieKey>>(new Set<SerieKey>(contrib.series));
+  const [visG3, setVisG3] = useState<Set<SerieKey>>(new Set<SerieKey>());
 
   const { recordSim } = useRdvClient();
   function keep() {
@@ -120,7 +121,7 @@ export default function ResilienceMarchesSim({ prefill, client }: ResilienceMarc
             Profils théoriques
           </Pill>
         </div>
-        <MarchesChart rows={hist.rows} series={hist.series} visibleKeys={visG1} valueKind="indice" />
+        <MarchesChart rows={hist.rows} series={hist.series} visibleKeys={visG1} valueKind="indice" xDomain={[HIST_START, HIST_END]} />
         <SeriesToggles series={hist.series} visibleKeys={visG1} onToggle={(k) => setVisG1((s) => toggleKey(s, k))} />
         <p className="text-[11px] text-cervus-bronze/45">{FONDS_EUROS_ANNOTATION}</p>
         <SourceMention />
@@ -135,7 +136,7 @@ export default function ResilienceMarchesSim({ prefill, client }: ResilienceMarc
           Capital unique de {formatEuro(lump.amount)} placé en {lump.startYear}, suivi jusqu&apos;en{" "}
           {lump.endYear} (rendements réels année par année).
         </p>
-        <MarchesChart rows={lump.rows} series={lump.series} visibleKeys={visG2} valueKind="euro" />
+        <MarchesChart rows={lump.rows} series={lump.series} visibleKeys={visG2} valueKind="euro" xDomain={[lump.startYear, lump.endYear]} />
         <Finals series={lump.series} finals={lump.finals} visible={visG2} />
         <SeriesToggles series={lump.series} visibleKeys={visG2} onToggle={(k) => setVisG2((s) => toggleKey(s, k))} />
         <SourceMention />
@@ -155,7 +156,7 @@ export default function ResilienceMarchesSim({ prefill, client }: ResilienceMarc
             <NumberInput value={g3.horizon} onChange={(v) => setG3Num("horizon", v)} />
           </Field>
         </div>
-        <MarchesChart rows={contrib.rows} series={contrib.series} visibleKeys={visG3} valueKind="euro" xSuffix="ans" />
+        <MarchesChart rows={contrib.rows} series={contrib.series} visibleKeys={visG3} valueKind="euro" xSuffix="ans" xDomain={[0, Math.max(1, Math.round(g3.horizon))]} />
         <p className="text-xs text-cervus-bronze/55">
           Total versé sur {Math.round(g3.horizon)} ans : {formatEuro(contrib.totalVerse)}. Taux fixes :
           profils 3/4/5 %, Livret A 1,5 %, fonds euros 2,5 %.

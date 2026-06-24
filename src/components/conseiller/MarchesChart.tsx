@@ -27,12 +27,15 @@ export default function MarchesChart({
   visibleKeys,
   valueKind,
   xSuffix,
+  xDomain,
 }: {
   rows: ChartRow[];
   series: SerieKey[];
   visibleKeys: Set<SerieKey>;
   valueKind: "indice" | "euro";
   xSuffix?: string;
+  /** Domaine X FIXE [min, max] — ne bouge pas selon les séries actives (Lot 10 fix). */
+  xDomain: [number, number];
 }) {
   const fmt = (n: number): string =>
     valueKind === "euro" ? formatEuro(n) : Math.round(n).toLocaleString("fr-FR");
@@ -41,14 +44,18 @@ export default function MarchesChart({
     if (n >= 1_000) return `${Math.round(n / 1_000)} k`;
     return String(Math.round(n));
   };
+  const empty = visibleKeys.size === 0;
 
   return (
-    <div className="w-full" style={{ height: 280 }}>
+    <div className="relative w-full" style={{ height: 280 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
           <CartesianGrid stroke="#795D48" strokeOpacity={0.12} vertical={false} />
           <XAxis
             dataKey="x"
+            type="number"
+            domain={xDomain}
+            allowDataOverflow
             tick={{ fill: "#a07d62", fontSize: 11 }}
             tickFormatter={(v) => `${v}${xSuffix ? ` ${xSuffix}` : ""}`}
             stroke="#795D48"
@@ -90,6 +97,13 @@ export default function MarchesChart({
             ))}
         </LineChart>
       </ResponsiveContainer>
+      {empty && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="rounded-full bg-cervus-dark/70 px-4 py-1.5 text-xs text-cervus-bronze/60">
+            Sélectionnez une série à afficher
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   LIVRET_A_NOW,
   LIVRET_A_RATES,
   MSCI_WORLD,
+  MSCI_WORLD_NET,
   SP500,
 } from "../market-data";
 
@@ -110,17 +111,31 @@ describe("buildContribution — projection de versements", () => {
     expect(r.totalVerse).toBe(10000 + 200 * 12 * 20);
     expect(r.rows).toHaveLength(21); // années 0..20
   });
-  it("ordre des rendements : Livret A 1,5 % < fonds euros 2,5 % < Prudent 3 % < … < Dynamique 5 %", () => {
+  it("inclut MSCI World (7,4 %) comme série la plus performante du graphique 3", () => {
+    const r = buildContribution({ versementInitial: 0, versementMensuel: 300, horizonAnnees: 25 });
+    expect(r.series).toContain("msci");
+    expect(r.finals.msci).toBeDefined();
+    // MSCI 7,4 % > Dynamique 5 % > … > Livret A 1,5 %.
+    expect(r.finals.msci!).toBeGreaterThan(r.finals.dynamique!);
+  });
+  it("MSCI G3 : 1000 € sans versement, 1 an à 7,4 % → 1074", () => {
+    const r = buildContribution({ versementInitial: 1000, versementMensuel: 0, horizonAnnees: 1 });
+    expect(r.finals.msci).toBeCloseTo(1074, 0);
+  });
+  it("ordre des rendements : Livret A 1,5 % < fonds euros 2,5 % < Prudent 3 % < … < Dynamique 5 % < MSCI 7,4 %", () => {
     const r = buildContribution({ versementInitial: 0, versementMensuel: 300, horizonAnnees: 25 });
     expect(r.finals.livretA!).toBeLessThan(r.finals.fondsEuros!);
     expect(r.finals.fondsEuros!).toBeLessThan(r.finals.prudent!);
     expect(r.finals.prudent!).toBeLessThan(r.finals.equilibre!);
     expect(r.finals.equilibre!).toBeLessThan(r.finals.dynamique!);
+    expect(r.finals.dynamique!).toBeLessThan(r.finals.msci!);
   });
-  it("taux fixes G3 alignés sur market-data", () => {
+  it("taux fixes G3 alignés sur market-data (dont MSCI net 7,4 %)", () => {
     expect(G3_RATES.livretA).toBe(LIVRET_A_NOW);
     expect(G3_RATES.fondsEuros).toBe(FONDS_EUROS_NOW);
+    expect(G3_RATES.msci).toBe(MSCI_WORLD_NET);
     expect(G3_RATES.livretA).toBe(1.5);
     expect(G3_RATES.fondsEuros).toBe(2.5);
+    expect(G3_RATES.msci).toBe(7.4);
   });
 });

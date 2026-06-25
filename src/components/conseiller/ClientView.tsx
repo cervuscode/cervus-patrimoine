@@ -150,6 +150,16 @@ export default function ClientView({ initial }: { initial: ClientViewData }) {
           </svg>
           Résilience des marchés
         </Link>
+        <Link
+          href={`/client/${initial.personId}/compte-rendu`}
+          className="inline-flex items-center gap-2 rounded-[50px] bg-cervus-gold/15 px-4 py-2 text-sm font-semibold text-cervus-bronze hover:bg-cervus-gold/25"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+          </svg>
+          Générer le compte-rendu
+        </Link>
       </div>
 
       {needsCode && <GenerateCodeBox dealId={activeDealId!} />}

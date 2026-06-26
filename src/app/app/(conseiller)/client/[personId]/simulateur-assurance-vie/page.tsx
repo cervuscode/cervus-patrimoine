@@ -32,6 +32,15 @@ function pickNum(v?: FieldVal): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Versement « envisagé » AV prioritaire, repli sur le versement régulier (cf. simulateur-per). */
+function pickEnvisage(envisage?: FieldVal, regulier?: FieldVal): number | undefined {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
 /**
  * MODE CONNECTÉ : ouvert depuis une fiche client. Versements / profil / situation
  * PRÉ-REMPLIS priorité Découverte RDV > Simulation. Tout reste éditable. Durée par
@@ -61,8 +70,8 @@ export default async function AvConnectePage({
     const marieParts = mapStatutToParts(statut);
 
     prefill = {
-      versementInitial: deal ? pickNum(deal.fields.versementInitial) ?? 0 : 0,
-      versementMensuel: deal ? pickNum(deal.fields.versementMensuel) ?? 0 : 0,
+      versementInitial: deal ? pickEnvisage(deal.fields.versementInitialAvEnvisage, deal.fields.versementInitial) ?? 0 : 0,
+      versementMensuel: deal ? pickEnvisage(deal.fields.versementMensuelAvEnvisage, deal.fields.versementMensuel) ?? 0 : 0,
       profil: normalizeAvProfil(deal ? pick(deal.fields.profil) : undefined),
       marie: marieParts === "marie" || marieParts === "pacse",
     };

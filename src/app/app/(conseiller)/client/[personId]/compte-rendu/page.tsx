@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
-import { resolveClientContext, pickNum, pickStr } from "@/lib/compte-rendu-context";
+import { resolveClientContext, pickNum, pickStr, pickEnvisageNum } from "@/lib/compte-rendu-context";
 import { computeAvailability } from "@/lib/compte-rendu";
 import { normalizeStatutLabel } from "@/lib/impot-sim";
 import { normalizeAvProfil } from "@/lib/av-sim";
@@ -46,8 +46,12 @@ export default async function CompteRenduPage({ params }: { params: { personId: 
     const deal = client.deals[0];
 
     const fs = ctx.fiscalState;
-    const dealVersementMensuel = deal ? pickNum(deal.fields.versementMensuel) ?? 0 : 0;
-    const dealVersementInitial = deal ? pickNum(deal.fields.versementInitial) ?? 0 : 0;
+    // Versements ENVISAGÉS prioritaires (repli sur les versements de scénario) :
+    // PER pour les blocs PER, AV pour les blocs AV.
+    const perVersementMensuel = deal ? pickEnvisageNum(deal.fields.versementMensuelPerEnvisage, deal.fields.versementMensuel) ?? 0 : 0;
+    const perVersementInitial = deal ? pickEnvisageNum(deal.fields.versementInitialPerEnvisage, deal.fields.versementInitial) ?? 0 : 0;
+    const avVersementMensuel = deal ? pickEnvisageNum(deal.fields.versementMensuelAvEnvisage, deal.fields.versementMensuel) ?? 0 : 0;
+    const avVersementInitial = deal ? pickEnvisageNum(deal.fields.versementInitialAvEnvisage, deal.fields.versementInitial) ?? 0 : 0;
     const dealProfil = deal ? pickStr(deal.fields.profil) : undefined;
 
     // Horizon = âge retraite − âge courant (défaut 20 ans si indisponible).
@@ -57,22 +61,22 @@ export default async function CompteRenduPage({ params }: { params: { personId: 
       ageRetraite && ageRetraite > ageCourant ? ageRetraite - ageCourant : 20;
 
     const defaults: ComposerDefaults = {
-      perVersementMensuel: dealVersementMensuel,
-      perVersementInitial: dealVersementInitial,
+      perVersementMensuel,
+      perVersementInitial,
       horizon,
       profil: normalizePerProfil(dealProfil),
       trancheSortie: fs.tmi,
-      avVersementMensuel: dealVersementMensuel,
-      avVersementInitial: dealVersementInitial,
+      avVersementMensuel,
+      avVersementInitial,
       avDuree: 15,
       avProfil: normalizeAvProfil(dealProfil),
       marie: fs.partsBase === 2,
-      effortNetMensuel: dealVersementMensuel,
+      effortNetMensuel: perVersementMensuel,
       reductionRevenu: fs.revenuNetImposable,
       reductionStatut: normalizeStatutLabel(pickStr(client.personFields.statutMarital)) ||
         "Célibataire",
       reductionNbEnfants: ctx.nbEnfants,
-      reductionVersement: dealVersementInitial,
+      reductionVersement: perVersementInitial,
     };
 
     composerProps = { code: ctx.code, available: computeAvailability(ctx), defaults };

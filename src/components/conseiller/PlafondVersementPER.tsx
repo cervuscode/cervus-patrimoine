@@ -26,7 +26,10 @@ export default function PlafondVersementPER() {
     const v = parseFloat(String(getValue(id) ?? "").replace(",", "."));
     return Number.isFinite(v) && v > 0 ? v : 0;
   };
-  const versementAnnuel = num("versementMensuel") * 12 + num("versementInitial");
+  // Assiette du dépassement : versement ENVISAGÉ prioritaire, repli sur le versement de scénario.
+  const mensuel = num("versementMensuelPerEnvisage") || num("versementMensuel");
+  const initial = num("versementInitialPerEnvisage") || num("versementInitial");
+  const versementAnnuel = mensuel * 12 + initial;
 
   const { plafondSalarie, plafondTNS, plafondTotal } = plafondPER;
   const hasRevenu = fiscalState.revenuNetImposable > 0;

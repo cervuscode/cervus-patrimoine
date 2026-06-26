@@ -31,6 +31,15 @@ function pickNum(v?: FieldVal): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Versement « envisagé » PER prioritaire, repli sur le versement régulier (cf. simulateur-per). */
+function pickEnvisage(envisage?: FieldVal, regulier?: FieldVal): number {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
 /**
  * MODE CONNECTÉ (Lot 10) : ouvert depuis une fiche client. Graphique 3 pré-rempli
  * depuis les versements de la fiche (priorité Découverte > Simulation) + horizon
@@ -63,8 +72,8 @@ export default async function ResilienceMarchesConnectePage({
     const horizon = ageRetraite > 0 && ageCourant > 0 ? ageRetraite - ageCourant : 0;
 
     prefill = {
-      versementInitial: deal ? pickNum(deal.fields.versementInitial) : 0,
-      versementMensuel: deal ? pickNum(deal.fields.versementMensuel) || 200 : 200,
+      versementInitial: deal ? pickEnvisage(deal.fields.versementInitialPerEnvisage, deal.fields.versementInitial) : 0,
+      versementMensuel: deal ? pickEnvisage(deal.fields.versementMensuelPerEnvisage, deal.fields.versementMensuel) || 200 : 200,
       horizon: horizon > 0 ? horizon : 20,
     };
   } catch {

@@ -41,6 +41,15 @@ function pickProfil(v?: FieldVal): PerProfil | undefined {
   return undefined;
 }
 
+/** Versement « envisagé » PER prioritaire, repli sur le versement régulier (cf. simulateur-per). */
+function pickEnvisage(envisage?: FieldVal, regulier?: FieldVal): number | undefined {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
 /**
  * MODE CONNECTÉ (Lot 5) : ouvert depuis une fiche client. Mêmes champs, pré-remplis
  * priorité Découverte RDV > Simulation. Code client en évidence. Le simulateur
@@ -91,8 +100,8 @@ export default async function SimulateurPerCompletConnectePage({
       revenuImposable: fiscal.revenuNetImposable > 0 ? fiscal.revenuNetImposable : undefined,
       parts: fiscal.partsTotal,
       anneeNaissance,
-      versementMensuel: deal ? pickNum(deal.fields.versementMensuel) : undefined,
-      versementInitial: deal ? pickNum(deal.fields.versementInitial) : undefined,
+      versementMensuel: deal ? pickEnvisage(deal.fields.versementMensuelPerEnvisage, deal.fields.versementMensuel) : undefined,
+      versementInitial: deal ? pickEnvisage(deal.fields.versementInitialPerEnvisage, deal.fields.versementInitial) : undefined,
       horizon: horizon && horizon > 0 ? horizon : undefined,
       profil: deal ? pickProfil(deal.fields.profil) : undefined,
       // Tranche de sortie par défaut = TMI partagée (Lot 2).

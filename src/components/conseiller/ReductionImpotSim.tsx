@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   computeReduction,
   DEFAULT_REDUCTION_INPUTS,
+  TRANCHES_AFFICHAGE,
   type ReductionInputs,
+  type ReductionResult,
 } from "@/lib/reduction-impot";
 import { GARDE_OPTIONS, formatPourcent, type GardeRegime } from "@/lib/impot-sim";
 import { STATUT_MARITAL_OPTIONS, mapStatutToParts } from "@/lib/fiscal-state";
@@ -138,6 +140,9 @@ export default function ReductionImpotSim({ prefill, client }: ReductionImpotSim
       {/* Le visuel avant/après */}
       <ReductionStacks result={result} />
 
+      {/* Tableau de détail par tranche (complément des barres) */}
+      <ReductionTable result={result} />
+
       {/* Résultats chiffrés (en complément du visuel) */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Stat label="Impôt sans versement" value={formatEuro(result.avant.impotNet)} />
@@ -172,6 +177,67 @@ export default function ReductionImpotSim({ prefill, client }: ReductionImpotSim
         Estimation indicative, non contractuelle — aucune donnée n&apos;est enregistrée
         depuis cet outil.
       </p>
+    </div>
+  );
+}
+
+/** Couleur de texte lisible selon le fond de la pastille (charte : clair → texte sombre). */
+function chipText(color: string): string {
+  return color === "#F2EDE8" || color === "#a07d62" ? "#3a2c22" : "#F2EDE8";
+}
+
+/**
+ * Tableau de détail par tranche (style SyntheseFiscale) — sous les barres. Par tranche
+ * occupée : TMI, revenu dans cette tranche, impôt généré, impact du versement PER
+ * (delta en vert si la déduction réduit l'impôt de la tranche). Découpage illustratif
+ * (mêmes chiffres que les barres) ; l'impôt net autoritatif reste celui des KPI.
+ */
+function ReductionTable({ result }: { result: ReductionResult }) {
+  const rows = TRANCHES_AFFICHAGE.map((t) => {
+    const av = result.slicesAvant.find((s) => s.taux === t.taux)?.montant ?? 0;
+    const ap = result.slicesApres.find((s) => s.taux === t.taux)?.montant ?? 0;
+    return {
+      taux: t.taux,
+      label: t.label,
+      color: t.color,
+      revenuAvant: av,
+      impotAvant: av * t.taux,
+      impact: (ap - av) * t.taux, // ≤ 0 si la tranche est réduite par le versement
+    };
+  }).filter((r) => r.revenuAvant > 0 || r.impact !== 0);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-cervus-gold/20 bg-cervus-dark/40">
+      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-2 border-b border-cervus-gold/15 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-cervus-bronze/50 sm:px-4">
+        <span>Tranche</span>
+        <span className="text-right">Revenu</span>
+        <span className="text-right">Impôt généré</span>
+        <span className="text-right">Impact PER</span>
+      </div>
+      {rows.map((r) => (
+        <div
+          key={r.taux}
+          className="grid grid-cols-[auto_1fr_1fr_1fr] items-center gap-x-2 px-3 py-2 text-sm text-cervus-bronze/90 sm:px-4 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-cervus-gold/10"
+        >
+          <span
+            className="inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
+            style={{ backgroundColor: r.color, color: chipText(r.color) }}
+          >
+            {r.label}
+          </span>
+          <span className="text-right tabular-nums">{formatEuro(r.revenuAvant)}</span>
+          <span className="text-right tabular-nums">{formatEuro(r.impotAvant)}</span>
+          <span
+            className={`text-right tabular-nums ${
+              r.impact < -0.5 ? "font-semibold text-emerald-400" : "text-cervus-bronze/40"
+            }`}
+          >
+            {r.impact < -0.5 ? `−${formatEuro(Math.abs(r.impact))}` : "—"}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

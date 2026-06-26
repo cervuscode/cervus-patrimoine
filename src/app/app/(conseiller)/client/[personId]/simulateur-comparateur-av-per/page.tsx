@@ -32,6 +32,15 @@ function pickNum(v?: FieldVal): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Versement « envisagé » PER prioritaire, repli sur le versement régulier (cf. simulateur-per). */
+function pickEnvisage(envisage?: FieldVal, regulier?: FieldVal): number | undefined {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
 /**
  * MODE CONNECTÉ (Lot 7) : ouvert depuis une fiche client. Effort net / situation
  * PRÉ-REMPLIS priorité Découverte RDV > Simulation. Tout reste éditable. Tranche de
@@ -75,8 +84,8 @@ export default async function ComparateurConnectePage({
       revenuImposable: fiscal.revenuNetImposable > 0 ? fiscal.revenuNetImposable : 0,
       parts: fiscal.partsTotal,
       marie: marieParts === "marie" || marieParts === "pacse",
-      effortNetMensuel: deal ? pickNum(deal.fields.versementMensuel) ?? 0 : 0,
-      effortNetInitial: deal ? pickNum(deal.fields.versementInitial) ?? 0 : 0,
+      effortNetMensuel: deal ? pickEnvisage(deal.fields.versementMensuelPerEnvisage, deal.fields.versementMensuel) ?? 0 : 0,
+      effortNetInitial: deal ? pickEnvisage(deal.fields.versementInitialPerEnvisage, deal.fields.versementInitial) ?? 0 : 0,
       trancheSortie: fiscal.tmi,
     };
   } catch {

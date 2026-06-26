@@ -123,8 +123,10 @@ export interface CompositionPayload {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClientContext {
-  /** Code client `C-XXXX` (jamais le nom) affiché en page de garde. */
+  /** Code client `C-XXXX` affiché en page de garde (identifiant principal). */
   code: string | null;
+  /** Nom complet du client (mention secondaire en page de garde). */
+  clientName: string | null;
   fiscalState: FiscalState;
   /** Revenu foncier (€/an) — exclu de l'assiette plafond salarié. */
   foncier: number;
@@ -292,6 +294,14 @@ export interface ComparateurModel {
   verdictMessage: string;
 }
 
+/** Segment de revenu dans une tranche (rendu visuel du bloc réduction). */
+export interface ReductionSlice {
+  taux: number; // 0, 0.11, 0.30, 0.41, 0.45
+  label: string; // « 30 % »
+  color: string; // couleur charte
+  montant: number; // montant de revenu du foyer dans cette tranche
+}
+
 export interface ReductionModel {
   kind: "reduction";
   revenuAvant: number;
@@ -305,6 +315,12 @@ export interface ReductionModel {
   tmiAvant: number;
   tmiApres: number;
   tmiChange: boolean;
+  /** Découpe par tranche du revenu AVANT versement (rendu des barres). */
+  slicesAvant: ReductionSlice[];
+  /** Découpe par tranche du revenu APRÈS versement. */
+  slicesApres: ReductionSlice[];
+  /** Portions retirées des tranches hautes (bloc fantôme), tranches hautes d'abord. */
+  tranchesEffacees: Array<{ taux: number; label: string; montant: number }>;
 }
 
 export type RenderBlock =
@@ -320,6 +336,7 @@ export type RenderBlock =
 
 export interface RenderModel {
   code: string | null;
+  clientName: string | null;
   dateStr: string;
   blocks: RenderBlock[];
 }
@@ -605,6 +622,9 @@ function buildReduction(p: ReductionParams): ReductionModel {
     tmiAvant: res.avant.tmi,
     tmiApres: res.apres.tmi,
     tmiChange: res.tmiChange,
+    slicesAvant: res.slicesAvant.map((sl) => ({ taux: sl.taux, label: sl.label, color: sl.color, montant: sl.montant })),
+    slicesApres: res.slicesApres.map((sl) => ({ taux: sl.taux, label: sl.label, color: sl.color, montant: sl.montant })),
+    tranchesEffacees: res.tranchesEffacees,
   };
 }
 
@@ -675,5 +695,5 @@ export function buildRenderModel(
     if (block) blocks.push(block);
   }
 
-  return { code: ctx.code, dateStr, blocks };
+  return { code: ctx.code, clientName: ctx.clientName, dateStr, blocks };
 }

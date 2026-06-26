@@ -42,6 +42,20 @@ function pickProfil(v?: FieldVal): PerProfil | undefined {
 }
 
 /**
+ * Versement « envisagé » prioritaire (Chantier champs envisagés) : la valeur
+ * Découverte du champ envisagé l'emporte, sinon repli sur le versement régulier
+ * (Découverte > Simulation). On ne lit que `.dec` de l'envisagé (son `.sim` est un
+ * miroir de la Simulation versement, déjà couvert par le repli).
+ */
+function pickEnvisage(envisage?: FieldVal, regulier?: FieldVal): number | undefined {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
+/**
  * MODE CONNECTÉ (Lot 2, point C) : ouvert depuis une fiche client. Mêmes champs,
  * pré-remplis priorité Découverte RDV > Simulation. Code client en évidence (pas le
  * nom). Le simulateur calcule seulement — il n'écrit JAMAIS dans Pipedrive.
@@ -92,8 +106,9 @@ export default async function SimulateurPerConnectePage({
       // Revenu/parts depuis l'état fiscal partagé (cohérence panneau/présentation).
       revenuImposable: fiscal.revenuNetImposable > 0 ? fiscal.revenuNetImposable : undefined,
       parts: fiscal.partsTotal,
-      versementMensuel: deal ? pickNum(deal.fields.versementMensuel) : undefined,
-      versementInitial: deal ? pickNum(deal.fields.versementInitial) : undefined,
+      // Versement envisagé PER prioritaire, repli sur le versement de scénario.
+      versementMensuel: deal ? pickEnvisage(deal.fields.versementMensuelPerEnvisage, deal.fields.versementMensuel) : undefined,
+      versementInitial: deal ? pickEnvisage(deal.fields.versementInitialPerEnvisage, deal.fields.versementInitial) : undefined,
       horizon: horizon && horizon > 0 ? horizon : undefined,
       profil: deal ? pickProfil(deal.fields.profil) : undefined,
       // Foncier exclu de l'assiette du plafond de déductibilité PER (conforme DGFiP).

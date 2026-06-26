@@ -1,6 +1,9 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import type { RenderModel } from "@/lib/compte-rendu";
 import { s, GOLD, GOLD_LIGHT, BROWN, DARK, GREY, CREAM, FooterReglementaire } from "./pdf-theme";
+
+// Logo cabinet — même pattern que les PDF de production (PdfDocument.tsx / PdfDocumentAV.tsx).
+const LOGO_PATH = process.cwd() + "/public/cervus_logo.png";
 import SyntheseFiscaleBlock from "./blocks/SyntheseFiscaleBlock";
 import PlafondsPerBlock from "./blocks/PlafondsPerBlock";
 import ContributionsHRBlock from "./blocks/ContributionsHRBlock";
@@ -27,10 +30,14 @@ export default function CompteRenduDocument({ model }: { model: RenderModel }) {
       {/* ── PAGE DE GARDE ──────────────────────────────────────────────────── */}
       <Page size="A4" style={s.page}>
         <View style={{ flex: 1, justifyContent: "center" }}>
-          {/* Logo texte stylisé (pas d'image — émetteur cabinet) */}
-          <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10, color: GOLD, letterSpacing: 3, marginBottom: 4 }}>
-            CERVUS PATRIMOINE
-          </Text>
+          {/* Logo cabinet + nom (calque des PDF de production). */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={LOGO_PATH} style={{ width: 40, height: 40 }} />
+            <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 10, color: GOLD, letterSpacing: 3 }}>
+              CERVUS PATRIMOINE
+            </Text>
+          </View>
           <Text style={{ fontFamily: "Helvetica", fontSize: 8, color: GREY, letterSpacing: 1, marginBottom: 40 }}>
             Conseil en gestion de patrimoine indépendant
           </Text>
@@ -44,8 +51,8 @@ export default function CompteRenduDocument({ model }: { model: RenderModel }) {
             rendez-vous
           </Text>
 
-          {/* Code client en évidence — jamais le nom */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          {/* Code client en évidence + nom du client en mention secondaire. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <Text style={{ fontSize: 8, color: GREY, textTransform: "uppercase", letterSpacing: 1.5 }}>
               Client
             </Text>
@@ -55,6 +62,11 @@ export default function CompteRenduDocument({ model }: { model: RenderModel }) {
               </Text>
             </View>
           </View>
+          {model.clientName && (
+            <Text style={{ fontFamily: "Times-Roman", fontSize: 13, color: DARK, marginBottom: 10 }}>
+              {model.clientName}
+            </Text>
+          )}
 
           <Text style={{ fontSize: 9, color: GREY, marginBottom: 40 }}>
             Établi le {model.dateStr}

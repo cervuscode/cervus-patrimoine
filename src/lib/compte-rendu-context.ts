@@ -33,6 +33,19 @@ export function pickStr(v?: FieldVal): string | undefined {
   return raw == null ? undefined : String(raw);
 }
 
+/**
+ * Versement « envisagé » prioritaire : la valeur Découverte du champ envisagé l'emporte,
+ * sinon repli sur le versement régulier (Découverte > Simulation). On ne lit que `.dec`
+ * de l'envisagé (son `.sim` est un miroir de la Simulation versement, déjà couvert par le repli).
+ */
+export function pickEnvisageNum(envisage?: FieldVal, regulier?: FieldVal): number | undefined {
+  if (envisage?.dec != null && String(envisage.dec) !== "") {
+    const n = typeof envisage.dec === "number" ? envisage.dec : parseFloat(String(envisage.dec).replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  return pickNum(regulier);
+}
+
 export interface ResolvedClient {
   ctx: ClientContext;
   client: ClientView;
@@ -80,6 +93,7 @@ export async function resolveClientContext(personId: number): Promise<ResolvedCl
 
   const ctx: ClientContext = {
     code,
+    clientName: client.name?.trim() || null,
     fiscalState,
     foncier,
     bnc,

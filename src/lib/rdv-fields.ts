@@ -40,7 +40,7 @@ export interface RdvFieldDef {
 }
 
 /**
- * Les 30 champs éditables de la vue client (hors identité/code, gérés à part).
+ * Les 34 champs éditables de la vue client (hors identité/code, gérés à part).
  * L'ordre définit l'ordre d'affichage par section.
  */
 export const RDV_FIELDS: RdvFieldDef[] = [
@@ -73,6 +73,16 @@ export const RDV_FIELDS: RdvFieldDef[] = [
   // ── Épargne existante ──────────────────────────────────────────────────────
   { id: "versementInitial", label: "Versement PER initial", entity: "deal", kind: "money", section: "epargne", simName: "Versement initial", decName: "Versement initial (Découverte RDV)" },
   { id: "versementMensuel", label: "Versement PER mensuel", entity: "deal", kind: "money", section: "epargne", simName: "Versement mensuel", decName: "Versement mensuel (Découverte RDV)" },
+  // Versements ENVISAGÉS en RDV (cible de souscription, distincts des versements de
+  // scénario ci-dessus). Champs Deal monétaires créés À LA MAIN (script non lancé).
+  // `simName` pointe sur la Simulation versement existante → pré-remplissage visuel
+  // (badge « pré-rempli (Simulation) ») ; l'écriture ne touche QUE le decName envisagé.
+  // PER : consommés par PerQuick/PerFull, Comparateur, Résilience G3, plafond PER.
+  { id: "versementMensuelPerEnvisage", label: "Versement PER mensuel envisagé", entity: "deal", kind: "money", section: "epargne", simName: "Versement mensuel", decName: "Versement mensuel envisagé (Découverte RDV)" },
+  { id: "versementInitialPerEnvisage", label: "Versement PER initial envisagé", entity: "deal", kind: "money", section: "epargne", simName: "Versement initial", decName: "Versement initial envisagé (Découverte RDV)" },
+  // AV : consommés par le simulateur Assurance-vie.
+  { id: "versementMensuelAvEnvisage", label: "Versement AV mensuel envisagé", entity: "deal", kind: "money", section: "epargne", simName: "Versement mensuel", decName: "Versement mensuel envisagé AV (Découverte RDV)" },
+  { id: "versementInitialAvEnvisage", label: "Versement AV initial envisagé", entity: "deal", kind: "money", section: "epargne", simName: "Versement initial", decName: "Versement initial envisagé AV (Découverte RDV)" },
   { id: "immobilier", label: "Immobilier", entity: "person", kind: "money", section: "epargne", decName: "Immobilier (Découverte RDV)" },
   // Statut TNS (Lot 8) — déclencheur du plafond Madelin. Stocké en texte "Oui"/vide
   // (Pipedrive n'a pas de booléen natif). Rendu par le bloc « Plafond de versement PER »
